@@ -1,0 +1,5 @@
+rootProject.name = 'backend'
+
+
+include 'chat-server'
+include 'main-server'
