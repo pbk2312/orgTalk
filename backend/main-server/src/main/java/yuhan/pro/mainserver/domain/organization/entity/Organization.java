@@ -26,6 +26,9 @@ public class Organization extends BaseEntity {
   @Column(nullable = false, unique = true)
   private String login;
 
+  @Column(nullable = true)
+  private String avatarUrl;
+
   @ManyToMany(mappedBy = "organizations", fetch = FetchType.LAZY)
   private Set<Member> members = new HashSet<>();
 }

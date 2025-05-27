@@ -21,7 +21,6 @@ import yuhan.pro.mainserver.sharedkernel.entity.BaseEntity;
 
 @Getter
 @Entity
-@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Member extends BaseEntity {
@@ -30,15 +29,31 @@ public class Member extends BaseEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  private Long githubId;
   private String login;
   private String name;
   private String email;
+  private String avatarUrl;
 
   @Enumerated(EnumType.STRING)
   private MemberRole memberRole;
 
   @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
   private Set<Organization> organizations = new HashSet<>();
+
+  @Builder
+  public Member(String login,
+      String name,
+      String email,
+      String avatarUrl,
+      MemberRole memberRole, Long githubId) {
+    this.login = login;
+    this.name = name;
+    this.email = email;
+    this.avatarUrl = avatarUrl;
+    this.memberRole = memberRole;
+    this.githubId = githubId;
+  }
 
   public void setOrganizations(Set<Organization> organizations) {
     this.organizations.clear();

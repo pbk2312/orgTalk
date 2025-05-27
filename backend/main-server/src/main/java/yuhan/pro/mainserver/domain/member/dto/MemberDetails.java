@@ -45,10 +45,12 @@ public class MemberDetails implements OAuth2User {
   }
 
   @Builder
-  public MemberDetails(Map<String, Object> attributes, String nickName, String email
+  public MemberDetails(Map<String, Object> attributes,
+      String nickName,
+      String email
   ) {
-    this.email = email;
     this.attributes = attributes;
     this.name = nickName;
+    this.email = email;
   }
 }

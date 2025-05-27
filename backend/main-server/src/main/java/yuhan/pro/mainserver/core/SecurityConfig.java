@@ -7,22 +7,42 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import yuhan.pro.mainserver.domain.member.service.OAuth2AuthenticationSuccessHandler;
+import yuhan.pro.mainserver.domain.member.service.OAuth2Service;
+import yuhan.pro.mainserver.sharedkernel.jwt.JwtAuthenticationProvider;
+import yuhan.pro.mainserver.sharedkernel.jwt.JwtSecurityConfig;
+import yuhan.pro.mainserver.sharedkernel.jwt.JwtValidator;
 
 @Configuration
 @RequiredArgsConstructor
-public class SpringSecurityConfig {
+public class SecurityConfig {
+
+  private final JwtValidator validator;
+  private final JwtAuthenticationProvider authenticationProvider;
+  private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+  private final OAuth2Service oAuth2Service;
+
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-        .csrf(csrf -> csrf.disable())
+        .csrf(csrf -> csrf
+            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+        )
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .formLogin(form -> form.disable());
+        .formLogin(form -> form.disable())
+        .oauth2Login(oauth2 -> oauth2
+            .successHandler(oAuth2AuthenticationSuccessHandler)
+            .userInfoEndpoint(userInfoEndpoint -> userInfoEndpoint.userService(oAuth2Service))
+        )
+        .with(new JwtSecurityConfig(validator, authenticationProvider), c -> {
+        });
 
     return http.build();
   }
@@ -39,5 +59,4 @@ public class SpringSecurityConfig {
     source.registerCorsConfiguration("/**", configuration);
     return source;
   }
-
 }
