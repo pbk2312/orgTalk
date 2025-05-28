@@ -13,6 +13,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import yuhan.pro.mainserver.domain.member.service.OAuth2AuthenticationSuccessHandler;
 import yuhan.pro.mainserver.domain.member.service.OAuth2Service;
+import yuhan.pro.mainserver.sharedkernel.jwt.JwtAccessDeniedHandler;
+import yuhan.pro.mainserver.sharedkernel.jwt.JwtAuthenticationEntryPoint;
 import yuhan.pro.mainserver.sharedkernel.jwt.JwtAuthenticationProvider;
 import yuhan.pro.mainserver.sharedkernel.jwt.JwtSecurityConfig;
 import yuhan.pro.mainserver.sharedkernel.jwt.JwtValidator;
@@ -25,6 +27,8 @@ public class SecurityConfig {
   private final JwtAuthenticationProvider authenticationProvider;
   private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
   private final OAuth2Service oAuth2Service;
+  private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+  private final JwtAccessDeniedHandler accessDeniedHandler;
 
 
   @Bean
@@ -37,6 +41,17 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .formLogin(form -> form.disable())
+        .exceptionHandling(exception -> exception
+            .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+            .accessDeniedHandler(accessDeniedHandler)
+        )
+
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/oauth2/**").permitAll()
+            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+            .requestMatchers("/api/auth/me").permitAll()
+            .anyRequest().authenticated()
+        )
         .oauth2Login(oauth2 -> oauth2
             .successHandler(oAuth2AuthenticationSuccessHandler)
             .userInfoEndpoint(userInfoEndpoint -> userInfoEndpoint.userService(oAuth2Service))
