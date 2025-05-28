@@ -1,0 +1,477 @@
+/* OrganizationSelectPage.css */
+
+/* 전체 페이지 레이아웃 */
+.org-select-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  position: relative;
+}
+
+/* 배경 효과 */
+.background-effects {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-circle-1 {
+  position: absolute;
+  top: -10rem;
+  right: -10rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 50%;
+  filter: blur(3rem);
+}
+
+.bg-circle-2 {
+  position: absolute;
+  bottom: -10rem;
+  left: -10rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 50%;
+  filter: blur(3rem);
+}
+
+.bg-circle-3 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30rem;
+  height: 30rem;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 50%;
+  filter: blur(3rem);
+}
+
+/* 메인 콘텐츠 */
+.main-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.org-select-container {
+  max-width: 48rem;
+  width: 100%;
+}
+
+/* 헤더 섹션 */
+.header-section {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.main-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  margin-bottom: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.main-logo svg {
+  color: white;
+}
+
+.main-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: white;
+  margin: 0 0 1rem 0;
+}
+
+.title-highlight {
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.main-description {
+  color: #cbd5e1;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.description-highlight {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* 로딩 상태 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.loading-icon {
+  color: #60a5fa;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #cbd5e1;
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+/* 조직 그리드 */
+.organizations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* 조직 카드 */
+.org-card {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.org-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.org-card.hovered::before {
+  opacity: 0.5;
+}
+
+.org-card.selected {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.5), 0 25px 50px -12px rgba(59, 130, 246, 0.25);
+}
+
+.org-card.selected::before {
+  opacity: 1;
+}
+
+.org-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* 카드 헤더 */
+.org-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+/* 아바타 */
+.org-avatar {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.org-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #4b5563, #6b7280);
+  color: #d1d5db;
+}
+
+/* 조직 정보 */
+.org-info {
+  flex: 1;
+}
+
+.org-name {
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+}
+
+.org-id {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* 선택 배지 */
+.selected-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2rem;
+  height: 2rem;
+  background: #60a5fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  animation: checkmark-appear 0.3s ease;
+}
+
+@keyframes checkmark-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 카드 푸터 */
+.org-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.org-card-footer svg {
+  color: #60a5fa;
+}
+
+/* 빈 상태 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-icon {
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+}
+
+.empty-title {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.empty-description {
+  color: #94a3b8;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 참여 버튼 */
+.join-button-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  animation: slide-up 0.5s ease;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.join-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border: none;
+  border-radius: 0.75rem;
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+}
+
+.join-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.5);
+}
+
+.join-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+.join-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.join-button.loading {
+  background: linear-gradient(135deg, #4b5563, #6b7280);
+}
+
+.btn-loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+/* 상태 표시 */
+.status-indicator {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(30, 41, 59, 0.3);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.3);
+  border-radius: 9999px;
+}
+
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.status-text {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+}
+
+/* 하단 장식 */
+.bottom-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+  
+  .org-select-container {
+    max-width: none;
+  }
+  
+  .header-section {
+    margin-bottom: 2rem;
+  }
+  
+  .main-title {
+    font-size: 2rem;
+  }
+  
+  .main-description {
+    font-size: 1rem;
+  }
+  
+  .organizations-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .org-card {
+    padding: 1rem;
+  }
+  
+  .join-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .org-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .selected-badge {
+    position: static;
+    align-self: flex-end;
+    margin-top: -2rem;
+  }
+  
+  .org-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
