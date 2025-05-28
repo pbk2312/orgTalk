@@ -1,5 +1,7 @@
 package yuhan.pro.mainserver.domain.member.service;
 
+import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.GITHUB_EMAIL_NOT_FOUND;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ import yuhan.pro.mainserver.domain.member.repository.MemberRepository;
 import yuhan.pro.mainserver.domain.organization.dto.GithubOrgDto;
 import yuhan.pro.mainserver.domain.organization.entity.Organization;
 import yuhan.pro.mainserver.domain.organization.repository.OrganizationRepository;
+import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 
 @Service
 @Slf4j
@@ -68,8 +71,7 @@ public class OAuth2Service extends DefaultOAuth2UserService {
             && Boolean.TRUE.equals(e.get("verified")))
         .map(e -> (String) e.get("email"))
         .findFirst()
-        .orElseThrow(() -> new IllegalArgumentException(
-            "Primary verified email not found"));
+        .orElseThrow(() -> new CustomException(GITHUB_EMAIL_NOT_FOUND));
 
     log.info("Github ID: {}, Login: {}, Name: {}, Email: {}, Avatar URL: {}",
         githubId, login, name, email, avatarUrl);

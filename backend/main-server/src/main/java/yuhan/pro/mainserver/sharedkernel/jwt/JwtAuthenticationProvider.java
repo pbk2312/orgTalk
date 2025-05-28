@@ -1,5 +1,8 @@
 package yuhan.pro.mainserver.sharedkernel.jwt;
 
+import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.INVALID_JWT_CLAIMS;
+import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_FOUND;
+
 import io.jsonwebtoken.Claims;
 import java.util.Collection;
 import java.util.Collections;
@@ -11,6 +14,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 
 @Component
 @RequiredArgsConstructor
@@ -32,23 +36,20 @@ public class JwtAuthenticationProvider {
     UserDetails userDetails = customUserDetailsService.loadUserByUsername(
         claims.get("email").toString());
     if (userDetails == null) {
-      // TODO: 커스텀 예외로 변경
-      throw new IllegalStateException("Member not found");
+      throw new CustomException(MEMBER_NOT_FOUND);
     }
     return userDetails;
   }
 
   private static void validateClaims(Claims claims) {
     if (claims == null) {
-      // TODO: 커스텀 예외로 변경
-      throw new IllegalArgumentException("Invalid JWT claims");
+      throw new CustomException(INVALID_JWT_CLAIMS);
     }
   }
 
   private Collection<? extends GrantedAuthority> extractAuthoritiesFromClaims(Claims claims) {
     if (claims == null) {
-      // TODO: 커스텀 예외로 변경
-      throw new IllegalArgumentException("Invalid JWT claims");
+      throw new CustomException(INVALID_JWT_CLAIMS);
     }
 
     String role = claims.get("role", String.class);
