@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Github, Users, MessageCircle, ArrowRight, Code2, GitBranch } from 'lucide-react';
-import OrgTalkHeader from './OrgTalkHeader';
+import OrgTalkGuestHeader from './OrgTalkGuestHeader';
 import '../css/LoginPage.css';
 
 const LoginPage = () => {
@@ -16,11 +16,7 @@ const LoginPage = () => {
 
   return (
     <div className="login-page">
-      <OrgTalkHeader
-        username="Guest"
-        orgName="Org을 선택해주세요"
-        avatarUrl="https://via.placeholder.com/40"
-      />
+      <OrgTalkGuestHeader />
 
       {/* 배경 패턴 */}
       <div className="background-effects">
