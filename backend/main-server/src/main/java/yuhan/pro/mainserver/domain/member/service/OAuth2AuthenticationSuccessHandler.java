@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 import yuhan.pro.mainserver.domain.member.dto.MemberDetails;
 import yuhan.pro.mainserver.sharedkernel.jwt.TokenProvider;
-import yuhan.pro.mainserver.sharedkernel.jwt.dto.TokenDto;
+import yuhan.pro.mainserver.sharedkernel.jwt.dto.RefreshTokenDto;
 import yuhan.pro.mainserver.sharedkernel.util.CookieUtils;
 
 
@@ -40,12 +40,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         authentication.getAuthorities()
     );
 
-    TokenDto tokenDto = tokenProvider.generateTokenDto(oAuth2Authentication);
+    RefreshTokenDto refreshTokenDto = tokenProvider.generateRefreshTokenDto(oAuth2Authentication);
 
-    CookieUtils.addCookie(response, "accessToken", tokenDto.accessToken(),
-        tokenDto.accessTokenExpiresIn());
-    CookieUtils.addCookie(response, "refreshToken", tokenDto.refreshToken(),
-        tokenDto.refreshTokenExpiresIn());
+    CookieUtils.addCookie(response, "refreshToken", refreshTokenDto.refreshToken(),
+        refreshTokenDto.refreshTokenExpiresIn());
 
     String targetUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
         .build().toUriString();

@@ -40,21 +40,6 @@ public class JwtValidator {
 
   }
 
-  public boolean isExpired(String token) {
-    try {
-      Jwts.parser()
-          .verifyWith(getSecretKey())
-          .build()
-          .parseSignedClaims(token);
-      return false;
-    } catch (ExpiredJwtException e) {
-      return true;
-    } catch (JwtException | IllegalArgumentException e) {
-      log.warn("유효하지 않은 JWT 토큰 검사: {}", token, e);
-      return false;
-    }
-  }
-
   private SecretKey getSecretKey() {
     return Keys.hmacShaKeyFor(appKey.getBytes());
   }

@@ -1,8 +1,10 @@
 package yuhan.pro.mainserver.sharedkernel.jwt;
 
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
+import io.jsonwebtoken.security.Keys;
 import java.util.Date;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
@@ -12,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
+import yuhan.pro.mainserver.sharedkernel.jwt.dto.AccessTokenResponse;
+import yuhan.pro.mainserver.sharedkernel.jwt.dto.RefreshTokenDto;
 import yuhan.pro.mainserver.sharedkernel.jwt.dto.TokenDto;
 import yuhan.pro.mainserver.sharedkernel.jwt.mapper.JwtMapper;
 
@@ -22,6 +26,9 @@ public class TokenProvider {
 
   @Value("${custom.jwt.duration.access}")
   private Long accessTokenExpiration;
+
+  @Value("${custom.jwt.secrets.app-key}")
+  private String appKey;
 
   @Value("${custom.jwt.duration.refresh}")
   private Long refreshTokenExpiration;
@@ -34,10 +41,20 @@ public class TokenProvider {
     String authority = extractAuthories(authentication);
 
     String accessToken = createAccessToken(authentication.getName(), authority);
-    String refreshToken = createRefreshToken(authentication.getName());
+    String refreshToken = createRefreshToken(authentication.getName(), authority);
 
     return JwtMapper.toDto(accessToken, refreshToken, accessTokenExpiration.intValue(),
         refreshTokenExpiration.intValue());
+  }
+
+  public RefreshTokenDto generateRefreshTokenDto(Authentication authentication) {
+
+    String authority = extractAuthories(authentication);
+    String refreshToken = createRefreshToken(authentication.getName(), authority);
+    return RefreshTokenDto.builder()
+        .refreshToken(refreshToken)
+        .refreshTokenExpiresIn(refreshTokenExpiration.intValue())
+        .build();
   }
 
   private String extractAuthories(Authentication authentication) {
@@ -56,12 +73,33 @@ public class TokenProvider {
         .compact();
   }
 
-  private String createRefreshToken(String email) {
+  private String createRefreshToken(String email, String authorities) {
     return Jwts.builder()
         .claim("email", email)
+        .claim("role", authorities)
         .issuedAt(new Date())
         .expiration(new Date(new Date().getTime() + refreshTokenExpiration))
         .signWith(jwtSecretKey, SIG.HS256)
         .compact();
+  }
+
+  public AccessTokenResponse getAccessToken(String token) {
+    Claims payload = Jwts.parser()
+        .verifyWith(getSecretKey())
+        .build()
+        .parseSignedClaims(token).getPayload();
+
+    String email = payload.get("email", String.class);
+    String role = payload.get("role", String.class);
+    String accessToken = createAccessToken(email, role);
+    return AccessTokenResponse
+        .builder()
+        .accessToken(accessToken)
+        .accessTokenExpiresIn(accessTokenExpiration.intValue())
+        .build();
+  }
+
+  private SecretKey getSecretKey() {
+    return Keys.hmacShaKeyFor(appKey.getBytes());
   }
 }

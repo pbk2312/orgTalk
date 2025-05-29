@@ -2,7 +2,6 @@ package yuhan.pro.mainserver.sharedkernel.jwt;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -19,10 +18,18 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-  private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
+  private static final String AUTH_HEADER = "Authorization";
+  private static final String TOKEN_PREFIX = "Bearer ";
 
   private final JwtValidator jwtValidator;
   private final JwtAuthenticationProvider authenticationProvider;
+
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    String path = request.getRequestURI();
+    return path.equals("/api/auth/refresh");
+  }
+
 
   @Override
   protected void doFilterInternal(
@@ -33,7 +40,8 @@ public class JwtFilter extends OncePerRequestFilter {
     String requestId = UUID.randomUUID().toString();
     long startTime = System.currentTimeMillis();
 
-    log.info("Request ID: {} - 요청 URI: {}에 대한 JWT 필터 시작", requestId, request.getRequestURI());
+    log.info("Request ID: {} - Starting JWT filter for URI: {}", requestId,
+        request.getRequestURI());
 
     try {
       String jwt = resolveToken(request);
@@ -41,28 +49,25 @@ public class JwtFilter extends OncePerRequestFilter {
       if (StringUtils.hasText(jwt) && jwtValidator.validate(jwt)) {
         Authentication authentication = authenticationProvider.getAuthentication(jwt);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        log.info("Request ID: {} - 유효한 JWT 토큰. 인증 정보 설정: {}", requestId, authentication.getName());
+        log.info("Request ID: {} - Valid JWT. Authentication set for user: {}", requestId,
+            authentication.getName());
       } else {
-        log.debug("Request ID: {} - JWT 토큰 없음 또는 유효하지 않음. SecurityContext 초기화", requestId);
+        log.debug("Request ID: {} - No valid JWT found. Clearing SecurityContext.", requestId);
         SecurityContextHolder.clearContext();
       }
 
       filterChain.doFilter(request, response);
     } finally {
       long duration = System.currentTimeMillis() - startTime;
-      log.info("Request ID: {} - 요청 URI: {}에 대한 JWT 필터 종료. 처리 시간: {} ms",
+      log.info("Request ID: {} - Completed JWT filter for URI: {} in {} ms",
           requestId, request.getRequestURI(), duration);
     }
   }
 
   private String resolveToken(HttpServletRequest request) {
-    Cookie[] cookies = request.getCookies();
-    if (cookies != null) {
-      for (Cookie cookie : cookies) {
-        if (ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
-          return cookie.getValue();
-        }
-      }
+    String bearerToken = request.getHeader(AUTH_HEADER);
+    if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(TOKEN_PREFIX)) {
+      return bearerToken.substring(TOKEN_PREFIX.length());
     }
     return null;
   }
