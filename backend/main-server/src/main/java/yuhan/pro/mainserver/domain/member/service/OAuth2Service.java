@@ -114,7 +114,7 @@ public class OAuth2Service extends DefaultOAuth2UserService {
 
   private Member findMemberOrSave(Long githubId, String login, String name,
       String email, String avatarUrl) {
-    return memberRepository.findById(githubId)
+    return memberRepository.findByEmail(email)
         .orElseGet(() -> memberRepository.save(
             Member.builder()
                 .githubId(githubId)
