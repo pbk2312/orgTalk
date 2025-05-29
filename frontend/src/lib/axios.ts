@@ -8,7 +8,12 @@ let failedQueue: Array<{
   reject: (error: any) => void;
 }> = [];
 
-// 메모리에 토큰 세팅
+const PUBLIC_ENDPOINTS = [
+  '/api/auth/refresh',
+  '/api/auth/login',
+  '/api/auth/signUp',
+];
+
 export function setAccessToken(token: string) {
   accessToken = token;
 }
@@ -18,26 +23,30 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// 토큰 리프레시 API 호출
+// 리프레시 전용 인스턴스 (인터셉터 미적용)
+const authApi = axios.create({
+  baseURL: api.defaults.baseURL,
+  withCredentials: true,
+});
+
 async function refreshToken(): Promise<string> {
-  const response = await axios.post(
-    '/api/auth/refresh',
-    {},
-    { baseURL: api.defaults.baseURL, withCredentials: true }
-  );
-  return response.data.accessToken; // 실제 응답 구조에 맞게 조정하세요
+  const { data } = await authApi.post('/api/auth/refresh');
+  return data.accessToken;
 }
 
-// REQUEST 인터셉터
 api.interceptors.request.use(
   async (config) => {
-    // 토큰이 없고 리프레시 중이 아니면
+    const url = config.url ?? '';
+    // 1) public endpoint인 경우, 토큰/큐 처리 없이 바로 통과
+    if (PUBLIC_ENDPOINTS.some(ep => url.endsWith(ep))) {
+      return config;
+    }
+    // 2) 토큰이 비어 있고, 리프레시 중이 아니면 한 번만 시도
     if (!accessToken && !isRefreshing) {
       isRefreshing = true;
       try {
         const newToken = await refreshToken();
         setAccessToken(newToken);
-        // 대기 중인 요청들에 새 토큰 적용
         failedQueue.forEach(({ resolve }) => resolve(newToken));
       } catch (err) {
         failedQueue.forEach(({ reject }) => reject(err));
@@ -47,13 +56,12 @@ api.interceptors.request.use(
         isRefreshing = false;
       }
     }
-
-    // 토큰이 이미 있으면 헤더에 추가
+    // 3) 토큰이 있으면 헤더 추가
     if (accessToken) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
-    // 리프레시 중인 경우 큐에 보관했다가 나중에 헤더 추가
+    // 4) 리프레시 중이면 큐에 대기
     else if (isRefreshing) {
       await new Promise<string>((resolve, reject) => {
         failedQueue.push({ resolve, reject });
@@ -62,17 +70,32 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       });
     }
-
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// RESPONSE 인터셉터: 401 에러 시 토큰 리프레시 후 재시도
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   async (error) => {
-    const originalRequest = (error.config as any);
+    const originalRequest = error.config as any;
+    const url = originalRequest.url ?? '';
+
+    // 리프레시 엔드포인트가 401 → 바로 로그인
+    if (
+      error.response?.status === 401 &&
+      url.endsWith('/api/auth/refresh')
+    ) {
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
+    // public endpoint는 재시도 대상이 아님
+    if (PUBLIC_ENDPOINTS.some(ep => url.endsWith(ep))) {
+      return Promise.reject(error);
+    }
+
+    // 기타 401 → 토큰 한 번 갱신 후 재시도
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
@@ -86,6 +109,7 @@ api.interceptors.response.use(
         return Promise.reject(err);
       }
     }
+
     return Promise.reject(error);
   }
 );

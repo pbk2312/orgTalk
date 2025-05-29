@@ -4,6 +4,7 @@ import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.MEMBER_N
 
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +19,7 @@ import yuhan.pro.mainserver.domain.organization.entity.Organization;
 import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class MemberService {
 
@@ -39,9 +41,11 @@ public class MemberService {
   public MemberResponse isLogin() {
     String email = getEmail();
     if (email == null) {
+      log.info("Member is not logged in");
       return MemberMapper.unauthenticatedResponse();
     }
     Member member = findMemberOrThrow(email);
+    log.info("Member {} is logged in", member.getEmail());
     return MemberMapper.toMemberResponse(member);
   }
 

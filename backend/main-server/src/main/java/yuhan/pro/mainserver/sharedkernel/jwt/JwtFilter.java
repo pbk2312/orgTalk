@@ -24,12 +24,6 @@ public class JwtFilter extends OncePerRequestFilter {
   private final JwtValidator jwtValidator;
   private final JwtAuthenticationProvider authenticationProvider;
 
-  @Override
-  protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-    String path = request.getRequestURI();
-    return path.equals("/api/auth/refresh");
-  }
-
 
   @Override
   protected void doFilterInternal(

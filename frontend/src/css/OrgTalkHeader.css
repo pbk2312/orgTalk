@@ -5,7 +5,7 @@
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(51, 65, 85, 0.5);
-  z-index: 10;
+  z-index: 9999; /* 10 → 9999로 변경 */
 }
 
 .orgtalk-header-content {

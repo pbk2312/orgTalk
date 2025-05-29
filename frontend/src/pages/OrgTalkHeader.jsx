@@ -10,6 +10,8 @@ import { useAuth } from '../hooks/useAuth.ts';
 const OrgTalkHeader = () => {
   const { auth, loading, logout } = useAuth();
 
+  console.log('🧐 OrgTalkHeader render — auth:', auth, ' logout:', logout);
+
   if (loading) {
     return (
       <header className="orgtalk-header">
@@ -51,9 +53,15 @@ const OrgTalkHeader = () => {
               </div>
             </div>
 
-            <button className="orgtalk-logout-btn" onClick={logout}>
-              <LogOut size={16} /> 로그아웃
-            </button>
+            <button
+  className="orgtalk-logout-btn"
+  onClick={() => {
+    console.log('로그아웃 버튼 클릭!');
+    logout();
+  }}
+>
+  <LogOut size={16} /> 로그아웃
+</button>
           </div>
         )}
       </div>

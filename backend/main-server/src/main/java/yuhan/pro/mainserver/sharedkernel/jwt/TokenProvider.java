@@ -16,8 +16,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import yuhan.pro.mainserver.sharedkernel.jwt.dto.AccessTokenResponse;
 import yuhan.pro.mainserver.sharedkernel.jwt.dto.RefreshTokenDto;
-import yuhan.pro.mainserver.sharedkernel.jwt.dto.TokenDto;
-import yuhan.pro.mainserver.sharedkernel.jwt.mapper.JwtMapper;
 
 @Slf4j
 @Component
@@ -34,18 +32,6 @@ public class TokenProvider {
   private Long refreshTokenExpiration;
 
   private final SecretKey jwtSecretKey;
-
-
-  public TokenDto generateTokenDto(Authentication authentication) {
-
-    String authority = extractAuthories(authentication);
-
-    String accessToken = createAccessToken(authentication.getName(), authority);
-    String refreshToken = createRefreshToken(authentication.getName(), authority);
-
-    return JwtMapper.toDto(accessToken, refreshToken, accessTokenExpiration.intValue(),
-        refreshTokenExpiration.intValue());
-  }
 
   public RefreshTokenDto generateRefreshTokenDto(Authentication authentication) {
 
