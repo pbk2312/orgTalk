@@ -25,6 +25,7 @@ public class MemberService {
 
   private final MemberRepository memberRepository;
 
+  // Todo: 캐시 처리 고민(채팅 서버랑 큰 상호작용을 안할거고 메인 서버 용도로만 할건데 Redis 말고 카페인 캐시 고민)
   @Transactional(readOnly = true)
   public Set<OrganizationsResponse> getOrganizations() {
 
@@ -37,6 +38,7 @@ public class MemberService {
     return MemberMapper.toOrganizationsResponse(organizations);
   }
 
+  // Todo: 캐시 처리 고민
   @Transactional(readOnly = true)
   public MemberResponse isLogin() {
     String email = getEmail();
@@ -54,7 +56,7 @@ public class MemberService {
         .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
   }
 
-  private static String getEmail() {
+  private String getEmail() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
       return null;

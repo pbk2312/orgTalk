@@ -36,10 +36,6 @@ public class AuthService {
     return tokenProvider.getAccessToken(refreshToken);
   }
 
-  private boolean refreshTokenIsEmpty(String refreshToken) {
-    return refreshToken == null || refreshToken.isEmpty();
-  }
-
   private void validateRefreshToken(String refreshToken, HttpServletResponse response) {
     if (!jwtValidator.validate(refreshToken)) {
       log.warn("Invalid refresh token : {}", refreshToken);

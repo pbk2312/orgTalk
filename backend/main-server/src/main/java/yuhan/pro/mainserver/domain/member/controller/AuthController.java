@@ -27,7 +27,6 @@ public class AuthController {
   @GetMapping("/me")
   @ResponseStatus(HttpStatus.OK)
   public MemberResponse getMe() {
-    log.info("Get member info");
     return memberService.isLogin();
   }
 
