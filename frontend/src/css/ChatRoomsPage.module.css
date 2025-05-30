@@ -1,0 +1,639 @@
+/* ChatRoomsPage.css */
+
+/* 전체 페이지 레이아웃 */
+.chat-rooms-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  position: relative;
+  color: white;
+  padding-top: 4rem;
+}
+
+/* 배경 효과 */
+.background-effects {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-circle-1 {
+  position: absolute;
+  top: -10rem;
+  right: -10rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 50%;
+  filter: blur(3rem);
+}
+
+.bg-circle-2 {
+  position: absolute;
+  bottom: -10rem;
+  left: -10rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 50%;
+  filter: blur(3rem);
+}
+
+.bg-circle-3 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30rem;
+  height: 30rem;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 50%;
+  filter: blur(3rem);
+}
+
+/* 메인 콘텐츠 */
+.main-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.chat-rooms-container {
+  max-width: 64rem;
+  width: 100%;
+  padding-top: 2rem;
+}
+
+/* 헤더 섹션 */
+.header-section {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.org-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.org-avatar {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.org-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.org-details {
+  text-align: left;
+}
+
+.org-name {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0 0 0.5rem 0;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.org-member-count {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #cbd5e1;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.page-description {
+  color: #cbd5e1;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.description-highlight {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* 로딩 상태 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.loading-icon {
+  color: #60a5fa;
+  margin-bottom: 1rem;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading-text {
+  color: #cbd5e1;
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+/* 검색 및 필터 섹션 */
+.search-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.search-box {
+  position: relative;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 2.75rem;
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 0.75rem;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.search-input::placeholder {
+  color: #64748b;
+}
+
+.filter-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.filter-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(30, 41, 59, 0.3);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.3);
+  border-radius: 9999px;
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-button:hover {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.filter-button.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+/* 채팅방 그리드 */
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* 채팅방 카드 */
+.room-card {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.room-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.room-card.hovered::before {
+  opacity: 0.5;
+}
+
+.room-card.hovered {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.room-card.selected {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.5), 0 25px 50px -12px rgba(59, 130, 246, 0.25);
+}
+
+.room-card.selected::before {
+  opacity: 1;
+}
+
+/* 카드 헤더 */
+.room-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.room-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #4b5563, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d1d5db;
+  flex-shrink: 0;
+}
+
+.room-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.room-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.room-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+}
+
+.room-type {
+  color: #94a3b8;
+}
+
+.room-description {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.unread-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #ef4444;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  min-width: 1.5rem;
+  text-align: center;
+  animation: badge-appear 0.3s ease;
+}
+
+@keyframes badge-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 카드 바디 */
+.room-card-body {
+  margin-bottom: 1rem;
+}
+
+.last-message {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.last-message-text {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-time {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+/* 카드 푸터 */
+.room-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(51, 65, 85, 0.3);
+}
+
+.member-count {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.room-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.status-dot.active {
+  background-color: #4ade80;
+}
+
+.status-dot.inactive {
+  background-color: #6b7280;
+}
+
+.enter-icon {
+  color: #60a5fa;
+}
+
+/* 빈 상태 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-icon {
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+}
+
+.empty-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: white;
+}
+
+.empty-description {
+  color: #94a3b8;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 새 채팅방 버튼 */
+.create-button-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.create-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  border: none;
+  border-radius: 0.75rem;
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4);
+}
+
+.create-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 50px -12px rgba(34, 197, 94, 0.5);
+}
+
+.create-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.5);
+}
+
+/* 상태 표시 */
+.status-indicator {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(30, 41, 59, 0.3);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.3);
+  border-radius: 9999px;
+}
+
+.status-dot-green {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.status-text {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+}
+
+/* 하단 장식 */
+.bottom-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1024px) {
+  .chat-rooms-container {
+    max-width: 48rem;
+  }
+  
+  .rooms-grid {
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+  
+  .chat-rooms-container {
+    max-width: none;
+    padding-top: 1rem;
+  }
+  
+  .header-section {
+    margin-bottom: 2rem;
+  }
+  
+  .org-info {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .org-details {
+    text-align: center;
+  }
+  
+  .org-name {
+    font-size: 1.75rem;
+  }
+  
+  .page-description {
+    font-size: 1rem;
+  }
+  
+  .search-section {
+    gap: 0.75rem;
+  }
+  
+  .search-box {
+    max-width: none;
+  }
+  
+  .rooms-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .room-card {
+    padding: 1rem;
+  }
+  
+  .create-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .org-avatar {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .org-name {
+    font-size: 1.5rem;
+  }
+  
+  .room-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .unread-badge {
+    position: static;
+    align-self: flex-end;
+    margin-top: -2rem;
+  }
+  
+  .room-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .room-card-footer {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+}
