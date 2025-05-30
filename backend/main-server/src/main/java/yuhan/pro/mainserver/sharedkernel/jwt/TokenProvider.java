@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
+import yuhan.pro.mainserver.domain.member.dto.MemberDetails;
 import yuhan.pro.mainserver.sharedkernel.jwt.dto.AccessTokenResponse;
 import yuhan.pro.mainserver.sharedkernel.jwt.dto.RefreshTokenDto;
 
@@ -35,8 +36,11 @@ public class TokenProvider {
 
   public RefreshTokenDto generateRefreshTokenDto(Authentication authentication) {
 
+    MemberDetails memberDetails = (MemberDetails) authentication.getPrincipal();
+
     String authority = extractAuthories(authentication);
-    String refreshToken = createRefreshToken(authentication.getName(), authority);
+    String refreshToken = createRefreshToken(memberDetails.getEmail(), memberDetails.getName(),
+        authority);
     return RefreshTokenDto.builder()
         .refreshToken(refreshToken)
         .refreshTokenExpiresIn(refreshTokenExpiration.intValue())
@@ -49,20 +53,22 @@ public class TokenProvider {
         .collect(Collectors.joining(","));
   }
 
-  private String createAccessToken(String email, String authorities) {
+  private String createAccessToken(String email, String name, String authorities) {
     return Jwts.builder()
         .claim("email", email)
         .claim("role", authorities)
+        .claim("name", name)
         .issuedAt(new Date())
         .expiration(new Date(new Date().getTime() + accessTokenExpiration))
         .signWith(jwtSecretKey, SIG.HS256)
         .compact();
   }
 
-  private String createRefreshToken(String email, String authorities) {
+  private String createRefreshToken(String email, String name, String authorities) {
     return Jwts.builder()
         .claim("email", email)
         .claim("role", authorities)
+        .claim("name", name)
         .issuedAt(new Date())
         .expiration(new Date(new Date().getTime() + refreshTokenExpiration))
         .signWith(jwtSecretKey, SIG.HS256)
@@ -77,7 +83,8 @@ public class TokenProvider {
 
     String email = payload.get("email", String.class);
     String role = payload.get("role", String.class);
-    String accessToken = createAccessToken(email, role);
+    String name = payload.get("name", String.class);
+    String accessToken = createAccessToken(email, name, role);
     return AccessTokenResponse
         .builder()
         .accessToken(accessToken)

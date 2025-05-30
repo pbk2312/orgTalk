@@ -4,7 +4,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mariadb://localhost:3306/orgTalk
+    url: jdbc:mariadb://localhost:3306/chatServer
     username: Yuhan
     password: '0525'
     driver-class-name: org.mariadb.jdbc.Driver
@@ -16,3 +16,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+custom:
+  jwt:
+    duration:
+      access: 360000         # Access Token: 60분 (밀리초 기준)
+      refresh: 86400000      # Refresh Token: 24시간 (밀리초 기준)
+    secrets:
+      origin-key: 019646e0-b0e9-7d1b-8fe2-8a5293ba764c
+      app-key: EAC7B1E366B9E1B0809C35CC77049752CA7519B0D586D73E9A81742B9F47CCF4E9199A2234EB635F01852516844DF81088C04AC47147B7EF54F7D4577D7D9F87

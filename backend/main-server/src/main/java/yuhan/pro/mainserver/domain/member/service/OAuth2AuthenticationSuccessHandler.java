@@ -35,7 +35,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     MemberDetails memberDetails = (MemberDetails) authentication.getPrincipal();
 
     Authentication oAuth2Authentication = new UsernamePasswordAuthenticationToken(
-        memberDetails.getEmail(),
+        memberDetails,
         null,
         authentication.getAuthorities()
     );
