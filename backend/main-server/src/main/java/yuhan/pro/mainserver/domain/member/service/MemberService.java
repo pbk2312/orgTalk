@@ -26,6 +26,8 @@ public class MemberService {
   private final MemberRepository memberRepository;
 
   // Todo: 캐시 처리 고민(채팅 서버랑 큰 상호작용을 안할거고 메인 서버 용도로만 할건데 Redis 말고 카페인 캐시 고민)
+  // Todo: 조직에 해당하지 않은 멤버는 401이나 403 예외 처리
+
   @Transactional(readOnly = true)
   public Set<OrganizationsResponse> getOrganizations() {
 

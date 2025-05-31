@@ -1,5 +1,6 @@
 import api from '../lib/axios.ts';
 
+
 export async function getOrganizationInfo(organizationId) {
   try {
     const response = await api.get(`/api/organization/${organizationId}`);
@@ -9,4 +10,3 @@ export async function getOrganizationInfo(organizationId) {
     throw error;
   }
 }
-

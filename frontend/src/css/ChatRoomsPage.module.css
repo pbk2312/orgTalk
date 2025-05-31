@@ -74,12 +74,73 @@
   margin-bottom: 3rem;
 }
 
+
+.create-button {
+  /* 1) 배경 그라데이션 */
+  background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+
+  /* 2) 텍스트 및 아이콘 색상 */
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  /* 3) 크기 및 여백 */
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+
+  /* 4) 테두리와 모서리 */
+  border: none;
+  border-radius: 0.75rem;
+
+  /* 5) 그림자 추가 */
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+
+  /* 6) 부드러운 전환 효과 */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  /* 7) 포인터 모양 */
+  cursor: pointer;
+}
+
+.create-button:hover {
+  /* 마우스 오버 시 살짝 떠오르는 효과 */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.30);
+}
+
+.create-button:active {
+  /* 클릭(눌림) 시 살짝 눌리는 효과 */
+  transform: translateY(0);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.create-button:focus {
+  /* 포커스 시 외곽에 파란색 링 효과 */
+  outline: none;
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.25), /* 기존 그림자 유지 */
+    0 0 0 4px rgba(59, 130, 246, 0.5); /* 파란 포커스 링 */
+}
+
+/* 헤더 섹션 */
+.header-section {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
 .org-info {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 1rem;
-  margin-bottom: 1.5rem;
 }
 
 .org-avatar {
@@ -465,38 +526,6 @@
   margin: 0;
 }
 
-/* 새 채팅방 버튼 */
-.create-button-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 2rem;
-}
-
-.create-button {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #16a34a, #22c55e);
-  border: none;
-  border-radius: 0.75rem;
-  color: white;
-  font-size: 1.125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4);
-}
-
-.create-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 25px 50px -12px rgba(34, 197, 94, 0.5);
-}
-
-.create-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.5);
-}
 
 /* 상태 표시 */
 .status-indicator {

@@ -24,3 +24,32 @@ export async function createChatRoom(payload) {
     throw error;
   }
 }
+
+
+
+/**
+ * 채팅방 목록 조회
+ * @param {number} organizationId - 조회할 조직 ID
+ * @param {number} page           - 0부터 시작하는 페이지 인덱스
+ * @param {number} size           - 한 페이지당 가져올 개수
+ * @param {string} sort           - 정렬 기준 (예: "lastMessageAt,DESC")
+ */
+export async function getChatRooms(params) {
+  try {
+    const { data } = await chatApi.get(`/api/chatroom/list/${params.organizationId}`, { params });
+
+
+    console.log('📥 API 응답 전체 데이터:', data);
+    console.log('📋 응답된 채팅방 목록 (content):', data.content); 
+    return {
+      chatRooms: data.content,
+      page: data.page,
+      size: data.size,
+      totalPages: data.totalPages,
+      totalElements: data.totalElements,
+    };
+  } catch (error) {
+    console.error('Failed to fetch chat rooms:', error);
+    throw error;
+  }
+}
