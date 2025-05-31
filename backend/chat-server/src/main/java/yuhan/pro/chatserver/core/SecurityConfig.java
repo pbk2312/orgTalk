@@ -12,6 +12,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import yuhan.pro.chatserver.sharedkernel.jwt.JwtAccessDeniedHandler;
 import yuhan.pro.chatserver.sharedkernel.jwt.JwtAuthenticationEntryPoint;
+import yuhan.pro.chatserver.sharedkernel.jwt.JwtProvider;
 import yuhan.pro.chatserver.sharedkernel.jwt.JwtSecurityConfig;
 import yuhan.pro.chatserver.sharedkernel.jwt.JwtValidator;
 
@@ -22,7 +23,7 @@ public class SecurityConfig {
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
   private final JwtAccessDeniedHandler accessDeniedHandler;
   private final JwtValidator validator;
-
+  private final JwtProvider jwtProvider;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -41,7 +42,7 @@ public class SecurityConfig {
             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
             .anyRequest().authenticated()
         )
-        .with(new JwtSecurityConfig(validator), c -> {
+        .with(new JwtSecurityConfig(validator, jwtProvider), c -> {
         });
 
     return http.build();

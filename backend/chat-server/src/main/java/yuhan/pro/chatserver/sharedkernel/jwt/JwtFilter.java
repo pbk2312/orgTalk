@@ -1,19 +1,15 @@
 package yuhan.pro.chatserver.sharedkernel.jwt;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
-import javax.crypto.SecretKey;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,9 +24,7 @@ public class JwtFilter extends OncePerRequestFilter {
   private static final String TOKEN_PREFIX = "Bearer ";
 
   private final JwtValidator jwtValidator;
-
-  @Value("${custom.jwt.secrets.app-key}")
-  private String appKey;
+  private final JwtProvider jwtProvider;
 
   @Override
   protected void doFilterInternal(
@@ -47,8 +41,9 @@ public class JwtFilter extends OncePerRequestFilter {
     try {
       String jwt = resolveToken(request);
 
+      Claims claims = jwtProvider.parseClaims(jwt);
+
       if (StringUtils.hasText(jwt) && jwtValidator.validate(jwt)) {
-        Claims claims = parseClaims(jwt);
 
         ChatMemberDetails userDetails = ChatMemberDetails.builder()
             .memberId(claims.get("memberId", Long.class))
@@ -86,17 +81,5 @@ public class JwtFilter extends OncePerRequestFilter {
       return bearerToken.substring(TOKEN_PREFIX.length());
     }
     return null;
-  }
-
-  public Claims parseClaims(String token) {
-    return Jwts.parser()
-        .verifyWith(getSecretKey())
-        .build()
-        .parseSignedClaims(token)
-        .getPayload();
-  }
-
-  private SecretKey getSecretKey() {
-    return Keys.hmacShaKeyFor(appKey.getBytes());
   }
 }

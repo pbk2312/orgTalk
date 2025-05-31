@@ -1,4 +1,4 @@
-package yuhan.pro.chatserver.domain;
+package yuhan.pro.chatserver.domain.entity;
 
 public enum RoomType {
   PUBLIC,      // 누구나 참여 가능한 공개방

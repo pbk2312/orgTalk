@@ -9,3 +9,4 @@ export async function getOrganizationInfo(organizationId) {
     throw error;
   }
 }
+

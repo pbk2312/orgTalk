@@ -14,6 +14,12 @@ import styles from '../css/ChatRoomsPage.module.css';
 import OrgTalkHeader from './OrgTalkHeader';
 import { getOrganizationInfo } from '../service/OrganizationService';
 
+import { useParams } from 'react-router-dom'; 
+
+
+import CreateChatRoomModal from './CreateChatRoomModal';
+
+
 // 목 데이터: 채팅방 목록은 그대로 목 데이터로 유지
 const mockChatRooms = [
   { id: 1, name: "general", description: "전체 공지사항 및 일반적인 대화", type: "public", memberCount: 127, lastMessage: "새로운 프로젝트 시작해봅시다!", lastMessageTime: "2분 전", unreadCount: 3, isActive: true },
@@ -25,6 +31,11 @@ const mockChatRooms = [
 ];
 
 const ChatRoomsPage = () => {
+
+  const { orgId } = useParams();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [chatRooms, setChatRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,30 +43,52 @@ const ChatRoomsPage = () => {
   const [filterType, setFilterType] = useState("all");
   const [hoveredRoom, setHoveredRoom] = useState(null);
   const [organization, setOrganization] = useState(null);
-
   useEffect(() => {
-    // 조직 정보 호출
-    const loadOrganization = async () => {
-      try {
-        const orgId = 88020948
-        const data = await getOrganizationInfo(orgId);
-        setOrganization(data);
-      } catch (error) {
-        console.error('Failed to fetch organization info:', error);
-      }
-    };
+  if (!orgId) {
+    return;
+  }
 
-    // 목 채팅방 불러오기
-    const loadChatRooms = async () => {
-      setIsLoading(true);
-      await new Promise(res => setTimeout(res, 1000));
-      setChatRooms(mockChatRooms);
-      setIsLoading(false);
-    };
+  const loadOrganization = async () => {
+    try {
+      const orgIdNum = Number(orgId);
+      const data = await getOrganizationInfo(orgIdNum);
+      setOrganization(data);
+    } catch (error) {
+      console.error('Failed to fetch organization info:', error);
+    }
+  };
 
-    loadOrganization();
-    loadChatRooms();
-  }, []);
+  const loadChatRooms = async () => {
+    setIsLoading(true);
+    await new Promise(res => setTimeout(res, 1000));
+    setChatRooms(mockChatRooms);
+    setIsLoading(false);
+  };
+
+  loadOrganization();
+  loadChatRooms();
+}, [orgId]);
+
+
+
+
+    const handleOpenModal = () => setIsModalOpen(true);
+const handleCloseModal = () => setIsModalOpen(false);
+const handleCreateRoom = ({ name, description, type }) => {
+  const newRoom = {
+    id: Date.now(),
+    name,
+    description,
+    type,
+    memberCount: 1,
+    lastMessage: '',
+    lastMessageTime: '',
+    unreadCount: 0,
+    isActive: true
+  };
+  setChatRooms([newRoom, ...chatRooms]);
+};
+
 
   const filteredRooms = chatRooms.filter(room => {                
     const matchesSearch = [room.name, room.description]
@@ -194,7 +227,12 @@ const ChatRoomsPage = () => {
               </div>
             )}
             <div className={styles['create-button-container']}>
-              <button className={styles['create-button']}><Plus size={20} /><span>새 채팅방 만들기</span></button>
+              <button
+  className={styles['create-button']}
+  onClick={handleOpenModal}
+>
+  <Plus size={20} /><span>새 채팅방 만들기</span>
+</button>
             </div>
             <div className={styles['status-indicator']}>
               <div className={styles['status-badge']}><div className={styles['status-dot-green']}></div><span className={styles['status-text']}>실시간 연결됨</span></div>
@@ -202,9 +240,16 @@ const ChatRoomsPage = () => {
           </div>
         </div>
         <div className={styles['bottom-decoration']}></div>
+        <CreateChatRoomModal
+  isOpen={isModalOpen}
+  onClose={handleCloseModal}
+  onCreate={handleCreateRoom}
+/>
       </div>
     </>
   );
 };
+
+
 
 export default ChatRoomsPage;
