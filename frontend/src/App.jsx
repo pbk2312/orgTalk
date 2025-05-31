@@ -5,7 +5,7 @@ import './App.css';
 
 import LoginPage from './pages/LoginPage';
 import OrganizationSelectPage from './pages/OrganizationSelectPage';
-import ChatRoomsPage from './pages/ChatRoomsPage'; // ← 추가
+import ChatRoomsPage from './pages/ChatRoomsPage';
 
 function App() {
   return (
@@ -17,8 +17,8 @@ function App() {
         {/* 조직 선택 페이지 */}
         <Route path="/organizations" element={<OrganizationSelectPage />} />
 
-        {/* 채팅방 목록 페이지 */}
-        <Route path="/chat-rooms" element={<ChatRoomsPage />} /> {/* ← 추가 */}
+        {/* 채팅방 목록 페이지 (orgId 파라미터 포함) */}
+        <Route path="/chat-rooms/:orgId" element={<ChatRoomsPage />} />
 
         {/* 루트 접속 시 /login으로 리다이렉트 */}
         <Route path="/" element={<Navigate to="/login" replace />} />

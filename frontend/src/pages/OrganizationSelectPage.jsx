@@ -5,12 +5,17 @@ import '../css/OrganizationSelectPage.css';
 import { getOrganizations } from '../service/MemberService';
 import OrgTalkHeader from './OrgTalkHeader'; 
 
+import { useNavigate } from 'react-router-dom';
+
 const OrganizationSelectPage = () => {
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [hoveredOrg, setHoveredOrg] = useState(null);
+
+
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     const fetchOrgData = async () => {
@@ -38,10 +43,9 @@ const OrganizationSelectPage = () => {
     setIsJoining(true);
     // 실제 Join API 호출 또는 라우팅
     setTimeout(() => {
-      console.log(`Joining organization: ${selectedOrg.login}`);
-      // e.g. navigate(`/org/${selectedOrg.login}`);
-      setIsJoining(false);
-    }, 1500);
+      // /chat-rooms/{orgId} 경로로 이동
+      navigate(`/chat-rooms/${selectedOrg.id}`);
+    }, 500);
   };
 
   return (
