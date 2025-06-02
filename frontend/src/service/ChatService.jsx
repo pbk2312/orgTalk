@@ -53,3 +53,39 @@ export async function getChatRooms(params) {
     throw error;
   }
 }
+
+/**
+ * 특정 채팅방의 상세 정보를 조회합니다.
+ * @param {number} roomId - 조회할 채팅방 ID
+ * @returns {Promise<ChatRoomInfoResponse>}
+ */
+export async function getChatRoomInfo(roomId) {
+  try {
+    const { data } = await chatApi.get(`/api/chatroom/${roomId}`);
+    // data: { name, description, type, memberCount }
+    return data;
+  } catch (error) {
+    console.error(`Failed to fetch chat room info (roomId: ${roomId}):`, error);
+    throw error;
+  }
+}
+
+/**
+ * 채팅방 참여(join) API 호출
+ * 백엔드 컨트롤러: @PostMapping("/api/chatroom/{roomId}/join")
+ * 요청 바디로 { password }를 함께 보내야 합니다.
+ *
+ * @param {Object} payload
+ * @param {number} payload.roomId    - 참여하려는 채팅방 ID
+ * @param {string} payload.password  - 비공개 방일 경우 입력한 평문 비밀번호
+ * @returns {Promise<void>} 성공 시 204 No Content 반환 (throw 시 에러)
+ */
+export async function joinChatRoom({ roomId, password }) {
+  try {
+    // ► 두 번째 인자로 바로 { password } 전달
+    await chatApi.post(`/api/chatroom/${roomId}/join`, { password });
+  } catch (error) {
+    console.error(`Failed to join chat room (roomId: ${roomId}):`, error);
+    throw error;
+  }
+}

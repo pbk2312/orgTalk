@@ -61,7 +61,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         log.info("Request ID: {} - Valid JWT. Authentication set for user: {}", requestId,
-            userDetails.getUsername());
+            userDetails.getMemberId());
       } else {
         log.debug("Request ID: {} - No valid JWT found. Clearing SecurityContext.", requestId);
         SecurityContextHolder.clearContext();

@@ -1,3 +1,4 @@
+// src/components/ChatRoomsPage.jsx
 import React, { useState, useEffect } from 'react';
 import {
   MessageCircle,
@@ -10,43 +11,52 @@ import {
   Search,
   Clock
 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import OrgTalkHeader from './OrgTalkHeader';
 import CreateChatRoomModal from './CreateChatRoomModal';
+import PasswordInputModal from '../pages/PasswordInputModal'; // ← 비밀번호 입력 모달 import
 import { getOrganizationInfo } from '../service/OrganizationService';
-import { getChatRooms } from '../service/ChatService';
+import { getChatRooms, joinChatRoom } from '../service/ChatService';
 import Pagination from './Pagination';
 
 import styles from '../css/ChatRoomsPage.module.css';
 
 const ChatRoomsPage = () => {
   const { orgId } = useParams();
+  const navigate = useNavigate();
 
-  // 모달 제어
+  // 1) 채팅방 생성 모달 제어
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 조직 정보
+  // 2) 조직 정보
   const [organization, setOrganization] = useState(null);
 
-  // 채팅방 목록 + 페이징
+  // 3) 채팅방 목록 + 페이징
   const [chatRooms, setChatRooms] = useState([]);
-  const [page, setPage] = useState(0);            
-  const [size] = useState(6);                    
-  const [totalPages, setTotalPages] = useState(0);    
+  const [page, setPage] = useState(0);
+  const [size] = useState(6);
+  const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // 로딩/에러 상태
+  // 4) 로딩/에러 (채팅방 조회)
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 검색 및 필터링
+  // 5) 검색 및 필터링
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
 
-  // 선택된 채팅방
+  // 6) 선택된/호버된 채팅방(UI용)
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [hoveredRoom, setHoveredRoom] = useState(null);
 
+  // 7) “비밀번호 입력” 모달 제어를 위한 상태
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [roomToJoin, setRoomToJoin] = useState(null);     // 사용자가 입장하려고 시도한 방 객체
+  const [joinLoading, setJoinLoading] = useState(false);  // 비밀번호 검증 API 호출 중 상태
+  const [joinError, setJoinError] = useState('');         // 비밀번호 틀릴 때 보여줄 에러
+
+  // ---------- 조직 정보 및 채팅방 목록 로드 ----------
   useEffect(() => {
     if (!orgId) return;
 
@@ -73,6 +83,7 @@ const ChatRoomsPage = () => {
           sort: 'lastMessageAt,DESC'
         };
 
+        // 백엔드에서 `joined` 플래그까지 내려준다고 가정
         const {
           chatRooms: fetchedRooms,
           page: currentPage,
@@ -81,7 +92,7 @@ const ChatRoomsPage = () => {
         } = await getChatRooms(params);
 
         setChatRooms(fetchedRooms);
-        setPage(currentPage);           
+        setPage(currentPage);
         setTotalPages(fetchedTotalPages);
         setTotalElements(fetchedTotalElements);
       } catch (err) {
@@ -97,42 +108,88 @@ const ChatRoomsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, page]);
 
+  // ---------- 채팅방 생성 모달 열기/닫기 ----------
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
-  const handleCreateRoom = ({ name, description, type }) => {
-    const newRoom = {
-      id: Date.now(),
-      name,
-      description,
-      type: type.toUpperCase(),
-      memberCount: 1,
-      messageCount: 0,
-      lastMessage: '',
-      lastMessageAt: new Date().toISOString(),
-      isActive: true
-    };
-    setChatRooms(prev => [newRoom, ...prev]);
-    setSelectedRoom(newRoom);
+  // 생성 모달에서 방 생성 후, 로컬 state에 바로 추가
+  const handleCreateRoom = ({ id: newRoomId }) => {
+    // 1) 방 목록에 바로 추가하지 않고 (원한다면 목록 갱신 API를 다시 호출해도 됨)
+    // 2) 곧바로 해당 채팅룸으로 이동
+    navigate(`/chatroom/${newRoomId}`);
   };
 
-  const filteredRooms = chatRooms.filter(room => {
-    const matchesSearch = [room.name, room.description]
-      .some(text => text.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  // ---------- Private 방 입장을 위한 모달 열기 로직 ----------
+  const handleRequestJoin = (room) => {
+    setRoomToJoin(room);
+    setJoinError('');
+    setShowJoinModal(true);
+  };
+
+  // 모달에서 ‘확인’ 클릭 시 실행
+  const handleJoinSubmit = async (password) => {
+    if (!roomToJoin) return;
+
+    setJoinLoading(true);
+    setJoinError('');
+
+    try {
+      await joinChatRoom({ roomId: roomToJoin.id, password });
+
+      // 성공 시 로컬 state ‘joined=true’로 업데이트
+      setChatRooms((prevRooms) =>
+        prevRooms.map((r) =>
+          r.id === roomToJoin.id ? { ...r, joined: true } : r
+        )
+      );
+
+      setSelectedRoom({ ...roomToJoin, joined: true });
+      setShowJoinModal(false);
+      setJoinLoading(false);
+
+      // 비밀번호 맞으면 채팅방으로 이동
+      navigate(`/chatroom/${roomToJoin.id}`);
+    } catch (err) {
+      console.error(`Failed to join chat room (roomId: ${roomToJoin.id}):`, err);
+      setJoinError('비밀번호가 틀렸거나 입장할 수 없습니다.');
+      setJoinLoading(false);
+    }
+  };
+
+  const handleJoinClose = () => {
+    setJoinError('');
+    setShowJoinModal(false);
+  };
+  // ----------------------------------------------------------
+
+  // ---------- 채팅방 클릭 시 분기 처리 ----------
+  const handleRoomSelect = (room) => {
+    // Private & 미참여 상태라면 ‘비밀번호 입력 모달’ 열기
+    if (room.type === 'PRIVATE' && !room.joined) {
+      handleRequestJoin(room);
+    } else {
+      // Public 이거나 이미 joined 상태면 바로 이동
+      setSelectedRoom(room);
+      navigate(`/chatroom/${room.id}`);
+    }
+  };
+  // ----------------------------------------------------------
+
+  // 검색/필터링된 방 목록
+  const filteredRooms = chatRooms.filter((room) => {
+    const matchesSearch = [room.name, room.description].some((text) =>
+      text?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
     const matchesFilter =
       filterType === 'all' || room.type.toLowerCase() === filterType;
     return matchesSearch && matchesFilter;
   });
 
-  const handleRoomSelect = room => {
-    setSelectedRoom(room);
-    console.log(`Joining room: ${room.name}`);
-  };
-
-  const getTypeIcon = type =>
+  const getTypeIcon = (type) =>
     type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />;
 
-  const formatTime = isoString => {
+  const formatTime = (isoString) => {
     if (!isoString) return '';
     try {
       return new Date(isoString).toLocaleString();
@@ -141,6 +198,7 @@ const ChatRoomsPage = () => {
     }
   };
 
+  // 로딩 중 또는 조직 정보가 없으면 로딩 스피너 화면
   if (isLoading || !organization) {
     return (
       <>
@@ -167,6 +225,18 @@ const ChatRoomsPage = () => {
   return (
     <>
       <OrgTalkHeader />
+
+      {/* —————— 비밀번호 입력 모달 —————— */}
+      <PasswordInputModal
+        isOpen={showJoinModal}
+        onClose={handleJoinClose}
+        onSubmit={handleJoinSubmit}
+        roomName={roomToJoin?.name || ''}
+        isLoading={joinLoading}
+        errorMessage={joinError}
+      />
+      {/* —————————————————————————— */}
+
       <div className={styles['chat-rooms-page']}>
         <div className={styles['background-effects']}>
           <div className={styles['bg-circle-1']}></div>
@@ -193,7 +263,7 @@ const ChatRoomsPage = () => {
                     </p>
                   </div>
                 </div>
-                  <button className={styles['create-button']} onClick={handleOpenModal}>
+                <button className={styles['create-button']} onClick={handleOpenModal}>
                   <Plus size={18} />
                   <span>새 채팅방</span>
                 </button>
@@ -211,12 +281,12 @@ const ChatRoomsPage = () => {
                   type="text"
                   placeholder="채팅방 검색..."
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className={styles['search-input']}
                 />
               </div>
               <div className={styles['filter-buttons']}>
-                {['all', 'public', 'private'].map(type => (
+                {['all', 'public', 'private'].map((type) => (
                   <button
                     key={type}
                     onClick={() => setFilterType(type)}
@@ -242,7 +312,7 @@ const ChatRoomsPage = () => {
 
             {/* —— 채팅방 목록 Grid —— */}
             <div className={styles['rooms-grid']}>
-              {filteredRooms.map(room => (
+              {filteredRooms.map((room) => (
                 <div
                   key={room.id}
                   onClick={() => handleRoomSelect(room)}
@@ -275,15 +345,19 @@ const ChatRoomsPage = () => {
                     <div className={styles['member-count']}>
                       <Users size={16} /> <span>{room.memberCount}명</span>
                     </div>
+                    {/* —— 참여중 여부 표시 —— */}
                     <div className={styles['room-status']}>
-                      <div
-                        className={`${styles['status-dot']} ${
-                          room.isActive ? styles.active : styles.inactive
-                        }`}
-                      ></div>
-                      <span className={styles['status-text']}>
-                        {room.isActive ? '활성' : '비활성'}
-                      </span>
+                      {room.joined ? (
+                        <>
+                          <div className={styles['status-dot-joined']}></div>
+                          <span className={styles['status-text-joined']}>참여중</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className={styles['status-dot-notJoined']}></div>
+                          <span className={styles['status-text-notJoined']}>미참여</span>
+                        </>
+                      )}
                     </div>
                     <ChevronRight size={16} className={styles['enter-icon']} />
                   </div>
@@ -317,11 +391,11 @@ const ChatRoomsPage = () => {
               <Pagination
                 currentPage={page}
                 totalPages={totalPages}
-                onPageChange={newPage => setPage(newPage)}
+                onPageChange={(newPage) => setPage(newPage)}
               />
             )}
 
-            {/* —— 실시간 상태 표시 —— */}
+            {/* —— 실시간 연결 상태 (하단 상시 표시) —— */}
             <div className={styles['status-indicator']}>
               <div className={styles['status-badge']}>
                 <div className={styles['status-dot-green']}></div>

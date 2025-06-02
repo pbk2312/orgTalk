@@ -8,4 +8,5 @@ import yuhan.pro.chatserver.domain.entity.ChatRoom;
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
   Page<ChatRoom> findAllByOrganizationId(Long organizationId, Pageable pageable);
+
 }

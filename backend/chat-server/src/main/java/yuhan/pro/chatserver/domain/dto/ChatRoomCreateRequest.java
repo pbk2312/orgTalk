@@ -17,7 +17,9 @@ public record ChatRoomCreateRequest(
     String description,
 
     @NotNull(message = "채팅방 타입은 필수입니다.")
-    RoomType type
+    RoomType type,
+
+    String password
 ) {
 
 }

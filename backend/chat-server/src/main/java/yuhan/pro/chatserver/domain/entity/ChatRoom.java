@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import yuhan.pro.chatserver.sharedkernel.entity.BaseEntity;
 
 @Getter
@@ -51,6 +52,21 @@ public class ChatRoom extends BaseEntity {
   @Builder.Default
   private String lastMessage = "";
 
+  // PRIVATE ROOM ONLY
+  @Column(nullable = true)
+  private String password;
+
   @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<ChatRoomMember> members = new ArrayList<>();
+
+  public boolean isPrivate() {
+    return this.type == RoomType.PRIVATE;
+  }
+
+  public boolean matchesPassword(String rawPassword, PasswordEncoder encoder) {
+    if (this.password == null || rawPassword == null) {
+      return false;
+    }
+    return encoder.matches(rawPassword, this.password);
+  }
 }

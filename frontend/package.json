@@ -14,6 +14,9 @@
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.1",
     "react-scripts": "5.0.1",
+    "react-syntax-highlighter": "^15.6.1",
+    "sockjs-client": "^1.6.1",
+    "stompjs": "^2.3.3",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

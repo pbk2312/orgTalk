@@ -21,6 +21,10 @@ export function setAccessToken(token: string) {
   accessToken = token;
 }
 
+export function getAccessToken(): string {
+  return accessToken;
+}
+
 /** 1) 8080용 REST API 인스턴스 */
 export const api = axios.create({
   baseURL: 'http://localhost:8080',

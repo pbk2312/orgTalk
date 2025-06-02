@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
+import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
+import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
+import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
 import yuhan.pro.chatserver.domain.service.ChatRoomService;
 import yuhan.pro.chatserver.sharedkernel.dto.PageResponse;
 
@@ -28,10 +31,10 @@ public class ChatRoomController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public void createChatRoom(
+  public ChatRoomCreateResponse createChatRoom(
       @RequestBody ChatRoomCreateRequest request
   ) {
-    chatRoomService.saveChatRoom(request);
+    return chatRoomService.saveChatRoom(request);
   }
 
   @GetMapping("/list/{organizationId}")
@@ -47,4 +50,21 @@ public class ChatRoomController {
     return chatRoomService.getChatRooms(organizationId, pageable);
   }
 
+  // Todo: 채팅방 구현
+  @GetMapping("/{roomId}")
+  @ResponseStatus(HttpStatus.OK)
+  public ChatRoomInfoResponse getChatRoomInfo(
+      @PathVariable @Positive Long roomId
+  ) {
+    return chatRoomService.getChatRoomInfo(roomId);
+  }
+
+  @PostMapping("/{roomId}/join")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void joinChatRoom(
+      @PathVariable @Positive Long roomId,
+      @RequestBody JoinChatRoomRequest request
+  ) {
+    chatRoomService.joinChatRoom(roomId, request);
+  }
 }

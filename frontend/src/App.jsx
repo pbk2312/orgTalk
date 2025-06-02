@@ -6,6 +6,8 @@ import './App.css';
 import LoginPage from './pages/LoginPage';
 import OrganizationSelectPage from './pages/OrganizationSelectPage';
 import ChatRoomsPage from './pages/ChatRoomsPage';
+import ChatRoom from './pages/ChatRoom'; 
+
 
 function App() {
   return (
@@ -19,6 +21,10 @@ function App() {
 
         {/* 채팅방 목록 페이지 (orgId 파라미터 포함) */}
         <Route path="/chat-rooms/:orgId" element={<ChatRoomsPage />} />
+           <Route 
+          path="/chatroom/:roomId" 
+          element={<ChatRoom />} 
+        />
 
         {/* 루트 접속 시 /login으로 리다이렉트 */}
         <Route path="/" element={<Navigate to="/login" replace />} />

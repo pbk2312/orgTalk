@@ -13,7 +13,8 @@ public record ChatRoomResponse(
     Long memberCount,
     Integer messageCount,
     String lastMessage,
-    LocalDateTime lastMessageAt
+    LocalDateTime lastMessageAt,
+    boolean joined
 ) {
 
 }

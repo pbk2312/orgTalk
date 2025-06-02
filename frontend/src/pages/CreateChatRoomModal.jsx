@@ -1,26 +1,19 @@
 // src/components/CreateChatRoomModal.jsx
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom'; // URL 파라미터를 읽기 위해 추가
+import { useParams, useNavigate } from 'react-router-dom'; // ← useNavigate 가져오기
 import { X, Edit3, Lock, Globe, Users, Hash, Sparkles } from 'lucide-react';
 import styles from '../css/CreateChatRoomModal.module.css';
 import { createChatRoom } from '../service/ChatService.jsx';
 
-/**
- * URL 경로가 /chat-rooms/:orgId 인 상태에서,
- * 모달 안에서 직접 orgId를 읽어와 payload에 포함합니다.
- *
- * @param {Object} props
- * @param {boolean} props.isOpen
- * @param {() => void} props.onClose
- * @param {(newRoom: any) => void} props.onCreate
- */
-const CreateChatRoomModal = ({ isOpen, onClose, onCreate }) => {
-  const { orgId } = useParams();                 // URL에서 orgId 읽어옴
-  const orgIdNum = orgId ? Number(orgId) : null;  // 숫자형으로 변환
+const CreateChatRoomModal = ({ isOpen, onClose /* onCreate 제거하거나 유지 */ }) => {
+  const { orgId } = useParams();
+  const navigate = useNavigate(); // ← navigate 훅
 
+  const orgIdNum = orgId ? Number(orgId) : null;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState('public');      // "public"/"private"
+  const [type, setType] = useState('public');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -32,28 +25,33 @@ const CreateChatRoomModal = ({ isOpen, onClose, onCreate }) => {
       return;
     }
 
+    if (type === 'private' && password.trim() === '') {
+      setErrorMsg('비공개 방의 비밀번호를 입력해주세요.');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg('');
 
-    // "public" / "private" 을 백엔드 RoomType enum으로 매핑
     const enumType = type === 'private' ? 'PRIVATE' : 'PUBLIC';
-
     const payload = {
-      organizationId: orgIdNum,                // URL에서 가져온 숫자형 orgId
-      name: name.trim(),                       // 필수
-      description: description.trim() || null, // 선택사항
-      type: enumType,                          // "PUBLIC" or "PRIVATE"
+      organizationId: orgIdNum,
+      name: name.trim(),
+      description: description.trim() || null,
+      type: enumType,
+      password: type === 'private' ? password.trim() : null
     };
 
     try {
-      const newRoom = await createChatRoom(payload);
-      onCreate(newRoom);
+      // 1) 백엔드에 POST 요청 → ChatRoomCreateResponse { id: ... } 만 받는다
+      const { id: newRoomId } = await createChatRoom(payload);
 
-      // 폼 초기화 및 모달 닫기
-      setName('');
-      setDescription('');
-      setType('public');
+      // 2) 생성된 방 ID 를 받아 곧바로 해당 채팅룸 페이지로 이동
+      navigate(`/chatroom/${newRoomId}`);
+
+      // (만약 모달을 닫으려면 onClose 호출)
       onClose();
+
     } catch (err) {
       console.error(err);
       setErrorMsg('채팅방 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -66,7 +64,6 @@ const CreateChatRoomModal = ({ isOpen, onClose, onCreate }) => {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      {/* Background Effects */}
       <div className={styles['background-effects']}>
         <div className={styles['bg-circle-1']} />
         <div className={styles['bg-circle-2']} />
@@ -74,9 +71,8 @@ const CreateChatRoomModal = ({ isOpen, onClose, onCreate }) => {
 
       <div className={styles.container} onClick={(e) => e.stopPropagation()}>
         <div className={styles['gradient-border']} />
-
         <div className={styles.content}>
-          {/* Header */}
+          {/* 헤더 */}
           <div className={styles.header}>
             <div className={styles['header-left']}>
               <div className={styles['icon-container']}>
@@ -87,15 +83,13 @@ const CreateChatRoomModal = ({ isOpen, onClose, onCreate }) => {
                 <p className={styles.subtitle}>팀과 소통할 공간을 만들어보세요</p>
               </div>
             </div>
-
             <button onClick={onClose} className={styles['close-button']}>
               <X size={20} />
             </button>
           </div>
 
-          {/* Form */}
+          {/* 폼 */}
           <div className={styles.form}>
-            {/* 에러 메시지 */}
             {errorMsg && (
               <div className={styles['error-message']}>{errorMsg}</div>
             )}
@@ -119,7 +113,7 @@ const CreateChatRoomModal = ({ isOpen, onClose, onCreate }) => {
               </div>
             </div>
 
-            {/* 설명 (선택사항) */}
+            {/* 설명 (선택) */}
             <div className={styles['form-group']}>
               <label className={styles.label}>
                 <Edit3 className={styles['label-icon']} />
@@ -137,7 +131,7 @@ const CreateChatRoomModal = ({ isOpen, onClose, onCreate }) => {
               </div>
             </div>
 
-            {/* 공개 설정 (public / private) */}
+            {/* 공개 설정 */}
             <div className={styles['form-group']}>
               <label className={styles.label}>
                 <Users className={styles['label-icon']} />
@@ -192,7 +186,26 @@ const CreateChatRoomModal = ({ isOpen, onClose, onCreate }) => {
               </div>
             </div>
 
-            {/* 생성 버튼 */}
+            {type === 'private' && (
+              <div className={styles['form-group']}>
+                <label className={styles.label}>
+                  <Lock className={styles['label-icon']} />
+                  비밀번호
+                </label>
+                <div className={styles['input-wrapper']}>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required={type === 'private'}
+                    placeholder="비공개 방 비밀번호를 입력하세요"
+                    className={styles.input}
+                  />
+                  <div className={styles['input-glow']} />
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || !name.trim()}

@@ -1,6 +1,8 @@
 package yuhan.pro.chatserver.domain.mapper;
 
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
+import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
+import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
 import yuhan.pro.chatserver.domain.entity.ChatRoomMember;
@@ -11,12 +13,14 @@ public class ChatRoomMapper {
 
   }
 
-  public static ChatRoom fromChatRoomCreateRequest(ChatRoomCreateRequest request, Long ownerId) {
+  public static ChatRoom fromChatRoomCreateRequest(ChatRoomCreateRequest request, Long ownerId,
+      String encodedPassword) {
     return ChatRoom
         .builder()
         .ownerId(ownerId)
         .organizationId(request.organizationId())
         .name(request.name())
+        .password(encodedPassword)
         .description(request.description())
         .type(request.type())
         .build();
@@ -30,7 +34,24 @@ public class ChatRoomMapper {
         .build();
   }
 
-  public static ChatRoomResponse toChatRoomResponse(ChatRoom chatRoom) {
+  public static ChatRoomCreateResponse toChatRoomCreateResponse(ChatRoom chatRoom) {
+    return ChatRoomCreateResponse.builder()
+        .id(chatRoom.getId())
+        .build();
+  }
+
+  public static ChatRoomResponse toChatRoomResponse(ChatRoom chatRoom, Long memberId) {
+
+    boolean joined = false;
+    if (memberId != null) {
+      for (ChatRoomMember member : chatRoom.getMembers()) {
+        if (member.getMemberId().equals(memberId)) {
+          joined = true;
+          break;
+        }
+      }
+    }
+
     return ChatRoomResponse.builder()
         .id(chatRoom.getId())
         .name(chatRoom.getName())
@@ -39,6 +60,16 @@ public class ChatRoomMapper {
         .memberCount((long) chatRoom.getMembers().size())
         .lastMessageAt(chatRoom.getLastMessageAt())
         .lastMessage(chatRoom.getLastMessage())
+        .joined(joined)
+        .build();
+  }
+
+  public static ChatRoomInfoResponse toChatRoomInfoResponse(ChatRoom chatRoom) {
+    return ChatRoomInfoResponse.builder()
+        .name(chatRoom.getName())
+        .description(chatRoom.getDescription())
+        .type(chatRoom.getType())
+        .memberCount((long) chatRoom.getMembers().size())
         .build();
   }
 }

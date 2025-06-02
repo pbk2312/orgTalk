@@ -666,3 +666,50 @@
   }
 
 }
+
+
+/* ================================
+   참여중 / 미참여 원(circle) 스타일
+   ================================ */
+
+/* 원(circle) 크기, 색상, 여백 등을 설정 */
+.status-dot-joined {
+  width: 10px;             /* 원의 지름 */
+  height: 10px;            /* 원의 지름 */
+  border-radius: 50%;      /* 완전한 원 모양 */
+  background-color: #28a745; /* 초록색 (참여중) */
+  margin-right: 6px;       /* 텍스트와 간격 */
+  flex-shrink: 0;          /* 부모가 flex-item이면 크기가 줄어드는 것을 방지 */
+}
+
+/* 원(circle) 크기, 색상, 여백 등을 설정 */
+.status-dot-notJoined {
+  width: 10px;               /* 원의 지름 */
+  height: 10px;              /* 원의 지름 */
+  border-radius: 50%;        /* 완전한 원 모양 */
+  background-color: #dc3545;   /* 빨간색 (미참여) */
+  margin-right: 6px;         /* 텍스트와 간격 */
+  flex-shrink: 0;            /* 부모가 flex-item이면 크기가 줄어드는 것을 방지 */
+}
+
+/* 참여중 텍스트 스타일 (원 옆에 붙어있는 텍스트) */
+.status-text-joined {
+  color: #28a745;   /* 초록색과 맞추거나 원하는 색으로 설정 */
+  font-size: 0.875rem; /* 예시: 폰트 크기를 조금 작게 */
+  font-weight: 500;
+}
+
+/* 미참여 텍스트 스타일 */
+.status-text-notJoined {
+  color: #dc3545;    /* 빨간색과 맞추거나 원하는 색으로 설정 */
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* room-status 컨테이너가 flex 레이아웃이라면 가로로 정렬되도록 */
+.room-status {
+  display: flex;
+  align-items: center;
+  /* 필요하다면 아래 여백도 조절 가능 */
+  /* margin-left: auto;    부모 flex container 속성에 따라 위치 조정 가능 */
+}
