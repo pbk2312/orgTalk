@@ -1,6 +1,7 @@
 package yuhan.pro.chatserver.domain.controller;
 
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +33,7 @@ public class ChatRoomController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public ChatRoomCreateResponse createChatRoom(
-      @RequestBody ChatRoomCreateRequest request
+      @RequestBody @Valid ChatRoomCreateRequest request
   ) {
     return chatRoomService.saveChatRoom(request);
   }
@@ -63,7 +64,7 @@ public class ChatRoomController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void joinChatRoom(
       @PathVariable @Positive Long roomId,
-      @RequestBody JoinChatRoomRequest request
+      @RequestBody @Valid JoinChatRoomRequest request
   ) {
     chatRoomService.joinChatRoom(roomId, request);
   }
