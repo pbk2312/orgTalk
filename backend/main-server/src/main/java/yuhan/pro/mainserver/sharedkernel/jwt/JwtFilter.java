@@ -24,6 +24,14 @@ public class JwtFilter extends OncePerRequestFilter {
   private final JwtValidator jwtValidator;
   private final JwtAuthenticationProvider authenticationProvider;
 
+  @Override
+  protected boolean shouldNotFilter(@NonNull HttpServletRequest request) throws ServletException {
+    String path = request.getRequestURI();
+    if (path.startsWith("/ws-stomp")) {
+      return true;
+    }
+    return false;
+  }
 
   @Override
   protected void doFilterInternal(

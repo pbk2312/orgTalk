@@ -1,6 +1,5 @@
 package yuhan.pro.chatserver.sharedkernel.jwt;
 
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,21 +9,24 @@ import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.util.StringUtils;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Slf4j
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-  private static final String AUTH_HEADER = "Authorization";
-  private static final String TOKEN_PREFIX = "Bearer ";
+  private final AntPathMatcher pathMatcher = new AntPathMatcher();
+  private final JwtAuthenticationService jwtAuthService;
 
-  private final JwtValidator jwtValidator;
-  private final JwtProvider jwtProvider;
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    String uri = request.getRequestURI();
+    // "/ws-stomp/**" 경로는 필터링 제외
+    return pathMatcher.match("/ws-stomp/**", uri);
+  }
 
   @Override
   protected void doFilterInternal(
@@ -34,34 +36,16 @@ public class JwtFilter extends OncePerRequestFilter {
   ) throws ServletException, IOException {
     String requestId = UUID.randomUUID().toString();
     long startTime = System.currentTimeMillis();
-
     log.info("Request ID: {} - Starting JWT filter for URI: {}", requestId,
         request.getRequestURI());
 
     try {
-      String jwt = resolveToken(request);
-
-      Claims claims = jwtProvider.parseClaims(jwt);
-
-      if (StringUtils.hasText(jwt) && jwtValidator.validate(jwt)) {
-
-        ChatMemberDetails userDetails = ChatMemberDetails.builder()
-            .memberId(claims.get("memberId", Long.class))
-            .username(claims.get("username", String.class))
-            .nickName(claims.get("nickName", String.class))
-            .password("N/A")
-            .memberRole(MemberRole.valueOf(claims.get("role", String.class)))
-            .build();
-
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-            userDetails,
-            null,
-            userDetails.getAuthorities()
-        );
-
+      // --- 리팩터링된 부분: JwtAuthenticationService 사용 ---
+      Authentication authentication = jwtAuthService.getAuthenticationFromRequest(request);
+      if (authentication != null) {
+        log.info("Request ID: {} - Valid JWT found. User: {}", requestId,
+            ((ChatMemberDetails) authentication.getPrincipal()).getUsername());
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        log.info("Request ID: {} - Valid JWT. Authentication set for user: {}", requestId,
-            userDetails.getMemberId());
       } else {
         log.debug("Request ID: {} - No valid JWT found. Clearing SecurityContext.", requestId);
         SecurityContextHolder.clearContext();
@@ -73,13 +57,5 @@ public class JwtFilter extends OncePerRequestFilter {
       log.info("Request ID: {} - Completed JWT filter for URI: {} in {} ms",
           requestId, request.getRequestURI(), duration);
     }
-  }
-
-  private String resolveToken(HttpServletRequest request) {
-    String bearerToken = request.getHeader(AUTH_HEADER);
-    if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(TOKEN_PREFIX)) {
-      return bearerToken.substring(TOKEN_PREFIX.length());
-    }
-    return null;
   }
 }

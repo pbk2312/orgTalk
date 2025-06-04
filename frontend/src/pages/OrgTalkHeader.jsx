@@ -3,10 +3,6 @@ import { Code2, Users, LogOut } from 'lucide-react';
 import '../css/OrgTalkHeader.css';
 import { useAuth } from '../hooks/useAuth.ts';
 
-/**
- * OrgTalkHeader 컴포넌트
- * 내부에서 useAuth 훅을 사용해 로그인 상태와 사용자 정보를 가져옵니다.
- */
 const OrgTalkHeader = () => {
   const { auth, loading, logout } = useAuth();
 

@@ -4,17 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import styles from '../css/PasswordInputModal.module.css';
 
-/**
- * 비공개 채팅방 입장을 위한 비밀번호 입력 모달
- *
- * @param {Object} props
- * @param {boolean} props.isOpen - 모달 열림 상태
- * @param {() => void} props.onClose - 모달 닫기 함수
- * @param {(password: string) => void} props.onSubmit - 비밀번호 제출 함수
- * @param {string} props.roomName - 입장하려는 채팅방 이름
- * @param {boolean} props.isLoading - 로딩 상태
- * @param {string} props.errorMessage - 에러 메시지
- */
+
 const PasswordInputModal = ({
   isOpen,
   onClose,

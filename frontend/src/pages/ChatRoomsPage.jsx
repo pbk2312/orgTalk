@@ -14,7 +14,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import OrgTalkHeader from './OrgTalkHeader';
 import CreateChatRoomModal from './CreateChatRoomModal';
-import PasswordInputModal from '../pages/PasswordInputModal'; // ← 비밀번호 입력 모달 import
+import PasswordInputModal from '../pages/PasswordInputModal'; 
 import { getOrganizationInfo } from '../service/OrganizationService';
 import { getChatRooms, joinChatRoom } from '../service/ChatService';
 import Pagination from './Pagination';
@@ -83,7 +83,7 @@ const ChatRoomsPage = () => {
           sort: 'lastMessageAt,DESC'
         };
 
-        // 백엔드에서 `joined` 플래그까지 내려준다고 가정
+       
         const {
           chatRooms: fetchedRooms,
           page: currentPage,
@@ -105,17 +105,16 @@ const ChatRoomsPage = () => {
 
     loadOrganization();
     loadChatRooms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [orgId, page]);
 
-  // ---------- 채팅방 생성 모달 열기/닫기 ----------
+
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
   // 생성 모달에서 방 생성 후, 로컬 state에 바로 추가
   const handleCreateRoom = ({ id: newRoomId }) => {
-    // 1) 방 목록에 바로 추가하지 않고 (원한다면 목록 갱신 API를 다시 호출해도 됨)
-    // 2) 곧바로 해당 채팅룸으로 이동
+    // 곧바로 채팅룸으로 이ㅇ
     navigate(`/chatroom/${newRoomId}`);
   };
 

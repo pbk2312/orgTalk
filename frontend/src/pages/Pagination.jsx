@@ -1,7 +1,7 @@
 // src/pages/Pagination.jsx
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import styles from '../css/Pagination.module.css'; // 예시: CSS 모듈로 스타일 분리
+import styles from '../css/Pagination.module.css'; 
 
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   // 이전 버튼 클릭 핸들러
@@ -18,7 +18,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     }
   };
 
-  // (선택) 페이지 번호를 직접 눌러 이동하는 UI를 추가할 수도 있음
   const renderPageNumbers = () => {
     const pages = [];
     for (let i = 0; i < totalPages; i++) {
@@ -47,7 +46,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
         이전
       </button>
 
-      {/* (선택) 아래 부분을 주석 처리하거나, 원하는 방식으로 대체하세요 */}
       <div className={styles['page-numbers']}>
         {renderPageNumbers()}
       </div>

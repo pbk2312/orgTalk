@@ -20,6 +20,10 @@ public class ChatMapper {
         .senderName(chat.getSenderName())
         .senderId(chat.getSenderId())
         .message(chat.getMessage())
+        .codeContent(chat.getCodeContent())
+        .messageType(chat.getType())
+        .createdAt(chat.getCreatedAt())
+        .language(chat.getLanguage())
         .build();
   }
 
@@ -30,6 +34,9 @@ public class ChatMapper {
         .senderName(userName)
         .senderId(memberId)
         .message(request.message())
+        .type(request.messageType())
+        .codeContent(request.codeContent())
+        .language(request.language())
         .build();
   }
 }

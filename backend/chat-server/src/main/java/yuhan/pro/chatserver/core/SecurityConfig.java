@@ -14,9 +14,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import yuhan.pro.chatserver.sharedkernel.jwt.JwtAccessDeniedHandler;
 import yuhan.pro.chatserver.sharedkernel.jwt.JwtAuthenticationEntryPoint;
-import yuhan.pro.chatserver.sharedkernel.jwt.JwtProvider;
+import yuhan.pro.chatserver.sharedkernel.jwt.JwtAuthenticationService;
 import yuhan.pro.chatserver.sharedkernel.jwt.JwtSecurityConfig;
-import yuhan.pro.chatserver.sharedkernel.jwt.JwtValidator;
 
 @Configuration
 @RequiredArgsConstructor
@@ -24,8 +23,7 @@ public class SecurityConfig {
 
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
   private final JwtAccessDeniedHandler accessDeniedHandler;
-  private final JwtValidator validator;
-  private final JwtProvider jwtProvider;
+  private final JwtAuthenticationService jwtAuthenticationService;
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -36,20 +34,20 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
         .csrf(csrf -> csrf.disable())
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .sessionManagement(session ->
+            session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .formLogin(form -> form.disable())
         .exceptionHandling(exception -> exception
             .authenticationEntryPoint(jwtAuthenticationEntryPoint)
             .accessDeniedHandler(accessDeniedHandler)
         )
-
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+            .requestMatchers("/ws-stomp/**").permitAll()
             .anyRequest().authenticated()
         )
-        .with(new JwtSecurityConfig(validator, jwtProvider), c -> {
+        .with(new JwtSecurityConfig(jwtAuthenticationService), c -> {
         });
 
     return http.build();

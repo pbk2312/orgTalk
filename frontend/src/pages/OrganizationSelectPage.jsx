@@ -41,9 +41,7 @@ const OrganizationSelectPage = () => {
     if (!selectedOrg) return;
 
     setIsJoining(true);
-    // 실제 Join API 호출 또는 라우팅
     setTimeout(() => {
-      // /chat-rooms/{orgId} 경로로 이동
       navigate(`/chat-rooms/${selectedOrg.id}`);
     }, 500);
   };

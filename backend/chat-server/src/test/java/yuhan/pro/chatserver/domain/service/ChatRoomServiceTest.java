@@ -118,6 +118,7 @@ class ChatRoomServiceTest {
           .name("간단테스트방")
           .description("간단 설명")
           .type(RoomType.PUBLIC)
+          .members(List.of())
           .build();
 
       List<ChatRoom> roomList = List.of(room);

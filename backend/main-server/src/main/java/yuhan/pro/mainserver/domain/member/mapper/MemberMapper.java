@@ -28,6 +28,7 @@ public class MemberMapper {
 
   public static MemberResponse toMemberResponse(Member member) {
     return MemberResponse.builder()
+        .id(member.getId())
         .login(member.getLogin())
         .avatarUrl(member.getAvatarUrl())
         .authenticated(true)

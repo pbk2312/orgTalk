@@ -1,5 +1,6 @@
 package yuhan.pro.chatserver.domain.controller;
 
+import java.security.Principal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -15,13 +16,13 @@ public class ChatController {
 
   private final ChatService chatService;
 
-  // 클라이언트가 "/send/chat/{roomId}" 로 메시지를 보냄
   @MessageMapping("/chat/{roomId}")
-  @SendTo("/room/{roomId}")
+  @SendTo("/topic/room/{roomId}")
   public ChatResponse sendChat(
       ChatRequest chatRequest,
-      @DestinationVariable("roomId") Long roomId
+      @DestinationVariable("roomId") Long roomId,
+      Principal principal
   ) {
-    return chatService.saveChat(chatRequest, roomId);
+    return chatService.saveChat(chatRequest, roomId, principal);
   }
 }

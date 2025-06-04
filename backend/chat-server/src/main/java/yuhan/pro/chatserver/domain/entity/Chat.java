@@ -2,11 +2,14 @@ package yuhan.pro.chatserver.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -34,8 +37,20 @@ public class Chat extends BaseEntity {
 
   private Long senderId;
 
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 10)
+  private MessageType type;
+
   @Column(columnDefinition = "TEXT")
   private String message;
+
+  @Lob // 코드 내용을 Lob 으로 저장
+  @Column(name = "code_content")
+  private String codeContent;
+
+  @Enumerated(EnumType.STRING)
+  @Column(length = 20)
+  private Language language;
 
   @Builder
   public Chat(ChatRoom room, String senderName, Long senderId, String message) {

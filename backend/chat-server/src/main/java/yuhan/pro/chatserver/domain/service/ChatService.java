@@ -1,11 +1,12 @@
 package yuhan.pro.chatserver.domain.service;
 
-
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.AUTHENTICATION_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_ID_NOT_FOUND;
 
+import java.security.Principal;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yuhan.pro.chatserver.domain.dto.ChatRequest;
@@ -18,6 +19,7 @@ import yuhan.pro.chatserver.domain.repository.ChatRoomRepository;
 import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
@@ -26,12 +28,22 @@ public class ChatService {
   private final ChatRoomRepository chatRoomRepository;
 
   @Transactional
-  public ChatResponse saveChat(ChatRequest chatRequest, Long roomId) {
-    ChatRoom chatRoom = findChatRoomOrThrow(roomId);
-    Authentication authentication = getAuthentication();
+  public ChatResponse saveChat(
+      ChatRequest chatRequest,
+      Long roomId,
+      Principal principal
+  ) {
 
-    String userName = getCurrentUserName(authentication);
-    Long memberId = getCurrentUserId(authentication);
+    validatePrincipal(principal);
+
+    UsernamePasswordAuthenticationToken token =
+        (UsernamePasswordAuthenticationToken) principal;
+
+    ChatMemberDetails userDetails = (ChatMemberDetails) token.getPrincipal();
+    Long memberId = userDetails.getMemberId();
+    String userName = userDetails.getNickName();
+
+    ChatRoom chatRoom = findChatRoomOrThrow(roomId);
 
     Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom, userName, memberId);
     Chat savedChat = chatRepository.save(chat);
@@ -40,27 +52,12 @@ public class ChatService {
 
   private ChatRoom findChatRoomOrThrow(Long roomId) {
     return chatRoomRepository.findById(roomId)
-        .orElseThrow(() -> new CustomException(
-            ROOM_ID_NOT_FOUND));
+        .orElseThrow(() -> new CustomException(ROOM_ID_NOT_FOUND));
   }
 
-  private Long getCurrentUserId(Authentication authentication) {
-    if (authentication != null
-        && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
-      return chatMemberDetails.getMemberId();
+  private static void validatePrincipal(Principal principal) {
+    if (principal == null) {
+      throw new CustomException(AUTHENTICATION_NOT_FOUND);
     }
-    return null;
-  }
-
-  private String getCurrentUserName(Authentication authentication) {
-    if (authentication != null
-        && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
-      return chatMemberDetails.getNickName();
-    }
-    return null;
-  }
-
-  private Authentication getAuthentication() {
-    return SecurityContextHolder.getContext().getAuthentication();
   }
 }
