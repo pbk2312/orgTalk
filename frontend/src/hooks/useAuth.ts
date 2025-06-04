@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'; // 추가
 import api from '../lib/axios.ts';
 
 export interface MemberResponse {
+  id: number;  
   login: string | null;
   avatarUrl: string | null;
   authenticated: boolean;
@@ -11,6 +12,7 @@ export interface MemberResponse {
 
 export function useAuth() {
   const [auth, setAuth] = useState<MemberResponse>({
+    id: 0,
     login: null,
     avatarUrl: null,
     authenticated: false,
