@@ -5,6 +5,8 @@ import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_N
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_IS_EMPTY;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_NOT_MATCH;
 
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -14,6 +16,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import yuhan.pro.chatserver.core.MemberClient;
+import yuhan.pro.chatserver.domain.dto.ChatMemberResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
@@ -37,6 +41,7 @@ public class ChatRoomService {
   private final ChatRoomRepository chatRoomRepository;
   private final ChatRoomMemberRepository chatRoomMemberRepository;
   private final PasswordEncoder passwordEncoder;
+  private final MemberClient memberClient;
 
   // Todo: 조직에 포함되지 않은 사람은 접근 불가하게 로직 추가
   // Todo: roomId를 응답에 넘기기
@@ -96,10 +101,19 @@ public class ChatRoomService {
   }
 
   @Transactional(readOnly = true)
-  public ChatRoomInfoResponse getChatRoomInfo(Long roomId) {
+  public ChatRoomInfoResponse getChatRoomInfo(Long roomId, String jwtToken) {
     ChatRoom chatRoom = findChatRoomOrThrow(roomId);
-    return ChatRoomMapper.toChatRoomInfoResponse(chatRoom);
+
+    // 메인 서버에서 참여중인 멤버 정보 가져오기
+    Set<Long> memberIds = chatRoom.getMembers().stream()
+        .map(ChatRoomMember::getMemberId)
+        .collect(Collectors.toSet());
+
+    Set<ChatMemberResponse> chatMembers = memberClient.getChatMembers(memberIds, jwtToken);
+
+    return ChatRoomMapper.toChatRoomInfoResponse(chatRoom, chatMembers);
   }
+
 
   private ChatRoom findChatRoomOrThrow(Long roomId) {
     return chatRoomRepository.findById(roomId)

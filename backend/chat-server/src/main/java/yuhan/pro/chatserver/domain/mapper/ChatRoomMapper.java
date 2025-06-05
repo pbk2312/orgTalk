@@ -1,5 +1,7 @@
 package yuhan.pro.chatserver.domain.mapper;
 
+import java.util.Set;
+import yuhan.pro.chatserver.domain.dto.ChatMemberResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
@@ -64,12 +66,14 @@ public class ChatRoomMapper {
         .build();
   }
 
-  public static ChatRoomInfoResponse toChatRoomInfoResponse(ChatRoom chatRoom) {
+  public static ChatRoomInfoResponse toChatRoomInfoResponse(ChatRoom chatRoom,
+      Set<ChatMemberResponse> members) {
     return ChatRoomInfoResponse.builder()
         .name(chatRoom.getName())
         .description(chatRoom.getDescription())
         .type(chatRoom.getType())
         .memberCount((long) chatRoom.getMembers().size())
+        .members(members)
         .build();
   }
 }

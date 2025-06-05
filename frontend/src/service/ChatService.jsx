@@ -1,4 +1,5 @@
 // src/lib/ChatService.jsx
+
 import { chatApi } from '../lib/axios.ts'; 
 
 /**
@@ -13,7 +14,7 @@ import { chatApi } from '../lib/axios.ts';
 /**
  * 채팅방 생성 API를 호출합니다.
  * @param {ChatRoomCreateRequest} payload
- * @returns {Promise<any>} 생성을 성공하면 백엔드가 리턴하는 데이터(oauth 없이 Void 생략 → 필요 시 변경)
+ * @returns {Promise<any>} 생성을 성공하면 백엔드가 리턴하는 데이터
  */
 export async function createChatRoom(payload) {
   try {
@@ -25,22 +26,30 @@ export async function createChatRoom(payload) {
   }
 }
 
-
-
 /**
  * 채팅방 목록 조회
- * @param {number} organizationId - 조회할 조직 ID
- * @param {number} page           - 0부터 시작하는 페이지 인덱스
- * @param {number} size           - 한 페이지당 가져올 개수
- * @param {string} sort           - 정렬 기준 (예: "lastMessageAt,DESC")
+ * @param {Object} params
+ * @param {number} params.organizationId - 조회할 조직 ID
+ * @param {number} params.page           - 0부터 시작하는 페이지 인덱스
+ * @param {number} params.size           - 한 페이지당 가져올 개수
+ * @param {string} params.sort           - 정렬 기준 (예: "lastMessageAt,DESC")
+ * @returns {Promise<{
+ *   chatRooms: any[],
+ *   page: number,
+ *   size: number,
+ *   totalPages: number,
+ *   totalElements: number
+ * }>}
  */
 export async function getChatRooms(params) {
   try {
-    const { data } = await chatApi.get(`/api/chatroom/list/${params.organizationId}`, { params });
-
+    const { data } = await chatApi.get(
+      `/api/chatroom/list/${params.organizationId}`,
+      { params }
+    );
 
     console.log('📥 API 응답 전체 데이터:', data);
-    console.log('📋 응답된 채팅방 목록 (content):', data.content); 
+    console.log('📋 응답된 채팅방 목록 (content):', data.content);
     return {
       chatRooms: data.content,
       page: data.page,
@@ -65,7 +74,10 @@ export async function getChatRoomInfo(roomId) {
     // data: { name, description, type, memberCount }
     return data;
   } catch (error) {
-    console.error(`Failed to fetch chat room info (roomId: ${roomId}):`, error);
+    console.error(
+      `Failed to fetch chat room info (roomId: ${roomId}):`,
+      error
+    );
     throw error;
   }
 }
@@ -82,10 +94,32 @@ export async function getChatRoomInfo(roomId) {
  */
 export async function joinChatRoom({ roomId, password }) {
   try {
-    // ► 두 번째 인자로 바로 { password } 전달
     await chatApi.post(`/api/chatroom/${roomId}/join`, { password });
   } catch (error) {
-    console.error(`Failed to join chat room (roomId: ${roomId}):`, error);
+    console.error(
+      `Failed to join chat room (roomId: ${roomId}):`,
+      error
+    );
     throw error;
   }
 }
+
+/**
+ * 특정 채팅방의 모든 채팅 메시지를 조회합니다.
+ * @param {number} roomId - 조회할 채팅방 ID
+ * @returns {Promise<ChatResponse[]>} ChatResponse 배열
+ */
+export async function getChatsByRoomId(roomId) {
+  try {
+    const { data } = await chatApi.get(`/api/chat/${roomId}`);
+    // 서버에서 반환된 ChatResponse 객체 배열을 그대로 반환
+    return data;
+  } catch (error) {
+    console.error(
+      `Failed to fetch chats for roomId ${roomId}:`,
+      error
+    );
+    throw error;
+  }
+}
+

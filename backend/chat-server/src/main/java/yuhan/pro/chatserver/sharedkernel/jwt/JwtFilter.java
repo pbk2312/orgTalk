@@ -40,7 +40,6 @@ public class JwtFilter extends OncePerRequestFilter {
         request.getRequestURI());
 
     try {
-      // --- 리팩터링된 부분: JwtAuthenticationService 사용 ---
       Authentication authentication = jwtAuthService.getAuthenticationFromRequest(request);
       if (authentication != null) {
         log.info("Request ID: {} - Valid JWT found. User: {}", requestId,

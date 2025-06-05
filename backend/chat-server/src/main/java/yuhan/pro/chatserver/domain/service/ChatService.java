@@ -4,6 +4,7 @@ import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.AUTHENTI
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_ID_NOT_FOUND;
 
 import java.security.Principal;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +28,7 @@ public class ChatService {
   private final ChatRepository chatRepository;
   private final ChatRoomRepository chatRoomRepository;
 
+
   @Transactional
   public ChatResponse saveChat(
       ChatRequest chatRequest,
@@ -48,6 +50,18 @@ public class ChatService {
     Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom, userName, memberId);
     Chat savedChat = chatRepository.save(chat);
     return ChatMapper.toChatResponse(chatRoom, savedChat);
+  }
+
+  @Transactional(readOnly = true)
+  public List<ChatResponse> getAllChats(Long roomId) {
+    ChatRoom room = findChatRoomOrThrow(roomId);
+
+    List<Chat> chats = chatRepository.findAllByRoom_IdOrderByCreatedAtAsc(
+        roomId);
+
+    return chats.stream()
+        .map(chat -> ChatMapper.toChatResponse(room, chat))
+        .toList();
   }
 
   private ChatRoom findChatRoomOrThrow(Long roomId) {

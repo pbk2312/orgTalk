@@ -44,8 +44,11 @@ public class Chat extends BaseEntity {
   @Column(columnDefinition = "TEXT")
   private String message;
 
-  @Lob // 코드 내용을 Lob 으로 저장
-  @Column(name = "code_content")
+  @Lob
+  @Column(
+      name = "code_content",
+      columnDefinition = "TEXT"
+  )
   private String codeContent;
 
   @Enumerated(EnumType.STRING)

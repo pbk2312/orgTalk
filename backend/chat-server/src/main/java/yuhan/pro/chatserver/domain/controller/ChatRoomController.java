@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -55,9 +56,11 @@ public class ChatRoomController {
   @GetMapping("/{roomId}")
   @ResponseStatus(HttpStatus.OK)
   public ChatRoomInfoResponse getChatRoomInfo(
-      @PathVariable @Positive Long roomId
+      @PathVariable @Positive Long roomId,
+      @RequestHeader("Authorization") String authorizationHeader
   ) {
-    return chatRoomService.getChatRoomInfo(roomId);
+    String jwtToken = authorizationHeader.replace("Bearer ", "");
+    return chatRoomService.getChatRoomInfo(roomId, jwtToken);
   }
 
   @PostMapping("/{roomId}/join")

@@ -3,6 +3,7 @@ package yuhan.pro.mainserver.domain.member.service;
 import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_FOUND;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -10,6 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import yuhan.pro.mainserver.domain.member.dto.ChatMemberResponse;
+import yuhan.pro.mainserver.domain.member.dto.ChatMembersRequest;
 import yuhan.pro.mainserver.domain.member.dto.MemberResponse;
 import yuhan.pro.mainserver.domain.member.entity.Member;
 import yuhan.pro.mainserver.domain.member.mapper.MemberMapper;
@@ -51,6 +54,20 @@ public class MemberService {
     Member member = findMemberOrThrow(email);
     log.info("Member {} is logged in", member.getEmail());
     return MemberMapper.toMemberResponse(member);
+  }
+
+  @Transactional(readOnly = true)
+  public Set<ChatMemberResponse> getChatMembers(ChatMembersRequest request) {
+
+    Set<Member> findMembers = findChatMembers(request.memberIds());
+
+    return findMembers.stream()
+        .map(MemberMapper::toChatMemberResponse)
+        .collect(Collectors.toSet());
+  }
+
+  private Set<Member> findChatMembers(Set<Long> memberIds) {
+    return memberRepository.findAllByIdIn(memberIds);
   }
 
   private Member findMemberOrThrow(String email) {

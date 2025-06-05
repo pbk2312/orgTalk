@@ -1,5 +1,6 @@
 package yuhan.pro.chatserver.domain.dto;
 
+import java.util.Set;
 import lombok.Builder;
 import yuhan.pro.chatserver.domain.entity.RoomType;
 
@@ -8,7 +9,8 @@ public record ChatRoomInfoResponse(
     String name,
     String description,
     RoomType type,
-    Long memberCount
+    Long memberCount,
+    Set<ChatMemberResponse> members
 ) {
 
 }

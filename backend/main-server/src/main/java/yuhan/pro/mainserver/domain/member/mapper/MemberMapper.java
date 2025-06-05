@@ -3,6 +3,7 @@ package yuhan.pro.mainserver.domain.member.mapper;
 
 import java.util.Set;
 import java.util.stream.Collectors;
+import yuhan.pro.mainserver.domain.member.dto.ChatMemberResponse;
 import yuhan.pro.mainserver.domain.member.dto.MemberResponse;
 import yuhan.pro.mainserver.domain.member.entity.Member;
 import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
@@ -41,5 +42,13 @@ public class MemberMapper {
         .avatarUrl(null)
         .authenticated(false)
         .build();
+  }
+
+  public static ChatMemberResponse toChatMemberResponse(Member member) {
+    return new ChatMemberResponse(
+        member.getId(),
+        member.getLogin(),
+        member.getAvatarUrl()
+    );
   }
 }

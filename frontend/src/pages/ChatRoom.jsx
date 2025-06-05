@@ -18,7 +18,7 @@ import {
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { okaidia } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { getChatRoomInfo } from '../service/ChatService';
+import { getChatRoomInfo, getChatsByRoomId } from '../service/ChatService';
 import { useChatStomp } from '../hooks/useChatStomp';
 import { useAuth } from '../hooks/useAuth.ts';
 import styles from '../css/ChatRoom.module.css';
@@ -37,19 +37,14 @@ const ChatRoom = () => {
 
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isComposing, setIsComposing] = useState(false); 
+  const [isComposing, setIsComposing] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [codeInput, setCodeInput] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [copiedCodeId, setCopiedCodeId] = useState(null);
 
-  const [onlineMembers] = useState([
-    { userId: 'user1', nickname: '김개발', isOnline: true },
-    { userId: 'user2', nickname: '이디자인', isOnline: true },
-    { userId: 'user3', nickname: '박백엔드', isOnline: false },
-    { userId: 'user4', nickname: '최기획', isOnline: true },
-    { userId: 'me',    nickname: '나',     isOnline: true }
-  ]);
+  // ✅ roomInfo.members를 기반으로 참여 중인 멤버를 저장할 상태
+  const [participants, setParticipants] = useState([]);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -76,7 +71,7 @@ const ChatRoom = () => {
     { value: 'yaml',       label: 'YAML' }
   ];
 
-  // 2) 채팅방 정보 가져오기
+  // 1) 채팅방 정보 가져오기
   useEffect(() => {
     if (authLoading) return;
 
@@ -90,6 +85,7 @@ const ChatRoom = () => {
       setLoading(false);
       return;
     }
+
     async function fetchRoomInfo() {
       try {
         setLoading(true);
@@ -102,42 +98,95 @@ const ChatRoom = () => {
         setLoading(false);
       }
     }
+
     fetchRoomInfo();
   }, [authLoading, auth, roomIdParam, roomId, navigate]);
 
-  // 3) STOMP 훅 연결 + 메시지 수신 콜백
-  const handleIncomingMessage = useCallback((payload) => {
+  // 2) roomInfo.members가 바뀌면 participants 상태 업데이트
+  useEffect(() => {
+    if (!roomInfo) return;
 
-    if (auth.id === 0) {
-      console.log('📥 로그인 정보 없음, 메시지 무시');
-      return;
+    // roomInfo.members는 Set<ChatMemberResponse> 형태이므로, 배열로 변환
+    // ChatMemberResponse: { id: Long, login: String, avatarUrl: String }
+    const memberArray = Array.from(roomInfo.members).map((m) => ({
+      userId: String(m.id),
+      login: m.login,
+      avatarUrl: m.avatarUrl
+    }));
+
+    setParticipants(memberArray);
+  }, [roomInfo]);
+
+  // 3) 페이지 로드/새로고침 시 이전 채팅 기록 가져오기
+  useEffect(() => {
+    if (authLoading) return;
+    if (!auth.authenticated) return;
+    if (!roomIdParam || isNaN(roomId)) return;
+
+    async function fetchChatHistory() {
+      try {
+        const chatResponses = await getChatsByRoomId(roomId);
+
+        // API로 받은 ChatResponse[]를 화면 메시지 형태로 매핑
+        const mapped = chatResponses.map((payload) => ({
+          id: payload.id,
+          userId: String(payload.senderId),
+          nickname: payload.senderName,
+          content: payload.message,            // 기존에 서버에 저장된 text 메시지
+          timestamp: payload.createdAt,
+          isMe: payload.senderId === auth.id,
+          type: payload.messageType === 'CODE' ? 'code' : 'text',
+          language: payload.language?.toLowerCase() || null,
+          code: payload.codeContent
+        }));
+
+        setMessages(mapped);
+      } catch (err) {
+        console.error('이전 채팅 기록을 불러오는 중 오류:', err);
+        // 오류 시 간단히 콘솔에 남기고, 에러 상태는 따로 처리하지 않음
+      }
     }
 
-    const isMyMessage = payload.senderId === auth.id;
-    console.log('📥 isMyMessage:', isMyMessage);
+    fetchChatHistory();
+  }, [authLoading, auth, roomIdParam, roomId]);
 
-    const newMsg = {
-      id: payload.id || Date.now(),
-      userId: String(payload.senderId),
-      nickname: payload.senderName,
-      content: payload.message,
-      timestamp: payload.createdAt,
-      isMe: isMyMessage,
-      type: payload.messageType === 'CODE' ? 'code' : 'text',
-      language: payload.language,
-      code: payload.codeContent
-    };
+  // 4) STOMP 훅 연결 + 메시지 수신 콜백
+  const handleIncomingMessage = useCallback(
+    (payload) => {
+      if (auth.id === 0) {
+        console.log('📥 로그인 정보 없음, 메시지 무시');
+        return;
+      }
 
-    if (isMyMessage) {
-      return;
-    }
+      const isMyMessage = payload.senderId === auth.id;
+      console.log('📥 isMyMessage:', isMyMessage);
 
-    setMessages(prev => [...prev, newMsg]);
-  }, [auth.id]);
+      const newMsg = {
+        id: payload.id || Date.now(),
+        userId: String(payload.senderId),
+        nickname: payload.senderName,
+        content: payload.message,            // 서버에서 받은 message (text or code일 때 빈 문자열)
+        timestamp: payload.createdAt,
+        isMe: isMyMessage,
+        type: payload.messageType === 'CODE' ? 'code' : 'text',
+        language: payload.language?.toLowerCase() || null,
+        code: payload.codeContent
+      };
 
-  const { sendChat: sendMessage, connected } = useChatStomp(roomId, handleIncomingMessage);
+      // 내가 보낸 메시지는 이미 로컬에 추가했으므로, 본인 메시지는 무시
+      if (isMyMessage) return;
 
-  // 4) 텍스트 메시지 전송 함수 (마우스 클릭용)
+      setMessages((prev) => [...prev, newMsg]);
+    },
+    [auth.id]
+  );
+
+  const { sendChat: sendMessage, connected } = useChatStomp(
+    roomId,
+    handleIncomingMessage
+  );
+
+  // 5) 텍스트 메시지 전송 함수 (마우스 클릭용)
   const handleSendMessage = () => {
     if (!inputMessage.trim() || !connected || auth.id === 0) return;
 
@@ -152,7 +201,7 @@ const ChatRoom = () => {
       type: 'text'
     };
 
-    setMessages(prev => [...prev, outgoing]);
+    setMessages((prev) => [...prev, outgoing]);
 
     // 서버에 전송
     const payload = {
@@ -160,7 +209,7 @@ const ChatRoom = () => {
       roomId,
       senderId: auth.id,
       senderName: auth.login || '나',
-      message: outgoing.content,
+      message: outgoing.content,   // text 메시지
       messageType: 'TEXT',
       codeContent: null,
       language: null,
@@ -168,19 +217,19 @@ const ChatRoom = () => {
     };
 
     sendMessage(payload);
-
     setInputMessage('');
   };
 
-  // 5) 코드 블록 전송 함수
+  // 6) 코드 블록 전송 함수
   const handleSendCode = () => {
     if (!codeInput.trim() || !connected || auth.id === 0) return;
 
+    // `content`를 빈 문자열로 설정해서 "코드를 공유했습니다." 문구를 제거
     const outgoing = {
       id: Date.now(),
       userId: String(auth.id),
       nickname: auth.login || '나',
-      content: `${selectedLanguage} 코드를 공유했습니다.`,
+      content: '',                    // ↩ 빈 문자열
       timestamp: new Date().toISOString(),
       isMe: true,
       type: 'code',
@@ -188,14 +237,14 @@ const ChatRoom = () => {
       code: codeInput.trim()
     };
 
-    setMessages(prev => [...prev, outgoing]);
+    setMessages((prev) => [...prev, outgoing]);
 
     const payload = {
       id: outgoing.id,
       roomId,
       senderId: auth.id,
       senderName: auth.login || '나',
-      message: outgoing.content,
+      message: '',                    // ↩ 빈 문자열로 서버에 전송
       messageType: 'CODE',
       codeContent: codeInput.trim(),
       language: selectedLanguage.toUpperCase(),
@@ -203,12 +252,11 @@ const ChatRoom = () => {
     };
 
     sendMessage(payload);
-
     setCodeInput('');
     setShowCodeModal(false);
   };
 
-  // 6) 코드 복사
+  // 7) 코드 복사
   const handleCopyCode = async (code, messageId) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -219,12 +267,10 @@ const ChatRoom = () => {
     }
   };
 
-  // 7) 엔터 키 전송 (Shift+Enter 줄바꿈, IME 완료 시 중복 방지)
+  // 8) 엔터 키 전송 (Shift+Enter 줄바꿈, IME 완료 시 중복 방지)
   const handleKeyDown = (e) => {
-    // 한글 IME 조합 중일 때는 전송하지 않음
     if (isComposing) return;
 
-    // Enter 키 + Shift 키 미사용 => 전송 로직
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
 
@@ -233,10 +279,8 @@ const ChatRoom = () => {
         return;
       }
 
-      // 메시지 전송 후 입력창을 비워서, 중복 전송 방지
       setInputMessage('');
 
-      // 로컬 메시지 추가
       const outgoing = {
         id: Date.now(),
         userId: String(auth.id),
@@ -246,9 +290,8 @@ const ChatRoom = () => {
         isMe: true,
         type: 'text'
       };
-      setMessages(prev => [...prev, outgoing]);
+      setMessages((prev) => [...prev, outgoing]);
 
-      // STOMP로 서버 전송
       const payload = {
         id: outgoing.id,
         roomId,
@@ -264,7 +307,7 @@ const ChatRoom = () => {
     }
   };
 
-  // 8) 코드 모달 내 Ctrl+Enter 시 전송
+  // 9) 코드 모달 내 Ctrl+Enter 시 전송
   const handleCodeKeyPress = (e) => {
     if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();
@@ -272,7 +315,7 @@ const ChatRoom = () => {
     }
   };
 
-  // 9) 스크롤 맨 아래로
+  // 10) 스크롤 맨 아래로
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -286,7 +329,7 @@ const ChatRoom = () => {
     }
   }, [showCodeModal]);
 
-  // 10) 시간 포맷
+  // 11) 시간 포맷
   const formatTime = (isoString) => {
     const date = new Date(isoString);
     const now = new Date();
@@ -358,7 +401,9 @@ const ChatRoom = () => {
             <div className={styles.roomDetails}>
               <div className={styles.roomNameRow}>
                 <h1 className={styles.roomName}>{roomInfo.name}</h1>
-                <div className={styles.roomType}>{getTypeIcon(roomInfo.type)}</div>
+                <div className={styles.roomType}>
+                  {getTypeIcon(roomInfo.type)}
+                </div>
               </div>
               <p className={styles.roomDescription}>
                 {roomInfo.description || '설명 없음'}
@@ -387,126 +432,145 @@ const ChatRoom = () => {
         {/* 채팅 메시지 영역 */}
         <div className={styles.messagesContainer}>
           <div className={styles.messagesList}>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`${styles.message} ${
-                  message.isMe ? styles.messageMe : styles.messageOther
-                }`}
-              >
-                {!message.isMe && (
-                  <div className={styles.messageAvatar}>
-                    <div className={styles.avatarCircle}>
-                      {message.nickname?.[0] || '🤖'}
-                    </div>
-                  </div>
-                )}
+            {messages.map((message) => {
+              // 메시지 보낸 사람의 프로필 정보(avatarUrl, login)를 participants 배열에서 찾아둠
+              const senderInfo = participants.find(
+                (p) => p.userId === message.userId
+              );
 
-                <div className={styles.messageContent}>
+              return (
+                <div
+                  key={message.id}
+                  className={`${styles.message} ${
+                    message.isMe ? styles.messageMe : styles.messageOther
+                  }`}
+                >
+                  {/* → 본인 메시지(isMe)가 아닐 때 avatar 표시 */}
                   {!message.isMe && (
-                    <div className={styles.messageHeader}>
-                      <span className={styles.messageNickname}>
-                        {message.nickname}
-                      </span>
-                      <span className={styles.messageTime}>
-                        <Clock size={12} />
-                        {formatTime(message.timestamp)}
-                      </span>
+                    <div className={styles.messageAvatar}>
+                      {senderInfo && senderInfo.avatarUrl ? (
+                        <img
+                          src={senderInfo.avatarUrl}
+                          alt={senderInfo.login}
+                          className={styles.avatarImage}
+                        />
+                      ) : (
+                        <div className={styles.avatarCircle}>
+                          {message.nickname?.[0] || '🤖'}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  <div className={styles.messageBubble}>
-                    {message.type === 'text' ? (
-                      <p className={styles.messageText}>{message.content}</p>
-                    ) : (
-                      <div className={styles.codeMessage}>
-                        <div className={styles.codeHeader}>
-                          <div className={styles.codeLanguage}>
-                            <Code size={14} />
-                            <span
-                              style={{
-                                color: getLanguageColor(message.language)
-                              }}
-                            >
-                              {
-                                supportedLanguages.find(
-                                  (lang) => lang.value === message.language
-                                )?.label || message.language
-                              }
-                            </span>
-                          </div>
-                          <button
-                            className={styles.copyButton}
-                            onClick={() =>
-                              handleCopyCode(message.code, message.id)
-                            }
-                          >
-                            {copiedCodeId === message.id ? (
-                              <Check size={14} />
-                            ) : (
-                              <Copy size={14} />
-                            )}
-                            {copiedCodeId === message.id ? '복사됨' : '복사'}
-                          </button>
-                        </div>
-                        <SyntaxHighlighter
-                          language={message.language}
-                          style={okaidia}
-                          showLineNumbers={true}
-                          wrapLongLines={true}
-                          className={styles.codeBlock}
-                        >
-                          {message.code}
-                        </SyntaxHighlighter>
-                        {message.content && (
-                          <p className={styles.codeDescription}>
-                            {message.content}
-                          </p>
-                        )}
+                  <div className={styles.messageContent}>
+                    {/* 본인이 아닌 메시지일 때만 닉네임과 시간 헤더 보여줌 */}
+                    {!message.isMe && (
+                      <div className={styles.messageHeader}>
+                        <span className={styles.messageNickname}>
+                          {message.nickname}
+                        </span>
+                        <span className={styles.messageTime}>
+                          <Clock size={12} />
+                          {formatTime(message.timestamp)}
+                        </span>
                       </div>
                     )}
 
-                    {message.isMe && (
-                      <div className={styles.messageTimeMe}>
-                        <Clock size={12} />
-                        {formatTime(message.timestamp)}
-                      </div>
-                    )}
+                    <div className={styles.messageBubble}>
+                      {message.type === 'text' ? (
+                        <p className={styles.messageText}>
+                          {message.content}
+                        </p>
+                      ) : (
+                        <div className={styles.codeMessage}>
+                          <div className={styles.codeHeader}>
+                            <div className={styles.codeLanguage}>
+                              <Code size={14} />
+                              <span
+                                style={{
+                                  color: getLanguageColor(message.language)
+                                }}
+                              >
+                                {
+                                  supportedLanguages.find(
+                                    (lang) => lang.value === message.language
+                                  )?.label || message.language
+                                }
+                              </span>
+                            </div>
+                            <button
+                              className={styles.copyButton}
+                              onClick={() =>
+                                handleCopyCode(message.code, message.id)
+                              }
+                            >
+                              {copiedCodeId === message.id ? (
+                                <Check size={14} />
+                              ) : (
+                                <Copy size={14} />
+                              )}
+                              {copiedCodeId === message.id
+                                ? '복사됨'
+                                : '복사'}
+                            </button>
+                          </div>
+                          <SyntaxHighlighter
+                            language={message.language}
+                            style={okaidia}
+                            showLineNumbers={true}
+                            wrapLongLines={true}
+                            className={styles.codeBlock}
+                          >
+                            {message.code}
+                          </SyntaxHighlighter>
+                          {/* 아래 코드는 삭제했습니다. message.content(“코드를 공유했습니다.”)를 더 이상 출력하지 않습니다. */}
+                        </div>
+                      )}
+
+                      {/* 본인 메시지에만 시간 표시 */}
+                      {message.isMe && (
+                        <div className={styles.messageTimeMe}>
+                          <Clock size={12} />
+                          {formatTime(message.timestamp)}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         </div>
 
-        {/* 사이드바 – 온라인 멤버 */}
+        {/* 사이드바 – 참여 중인 멤버 (roomInfo.members 기반) */}
         <div className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            <h3>온라인 멤버</h3>
+            <h3>참여 중인 멤버</h3>
             <span className={styles.onlineCount}>
-              {onlineMembers.filter((m) => m.isOnline).length}명
+              {participants.length}명
             </span>
           </div>
           <div className={styles.membersList}>
-            {onlineMembers.map((member) => (
+            {participants.map((member) => (
               <div key={member.userId} className={styles.memberItem}>
                 <div className={styles.memberAvatar}>
-                  <div className={styles.avatarCircle}>
-                    {member.nickname[0]}
-                  </div>
-                  <div
-                    className={`${styles.statusIndicator} ${
-                      member.isOnline ? styles.online : styles.offline
-                    }`}
-                  ></div>
+                  {/* avatarUrl이 있으면 이미지, 없으면 첫 글자 */}
+                  {member.avatarUrl ? (
+                    <img
+                      src={member.avatarUrl}
+                      alt={member.login}
+                      className={styles.avatarImage}
+                    />
+                  ) : (
+                    <div className={styles.avatarCircle}>
+                      {member.login?.[0] || '🤖'}
+                    </div>
+                  )}
                 </div>
                 <div className={styles.memberInfo}>
                   <span className={styles.memberNickname}>
-                    {member.nickname}
-                  </span>
-                  <span className={styles.memberStatus}>
-                    {member.isOnline ? '온라인' : '오프라인'}
+                    {member.login}
                   </span>
                 </div>
               </div>
@@ -526,7 +590,9 @@ const ChatRoom = () => {
               onKeyDown={handleKeyDown}
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
-              placeholder={connected ? '메시지를 입력하세요...' : '연결 중...'}
+              placeholder={
+                connected ? '메시지를 입력하세요...' : '연결 중...'
+              }
               className={styles.messageInput}
               rows="1"
               disabled={!connected}
