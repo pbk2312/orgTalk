@@ -49,9 +49,6 @@ public class ChatRoom extends BaseEntity {
   @Builder.Default
   private LocalDateTime lastMessageAt = LocalDateTime.now();
 
-  @Builder.Default
-  private String lastMessage = "";
-
   // PRIVATE ROOM ONLY
   @Column(nullable = true)
   private String password;
