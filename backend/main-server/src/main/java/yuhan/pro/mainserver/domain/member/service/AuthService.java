@@ -1,6 +1,7 @@
 package yuhan.pro.mainserver.domain.member.service;
 
 import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.REFRESH_TOKEN_BLACKLISTED;
+import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.REFRESH_TOKEN_INVALID;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class AuthService {
     if (!jwtValidator.validate(refreshToken)) {
       log.warn("Invalid refresh token : {}", refreshToken);
       CookieUtils.removeCookie(response, "refreshToken");
-      throw new CustomException(REFRESH_TOKEN_BLACKLISTED);
+      throw new CustomException(REFRESH_TOKEN_INVALID);
     }
 
     if (blacklistService.isBlacklisted(refreshToken)) {

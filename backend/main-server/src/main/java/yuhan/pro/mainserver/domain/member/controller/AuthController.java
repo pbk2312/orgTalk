@@ -1,5 +1,9 @@
 package yuhan.pro.mainserver.domain.member.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,17 +23,28 @@ import yuhan.pro.mainserver.sharedkernel.jwt.dto.AccessTokenResponse;
 @Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
+@Tag(name = "Auth", description = "인증 관리 API")
 public class AuthController {
 
   private final MemberService memberService;
   private final AuthService authService;
 
+  @Operation(summary = "헤더용 회원 정보 반환")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "회원 정보 반환 성공")
+  })
   @GetMapping("/me")
   @ResponseStatus(HttpStatus.OK)
   public MemberResponse getMe() {
     return memberService.isLogin();
   }
 
+  @Operation(summary = "accessToken 재발급")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "accessToken 재발급 성긍"),
+      @ApiResponse(responseCode = "401", description = "refreshToken이 유효하지 않음"),
+      @ApiResponse(responseCode = "401", description = "refreshToken이 블랙리스트에 존재함")
+  })
   @PostMapping("/refresh")
   @ResponseStatus(HttpStatus.OK)
   public AccessTokenResponse getAccessToken(
@@ -39,6 +54,10 @@ public class AuthController {
     return authService.getAccessToken(refreshToken, response);
   }
 
+  @Operation(summary = "로그아웃")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "로그아웃 성공"),
+  })
   @PostMapping("/logout")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void logout(

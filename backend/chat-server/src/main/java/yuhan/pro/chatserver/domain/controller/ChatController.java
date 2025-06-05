@@ -1,5 +1,9 @@
 package yuhan.pro.chatserver.domain.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.security.Principal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +22,7 @@ import yuhan.pro.chatserver.domain.service.ChatService;
 
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "Chat", description = "채팅 관련 API")
 public class ChatController {
 
   private final ChatService chatService;
@@ -32,6 +37,12 @@ public class ChatController {
     return chatService.saveChat(chatRequest, roomId, principal);
   }
 
+
+  @Operation(summary = "채팅 히스토리 조회")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "채팅 히스토리 조회 성공"),
+      @ApiResponse(responseCode = "404", description = "해당 하는 채팅방이 없습니다.")
+  })
   @ResponseBody
   @GetMapping("/api/chat/{roomId}")
   @ResponseStatus(HttpStatus.OK)

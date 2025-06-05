@@ -1,6 +1,10 @@
 package yuhan.pro.mainserver.domain.member.controller;
 
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,21 +23,30 @@ import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "Member", description = "멤버 API")
 @RequestMapping("/api/member")
 public class MemberController {
 
   private final MemberService memberService;
 
+  @Operation(summary = "조직 리스트 조회")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "조직 조회 성공"),
+      @ApiResponse(responseCode = "404", description = "회원 조회 실패"),
+  })
   @GetMapping("/organizations")
   @ResponseStatus(HttpStatus.OK)
   public Set<OrganizationsResponse> getOrganizations() {
     return memberService.getOrganizations();
   }
 
+  @Operation(summary = "채팅방에 참여하는 회원들 조회")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "회원들 정보 조회 성공"),
+  })
   @PostMapping("/chatMembers")
   @ResponseStatus(HttpStatus.OK)
   public Set<ChatMemberResponse> getChatMembers(@RequestBody ChatMembersRequest request) {
-    log.info("request: {}", request);
     return memberService.getChatMembers(request);
   }
 }

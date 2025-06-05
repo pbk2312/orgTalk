@@ -73,17 +73,18 @@ public class ChatRoomService {
 
   @Transactional
   public void joinChatRoom(Long roomId, JoinChatRoomRequest request) {
-    String pasword = request.password();
+    String password = request.password();
     ChatRoom chatRoom = findChatRoomOrThrow(roomId);
-    if (chatRoom.isPrivate()) {
-      if (!passwordEncoder.matches(pasword, chatRoom.getPassword())) {
-        throw new CustomException(PRIVATE_ROOM_PASSWORD_NOT_MATCH);
-      }
+
+    if (chatRoom.isPrivate() && !chatRoom.matchesPassword(password, passwordEncoder)) {
+      throw new CustomException(PRIVATE_ROOM_PASSWORD_NOT_MATCH);
     }
+
     Long memberId = getMemberId();
     ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
     chatRoomMemberRepository.save(chatRoomMember);
   }
+
 
   @Transactional(readOnly = true)
   public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, Pageable pageable) {
