@@ -1,13 +1,87 @@
-/* LoginPage.css */
+/* ===========================================
+   키프레임 애니메이션 정의
+   =========================================== */
 
-/* 전체 페이지 레이아웃 */
-.login-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-  position: relative;
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+  }
+  50% { 
+    transform: translateY(-20px) rotate(180deg); 
+  }
 }
 
-/* 배경 효과 */
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); 
+  }
+  50% { 
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.8), 0 0 60px rgba(139, 92, 246, 0.4); 
+  }
+}
+
+@keyframes gradient-shift {
+  0% { 
+    background-position: 0% 50%; 
+  }
+  50% { 
+    background-position: 100% 50%; 
+  }
+  100% { 
+    background-position: 0% 50%; 
+  }
+}
+
+@keyframes slide-up {
+  from { 
+    transform: translateY(50px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+}
+
+@keyframes rotate-slow {
+  from { 
+    transform: rotate(0deg); 
+  }
+  to { 
+    transform: rotate(360deg); 
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ===========================================
+   메인 레이아웃
+   =========================================== */
+
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===========================================
+   배경 효과
+   =========================================== */
+
 .background-effects {
   position: absolute;
   inset: 0;
@@ -15,41 +89,67 @@
   pointer-events: none;
 }
 
-.bg-circle-1 {
+.bg-gradient-1 {
   position: absolute;
-  top: -10rem;
-  right: -10rem;
-  width: 20rem;
-  height: 20rem;
-  background: rgba(59, 130, 246, 0.1);
-  border-radius: 50%;
-  filter: blur(3rem);
-}
-
-.bg-circle-2 {
-  position: absolute;
-  bottom: -10rem;
-  left: -10rem;
-  width: 20rem;
-  height: 20rem;
-  background: rgba(139, 92, 246, 0.1);
-  border-radius: 50%;
-  filter: blur(3rem);
-}
-
-.bg-circle-3 {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 25%;
+  left: 25%;
   width: 24rem;
   height: 24rem;
-  background: rgba(99, 102, 241, 0.05);
+  background: linear-gradient(45deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
   border-radius: 50%;
   filter: blur(3rem);
+  animation: pulse 4s ease-in-out infinite;
 }
 
-/* 메인 콘텐츠 */
+.bg-gradient-2 {
+  position: absolute;
+  bottom: 25%;
+  right: 25%;
+  width: 24rem;
+  height: 24rem;
+  background: linear-gradient(45deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
+  border-radius: 50%;
+  filter: blur(3rem);
+  animation: pulse 4s ease-in-out infinite 1s;
+}
+
+.floating-particle {
+  position: absolute;
+  background: linear-gradient(45deg, #60a5fa, #a78bfa);
+  border-radius: 50%;
+  opacity: 0.2;
+  animation: float ease-in-out infinite;
+}
+
+.particle-small {
+  width: 0.25rem;
+  height: 0.25rem;
+}
+
+.particle-medium {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.particle-large {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.mouse-follower {
+  position: absolute;
+  width: 16rem;
+  height: 16rem;
+  background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  border-radius: 50%;
+  filter: blur(2rem);
+  transition: all 1s ease-out;
+}
+
+/* ===========================================
+   메인 콘텐츠
+   =========================================== */
+
 .main-content {
   position: relative;
   z-index: 10;
@@ -57,90 +157,133 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 1.5rem;
+  padding: 1rem;
   padding-top: 5rem;
 }
 
 .login-container {
   max-width: 28rem;
   width: 100%;
+  position: relative;
 }
 
-/* 로고 섹션 */
+/* ===========================================
+   로고 섹션
+   =========================================== */
+
 .logo-section {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
+  animation: slide-up 0.8s ease-out;
+}
+
+.logo-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 2rem;
 }
 
 .main-logo {
-  display: inline-flex;
+  width: 6rem;
+  height: 6rem;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 1rem;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 5rem;
-  height: 5rem;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  margin-bottom: 1.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: pulse-glow 3s ease-in-out infinite, rotate-slow 20s linear infinite;
 }
 
 .main-logo svg {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 3rem;
+  height: 3rem;
   color: white;
+}
+
+.sparkle-icon {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+}
+
+.sparkle-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #fbbf24;
+  animation: pulse 2s ease-in-out infinite;
 }
 
 .main-title {
-  font-size: 2.25rem;
+  font-size: 3rem;
   font-weight: bold;
   color: white;
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 1rem 0;
+  background: linear-gradient(45deg, #60a5fa, #a78bfa, #60a5fa);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 4s ease infinite;
 }
 
 .title-highlight {
-  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  color: #a78bfa;
+}
+
+.main-description {
+  color: #cbd5e1;
+  font-size: 1.25rem;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.main-description-highlight {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0 0;
+  background: linear-gradient(45deg, #60a5fa, #a78bfa);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.main-description {
-  color: #cbd5e1;
-  font-size: 1.125rem;
-  line-height: 1.6;
-  margin: 0;
-}
+/* ===========================================
+   기능 카드
+   =========================================== */
 
-.description-highlight {
-  color: #60a5fa;
-  font-weight: 600;
-}
-
-/* 기능 카드 */
 .feature-cards {
   display: grid;
-  grid-template-columns: 1fr;
   gap: 1rem;
   margin-bottom: 2rem;
 }
 
 .feature-card {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
+  background: rgba(30, 41, 59, 0.3);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.75rem;
   padding: 1rem;
+  transition: all 0.3s ease;
+  animation: slide-up 0.8s ease-out;
+  transform: scale(1);
+}
+
+.feature-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .feature-card-content {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .feature-icon {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 3rem;
+  height: 3rem;
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -148,55 +291,53 @@
 }
 
 .feature-icon svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: white;
 }
 
-.feature-icon.blue {
-  background: rgba(59, 130, 246, 0.2);
+.feature-blue {
+  background: linear-gradient(45deg, #3b82f6, #06b6d4);
 }
 
-.feature-icon.blue svg {
-  color: #60a5fa;
+.feature-green {
+  background: linear-gradient(45deg, #10b981, #059669);
 }
 
-.feature-icon.green {
-  background: rgba(34, 197, 94, 0.2);
+.feature-purple {
+  background: linear-gradient(45deg, #8b5cf6, #ec4899);
 }
 
-.feature-icon.green svg {
-  color: #4ade80;
-}
-
-.feature-icon.purple {
-  background: rgba(139, 92, 246, 0.2);
-}
-
-.feature-icon.purple svg {
-  color: #a78bfa;
+.feature-text {
+  flex: 1;
 }
 
 .feature-title {
   color: white;
   font-weight: 600;
-  font-size: 0.875rem;
-  margin: 0;
+  font-size: 1.125rem;
+  margin: 0 0 0.25rem 0;
 }
 
 .feature-description {
-  color: #94a3b8;
-  font-size: 0.75rem;
+  color: #cbd5e1;
+  font-size: 0.875rem;
   margin: 0;
+  line-height: 1.4;
 }
 
-/* 로그인 버튼 */
+/* ===========================================
+   로그인 버튼
+   =========================================== */
+
 .login-button-container {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  animation: slide-up 0.8s ease-out 0.4s both;
 }
 
 .github-login-btn {
   width: 100%;
-  height: 3.5rem;
+  height: 4rem;
   background: linear-gradient(135deg, #111827, #1f2937);
   border: 1px solid #4b5563;
   border-radius: 0.75rem;
@@ -215,7 +356,7 @@
 
 .github-login-btn:hover {
   border-color: #6b7280;
-  transform: scale(1.02);
+  transform: scale(1.05);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
@@ -233,7 +374,10 @@
 .btn-background {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #1f2937, #374151);
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.2), 
+    rgba(139, 92, 246, 0.2)
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -261,7 +405,7 @@
   transition: transform 0.3s ease;
 }
 
-.github-login-btn:hover .btn-arrow {
+.btn-arrow.hovered {
   transform: translateX(0.25rem);
 }
 
@@ -280,25 +424,21 @@
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* 설명 텍스트 */
 .login-description {
   text-align: center;
   color: #94a3b8;
   font-size: 0.875rem;
   line-height: 1.5;
-  margin: 0;
+  margin: 1rem 0 0 0;
 }
 
-/* 상태 표시 */
+/* ===========================================
+   상태 표시
+   =========================================== */
+
 .status-indicator {
-  margin-top: 2rem;
   text-align: center;
+  animation: slide-up 0.8s ease-out 0.6s both;
 }
 
 .status-badge {
@@ -307,8 +447,8 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   background: rgba(30, 41, 59, 0.3);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.3);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
 }
 
@@ -320,31 +460,51 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
 .status-text {
   color: #cbd5e1;
   font-size: 0.875rem;
 }
 
-/* 하단 장식 */
-.bottom-decoration {
+.zap-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #fbbf24;
+}
+
+/* ===========================================
+   장식 요소
+   =========================================== */
+
+.decoration-globe {
+  position: absolute;
+  top: 2.5rem;
+  right: 2.5rem;
+  opacity: 0.2;
+}
+
+.decoration-globe svg {
+  width: 2rem;
+  height: 2rem;
+  color: #60a5fa;
+  animation: rotate-slow 20s linear infinite;
+}
+
+.bottom-gradient-line {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 1px;
+  height: 0.25rem;
   background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+  background-size: 200% 200%;
+  opacity: 0.8;
+  animation: gradient-shift 3s ease infinite;
 }
 
-/* 반응형 디자인 */
+/* ===========================================
+   반응형 디자인
+   =========================================== */
+
 @media (max-width: 640px) {
   .main-content {
     padding: 1rem;
@@ -352,9 +512,56 @@
   }
   
   .logo-section {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
   
+  .main-logo {
+    width: 5rem;
+    height: 5rem;
+  }
+  
+  .main-logo svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .main-title {
+    font-size: 2.5rem;
+  }
+  
+  .main-description {
+    font-size: 1.125rem;
+  }
+  
+  .main-description-highlight {
+    font-size: 1.25rem;
+  }
+  
+  .github-login-btn {
+    font-size: 1rem;
+    height: 3.5rem;
+  }
+  
+  .feature-cards {
+    gap: 0.75rem;
+  }
+  
+  .feature-card {
+    padding: 0.75rem;
+  }
+  
+  .decoration-globe {
+    top: 1.5rem;
+    right: 1.5rem;
+  }
+  
+  .decoration-globe svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
   .main-title {
     font-size: 2rem;
   }
@@ -363,7 +570,25 @@
     font-size: 1rem;
   }
   
-  .github-login-btn {
+  .main-description-highlight {
+    font-size: 1.125rem;
+  }
+  
+  .feature-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .feature-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  
+  .feature-title {
     font-size: 1rem;
+  }
+  
+  .feature-description {
+    font-size: 0.8125rem;
   }
 }
