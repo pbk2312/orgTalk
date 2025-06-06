@@ -20,7 +20,7 @@ public enum ExceptionCode {
   // 401
   INVALID_JWT_CLAIMS(UNAUTHORIZED, "JWT 클레임이 유효하지 않습니다."),
   REFRESH_TOKEN_INVALID(UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다."),
-  REFRESH_TOKEN_BLACKLISTED(UNAUTHORIZED, "차단된 리프레시 토큰입니다."),
+  REFRESH_TOKEN_BLACKLISTED(UNAUTHORIZED, "토큰 문제가 발생했습니다."),
   ORGANIZATION_ACCESS_DENIED(UNAUTHORIZED, "해당 조직에 참여하지 않는 사용자입니다.");
 
   private final HttpStatus httpStatus;
