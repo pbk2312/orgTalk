@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -103,13 +105,18 @@ public class OAuth2Service extends DefaultOAuth2UserService {
       member.addOrganization(org);
     }
 
+    Set<Long> orgIds = member.getOrganizations().stream()
+        .map(Organization::getId)
+        .collect(Collectors.toSet());
+
     return MemberDetails.builder()
         .attributes(attrs)
         .nickName(login)
         .email(email)
         .build()
         .setMemberId(member.getId())
-        .setMemberRole(member.getMemberRole());
+        .setMemberRole(member.getMemberRole())
+        .setOrganizationIds(orgIds);
   }
 
   private Member findMemberOrSave(Long githubId, String login, String name,

@@ -2,6 +2,7 @@ package yuhan.pro.chatserver.sharedkernel.jwt;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,6 +20,8 @@ public class ChatMemberDetails implements UserDetails {
   private String nickName;
   private String password;
   private MemberRole memberRole;
+  
+  private Set<Long> organizationIds;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -26,13 +29,19 @@ public class ChatMemberDetails implements UserDetails {
   }
 
   @Builder
-  public ChatMemberDetails(Long memberId, String username, String nickName, String password,
-      MemberRole memberRole) {
+  public ChatMemberDetails(
+      Long memberId,
+      String username,
+      String nickName,
+      String password,
+      MemberRole memberRole,
+      Set<Long> organizationIds
+  ) {
     this.memberId = memberId;
     this.username = username;
     this.nickName = nickName;
     this.password = password;
     this.memberRole = memberRole;
+    this.organizationIds = organizationIds;
   }
 }
-

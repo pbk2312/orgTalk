@@ -7,6 +7,8 @@ import LoginPage from './pages/LoginPage';
 import OrganizationSelectPage from './pages/OrganizationSelectPage';
 import ChatRoomsPage from './pages/ChatRoomsPage';
 import ChatRoom from './pages/ChatRoom'; 
+import ServerErrorPage from './pages/ServerErrorPage';
+import Error404Page from './pages/Error404Page'; 
 
 
 function App() {
@@ -30,7 +32,8 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* 그 외 404 처리 */}
-        <Route path="*" element={<div>페이지를 찾을 수 없습니다</div>} />
+        <Route path="*" element={<Error404Page />} />
+        <Route path="/server-error" element={<ServerErrorPage />} /> {/* 서버 에러(500) 전용 */}
       </Routes>
     </Router>
   );

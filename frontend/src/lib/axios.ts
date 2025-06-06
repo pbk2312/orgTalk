@@ -38,19 +38,18 @@ export async function getAccessToken(): Promise<string> {
   if (!accessToken && !isRefreshing) {
     isRefreshing = true;
     try {
-      // 서버가 HTTP 쿠키(Refresh Token) 기반으로 accessToken을 새로 발급
       const response = await authApi.post('/api/auth/refresh');
       const newToken: string = response.data.accessToken;
       accessToken = newToken;
 
-      // 큐에 보류 중이던 요청들에 새 토큰을 전달
       failedQueue.forEach(({ resolve }) => resolve(newToken));
       failedQueue = [];
       isRefreshing = false;
 
       return newToken;
     } catch (err) {
-      // Refresh 자체가 401(유효하지 않음)이라면, 클라이언트 측 로그인 페이지로 리다이렉트
+      // Refresh 자체에서 401이 뜨면 로그인 페이지로 이동
+      alert('세션이 만료되었습니다. 다시 로그인해주세요.');
       window.location.href = '/login';
       failedQueue.forEach(({ reject }) => reject(err));
       failedQueue = [];
@@ -59,7 +58,7 @@ export async function getAccessToken(): Promise<string> {
     }
   }
 
-  // 3) 이미 리프레시 중이면, 큐에 보류했다가 토큰 받아 반환
+  // 3) 이미 리프레시 중이면 큐에 추가
   return new Promise<string>((resolve, reject) => {
     failedQueue.push({ resolve, reject });
   });
@@ -68,7 +67,7 @@ export async function getAccessToken(): Promise<string> {
 /** 8080번 포트용 일반 API 인스턴스 */
 export const api = axios.create({
   baseURL: 'http://localhost:8080',
-  withCredentials: true, // Refresh Token 쿠키를 자동으로 보내기 위함
+  withCredentials: true,
 });
 
 /** 8081번 포트용 채팅(API) 인스턴스 */
@@ -87,17 +86,14 @@ const authApi = axios.create({
  * 인터셉터를 붙여주는 헬퍼
  */
 function attachInterceptors(instance: ReturnType<typeof axios.create>) {
-  // --- Request 인터셉터: accessToken 없으면 자동 refresh 후 헤더 추가 ---
   instance.interceptors.request.use(
     async (config) => {
       const url = config.url ?? '';
 
-      // PUBLIC_ENDPOINTS는 그대로 통과
       if (PUBLIC_ENDPOINTS.some(ep => url.endsWith(ep))) {
         return config;
       }
 
-      // getAccessToken()이 메모리 없으면 refresh 호출하고, 토큰 세팅 후 resolve
       const token = await getAccessToken();
       if (token) {
         config.headers = config.headers ?? {};
@@ -108,25 +104,41 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
     (error) => Promise.reject(error)
   );
 
-  // --- Response 인터셉터: 401 → 재시도는 getAccessToken()에서 이미 처리하므로 그대로 reject ---
   instance.interceptors.response.use(
     (res) => res,
     (error) => {
-      // 만약 /api/auth/refresh 요청에서 401이 떴다면, 로그인으로 리다이렉트
       const originalRequest = error.config ?? {};
-      const url = originalRequest.url ?? '';
-      if (
-        error.response?.status === 401 &&
-        url.endsWith('/api/auth/refresh')
-      ) {
+      const status = error.response?.status;
+      const data = error.response?.data;
+      const errorMessage = data?.message || '알 수 없는 오류가 발생했습니다.';
+
+      // 401: 인증 오류 시 alert 후 로그인 페이지로 이동
+      if (status === 401) {
+        alert(errorMessage);
         window.location.href = '/login';
+        return Promise.reject(error);
       }
+
+      // 400, 404: 서버에서 내려준 메시지를 alert로 표시
+      if (status === 400 || status === 404) {
+        alert(errorMessage);
+        return Promise.reject(error);
+      }
+
+      // 500: 서버 내부 오류 시 서버 에러 페이지로 이동
+      if (status === 500) {
+        alert('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        window.location.href = '/server-error';
+        return Promise.reject(error);
+      }
+
+      // 기타 예외
+      alert(errorMessage);
       return Promise.reject(error);
     }
   );
 }
 
-// 두 인스턴스에 모두 인터셉터 붙이기
 attachInterceptors(api);
 attachInterceptors(chatApi);
 

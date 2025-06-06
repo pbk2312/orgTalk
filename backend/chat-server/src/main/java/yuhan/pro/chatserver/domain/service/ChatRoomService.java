@@ -1,7 +1,9 @@
 package yuhan.pro.chatserver.domain.service;
 
 
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_ACCEPTED;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_FOUND;
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ORGANIZATION_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_IS_EMPTY;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_NOT_MATCH;
 
@@ -44,10 +46,14 @@ public class ChatRoomService {
   private final MemberClient memberClient;
 
   // Todo: 조직에 포함되지 않은 사람은 접근 불가하게 로직 추가
-  // Todo: roomId를 응답에 넘기기
   @Transactional
   public ChatRoomCreateResponse saveChatRoom(ChatRoomCreateRequest request) {
-    Long memberId = getMemberId();
+
+    Authentication authentication = getAuthentication();
+
+    Long memberId = getMemberId(authentication);
+
+    validateMemberInOrg(request.organizationId(), authentication);
 
     RoomType type = request.type();
 
@@ -80,7 +86,9 @@ public class ChatRoomService {
       throw new CustomException(PRIVATE_ROOM_PASSWORD_NOT_MATCH);
     }
 
-    Long memberId = getMemberId();
+    Authentication authentication = getAuthentication();
+
+    Long memberId = getMemberId(authentication);
     ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
     chatRoomMemberRepository.save(chatRoomMember);
   }
@@ -89,7 +97,11 @@ public class ChatRoomService {
   @Transactional(readOnly = true)
   public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, Pageable pageable) {
 
-    Long memberId = getMemberId();
+    Authentication authentication = getAuthentication();
+
+    Long memberId = getMemberId(authentication);
+
+    validateMemberInOrg(organizationId, authentication);
 
     Page<ChatRoom> chatRoomPage = chatRoomRepository.findAllByOrganizationId(organizationId,
         pageable);
@@ -110,17 +122,29 @@ public class ChatRoomService {
         .map(ChatRoomMember::getMemberId)
         .collect(Collectors.toSet());
 
+    Authentication auth = getAuthentication();
+    Long memberId = getMemberId(auth);
+
+    validateMemberRoomIn(chatRoom, memberId);
+
     Set<ChatMemberResponse> chatMembers = memberClient.getChatMembers(memberIds, jwtToken);
 
     return ChatRoomMapper.toChatRoomInfoResponse(chatRoom, chatMembers);
   }
 
+  private static void validateMemberRoomIn(ChatRoom chatRoom, Long memberId) {
+    boolean inRoom = chatRoom.getMembers().stream()
+        .map(ChatRoomMember::getMemberId)
+        .anyMatch(id -> id.equals(memberId));
+    if (!inRoom) {
+      throw new CustomException(MEMBER_NOT_ACCEPTED);
+    }
+  }
 
   private ChatRoom findChatRoomOrThrow(Long roomId) {
     return chatRoomRepository.findById(roomId)
         .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
   }
-
 
   private void rawPasswordIsEmpty(String rawPassword) {
     if (rawPassword == null || rawPassword.isEmpty()) {
@@ -132,12 +156,25 @@ public class ChatRoomService {
     return type == RoomType.PRIVATE;
   }
 
-  private Long getMemberId() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+  private Authentication getAuthentication() {
+    return SecurityContextHolder.getContext().getAuthentication();
+  }
+
+  private Long getMemberId(Authentication authentication) {
     if (authentication != null
         && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
       return chatMemberDetails.getMemberId();
     }
     return null;
+  }
+
+  private void validateMemberInOrg(Long orgId, Authentication authentication) {
+    if (authentication != null
+        && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
+      Set<Long> orgIds = chatMemberDetails.getOrganizationIds();
+      if (orgIds == null || !orgIds.contains(orgId)) {
+        throw new CustomException(ORGANIZATION_NOT_FOUND);
+      }
+    }
   }
 }

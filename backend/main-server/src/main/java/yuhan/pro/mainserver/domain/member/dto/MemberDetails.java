@@ -3,6 +3,7 @@ package yuhan.pro.mainserver.domain.member.dto;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,6 +32,9 @@ public class MemberDetails implements OAuth2User {
 
   @Setter
   private MemberRole memberRole;
+
+  @Setter
+  private Set<Long> organizationIds;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {

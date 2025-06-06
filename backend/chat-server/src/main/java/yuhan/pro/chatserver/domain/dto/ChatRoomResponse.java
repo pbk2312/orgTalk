@@ -12,7 +12,6 @@ public record ChatRoomResponse(
     RoomType type,
     Long memberCount,
     Integer messageCount,
-    String lastMessage,
     LocalDateTime lastMessageAt,
     boolean joined
 ) {

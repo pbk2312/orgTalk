@@ -25,7 +25,10 @@ public enum ExceptionCode {
   INVALID_JWT_CLAIMS(UNAUTHORIZED, "JWT 클레임이 유효하지 않습니다."),
   REFRESH_TOKEN_INVALID(UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다."),
   REFRESH_TOKEN_BLACKLISTED(UNAUTHORIZED, "차단된 리프레시 토큰입니다."),
-  AUTHENTICATION_NOT_FOUND(UNAUTHORIZED, "인증 정보가 없습니다.");
+  AUTHENTICATION_NOT_FOUND(UNAUTHORIZED, "인증 정보가 없습니다."),
+  MEMBER_NOT_ACCEPTED(UNAUTHORIZED, "해당 채팅방에 접근이 불가합니다."),
+
+  ;
 
 
   private final HttpStatus httpStatus;

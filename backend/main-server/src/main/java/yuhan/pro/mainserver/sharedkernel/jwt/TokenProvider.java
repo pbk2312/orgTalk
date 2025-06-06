@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.security.Keys;
 import java.util.Date;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
@@ -39,9 +40,12 @@ public class TokenProvider {
     MemberDetails memberDetails = (MemberDetails) authentication.getPrincipal();
 
     String authority = extractAuthories(authentication);
+    Set<Long> orgIds = memberDetails.getOrganizationIds();
     String refreshToken = createRefreshToken(memberDetails.getEmail(), memberDetails.getName(),
         memberDetails.getMemberId(),
-        authority);
+        authority,
+        orgIds
+    );
     return RefreshTokenDto.builder()
         .refreshToken(refreshToken)
         .refreshTokenExpiresIn(refreshTokenExpiration.intValue())
@@ -54,24 +58,28 @@ public class TokenProvider {
         .collect(Collectors.joining(","));
   }
 
-  private String createAccessToken(String email, String name, String authorities, Long memberId) {
+  private String createAccessToken(String email, String name, String authorities, Long memberId,
+      Set<Long> orgIds) {
     return Jwts.builder()
         .claim("email", email)
         .claim("role", authorities)
         .claim("name", name)
         .claim("memberId", memberId)
+        .claim("orgIds", orgIds)
         .issuedAt(new Date())
         .expiration(new Date(new Date().getTime() + accessTokenExpiration))
         .signWith(jwtSecretKey, SIG.HS256)
         .compact();
   }
 
-  private String createRefreshToken(String email, String name, Long memberId, String authorities) {
+  private String createRefreshToken(String email, String name, Long memberId, String authorities,
+      Set<Long> orgIds) {
     return Jwts.builder()
         .claim("email", email)
         .claim("role", authorities)
         .claim("name", name)
         .claim("memberId", memberId)
+        .claim("orgIds", orgIds)
         .issuedAt(new Date())
         .expiration(new Date(new Date().getTime() + refreshTokenExpiration))
         .signWith(jwtSecretKey, SIG.HS256)
@@ -88,7 +96,14 @@ public class TokenProvider {
     String role = payload.get("role", String.class);
     String name = payload.get("name", String.class);
     Long memberId = payload.get("memberId", Long.class);
-    String accessToken = createAccessToken(email, name, role, memberId);
+
+    @SuppressWarnings("unchecked")
+    var orgList = (java.util.List<Integer>) payload.get("orgIds", java.util.List.class);
+    Set<Long> orgIds = orgList.stream()
+        .map(Long::valueOf)
+        .collect(Collectors.toSet());
+
+    String accessToken = createAccessToken(email, name, role, memberId, orgIds);
     return AccessTokenResponse
         .builder()
         .accessToken(accessToken)

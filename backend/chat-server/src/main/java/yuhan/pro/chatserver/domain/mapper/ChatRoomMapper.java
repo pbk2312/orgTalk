@@ -61,7 +61,6 @@ public class ChatRoomMapper {
         .type(chatRoom.getType())
         .memberCount((long) chatRoom.getMembers().size())
         .lastMessageAt(chatRoom.getLastMessageAt())
-        .lastMessage(chatRoom.getLastMessage())
         .joined(joined)
         .build();
   }

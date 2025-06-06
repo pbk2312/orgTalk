@@ -28,6 +28,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     Optional<Member> findMember = memberRepository.findByEmail(email);
     return findMember
         .map(JwtMapper::toCustomUserDetails)
-        .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND)); // Todo: 커스텀 예외로 대체
+        .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
   }
 }

@@ -2,6 +2,9 @@ package yuhan.pro.chatserver.sharedkernel.jwt;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -29,12 +32,21 @@ public class JwtAuthenticationService {
     }
 
     Claims claims = jwtProvider.parseClaims(token);
+
+    // orgIds 클레임을 List<Integer> 로 꺼내서 Set<Long> 으로 변환
+    @SuppressWarnings("unchecked")
+    List<Integer> orgList = claims.get("orgIds", List.class);
+    Set<Long> orgIds = (orgList != null)
+        ? orgList.stream().map(Long::valueOf).collect(Collectors.toSet())
+        : Set.of();
+
     ChatMemberDetails userDetails = ChatMemberDetails.builder()
         .memberId(claims.get("memberId", Long.class))
         .username(claims.get("email", String.class))
         .nickName(claims.get("name", String.class))
         .password("N/A")
         .memberRole(MemberRole.valueOf(claims.get("role", String.class)))
+        .organizationIds(orgIds)  // orgIds 필드 세팅
         .build();
 
     return new UsernamePasswordAuthenticationToken(
@@ -44,8 +56,7 @@ public class JwtAuthenticationService {
     );
   }
 
-  public Authentication getAuthenticationFromRequest(
-      HttpServletRequest request) {
+  public Authentication getAuthenticationFromRequest(HttpServletRequest request) {
     String bearerTokenValue = request.getHeader(AUTH_HEADER);
     return getAuthenticationFromBearer(bearerTokenValue);
   }
