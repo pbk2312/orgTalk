@@ -39,7 +39,7 @@ public class MemberController {
   @GetMapping("/organizations")
   public PageResponse<OrganizationsResponse> getOrganizations(
       @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "5") int size
+      @RequestParam(defaultValue = "3") int size
   ) {
     return memberService.getOrganizations(page, size);
   }

@@ -28,8 +28,8 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
   @Query("""
       select new yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse(
           o.id,
-          o.avatarUrl,
-          o.login
+          o.login,
+          o.avatarUrl
       )
       from Organization o
       join o.members m
