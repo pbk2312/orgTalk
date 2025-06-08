@@ -80,7 +80,7 @@ const OrganizationSelectPage = () => {
   const [hoveredOrg, setHoveredOrg] = useState(null);
   const [particles, setParticles] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const [pageSize] = useState(5);
+  const [pageSize] = useState(3);
   const [totalPages, setTotalPages] = useState(0);
 
   const navigate = useNavigate();

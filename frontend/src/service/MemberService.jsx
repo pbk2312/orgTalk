@@ -6,7 +6,7 @@ import api from '../lib/axios.ts';
  * @param {number} size - 페이지당 항목 수
  * @returns {Promise<PageResponse<OrganizationsResponse>>}
  */
-export async function getOrganizations(page = 0, size = 5) {
+export async function getOrganizations(page = 0, size = 3) {
   try {
     const response = await api.get('/api/member/organizations', {
       params: { page, size },

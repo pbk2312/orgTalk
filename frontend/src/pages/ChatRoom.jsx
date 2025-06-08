@@ -43,7 +43,7 @@ const ChatRoom = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [copiedCodeId, setCopiedCodeId] = useState(null);
 
-  // ✅ roomInfo.members를 기반으로 참여 중인 멤버를 저장할 상태
+
   const [participants, setParticipants] = useState([]);
 
   const messagesEndRef = useRef(null);
