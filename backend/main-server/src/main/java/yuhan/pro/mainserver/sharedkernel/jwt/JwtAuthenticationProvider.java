@@ -61,7 +61,7 @@ public class JwtAuthenticationProvider {
             .collect(Collectors.toSet());
 
     // (3) 토큰 클레임 기반으로 직접 CustomUserDetails 생성
-    CustomUserDetails userDetails = CustomUserDetails.builder()
+    return CustomUserDetails.builder()
         .memberId(memberId)
         .username(email)
         .nickName(name)
@@ -70,7 +70,6 @@ public class JwtAuthenticationProvider {
         .password("PASSWORD")
         .build();
 
-    return userDetails;
   }
 
   private static void validateClaims(Claims claims) {
@@ -90,7 +89,6 @@ public class JwtAuthenticationProvider {
     }
 
     List<GrantedAuthority> authorities = new ArrayList<>();
-    // 예: "MEMBER" → ROLE_MEMBER 형태로 만든다.
     authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
 
     @SuppressWarnings("unchecked")

@@ -1,12 +1,10 @@
 package yuhan.pro.mainserver.domain.member.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_FOUND;
 
-import java.util.Collections;
-import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,17 +15,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import yuhan.pro.mainserver.domain.member.dto.MemberResponse;
 import yuhan.pro.mainserver.domain.member.entity.Member;
 import yuhan.pro.mainserver.domain.member.entity.MemberRole;
 import yuhan.pro.mainserver.domain.member.repository.MemberRepository;
 import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
-import yuhan.pro.mainserver.domain.organization.entity.Organization;
-import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
+import yuhan.pro.mainserver.domain.organization.repository.OrganizationRepository;
+import yuhan.pro.mainserver.sharedkernel.dto.PageResponse;
+import yuhan.pro.mainserver.sharedkernel.jwt.CustomUserDetails;
 
 @ExtendWith(MockitoExtension.class)
 class MemberServiceTest {
+
+  @Mock
+  private OrganizationRepository organizationRepository;
 
   @Mock
   private MemberRepository memberRepository;
@@ -35,10 +42,20 @@ class MemberServiceTest {
   @InjectMocks
   private MemberService memberService;
 
+  private static final long TEST_MEMBER_ID = 1L;
+  private static final int PAGE = 1;
+  private static final int SIZE = 5;
+
   @BeforeEach
   void setUpAuthentication() {
-    UsernamePasswordAuthenticationToken auth =
-        new UsernamePasswordAuthenticationToken("test@example.com", null, Collections.emptyList());
+    CustomUserDetails userDetails = CustomUserDetails.builder()
+        .memberId(TEST_MEMBER_ID)
+        .memberRole(MemberRole.USER)
+        .organizationIds(Set.of(1L, 2L, 3L))
+        .password("password")
+        .build();
+    Authentication auth = new UsernamePasswordAuthenticationToken(
+        userDetails, null, userDetails.getAuthorities());
     SecurityContextHolder.getContext().setAuthentication(auth);
   }
 
@@ -52,61 +69,72 @@ class MemberServiceTest {
   class GetOrganizationsTests {
 
     @Test
-    @DisplayName("성공")
-    void returnsOrganizationDtoSetWhenMemberExists() {
+    @DisplayName("성공 시 PageResponse 반환")
+    void returnsPageResponseWhenOrganizationsExist() {
       // given
-      String email = "test@example.com";
+      OrganizationsResponse orgA = new OrganizationsResponse(1L, "avatarA", "orgA");
+      OrganizationsResponse orgB = new OrganizationsResponse(2L, "avatarB", "orgB");
+      OrganizationsResponse orgC = new OrganizationsResponse(3L, "avatarC", "orgC");
+      Page<OrganizationsResponse> page = new PageImpl<>(List.of(orgA, orgB, orgC),
+          PageRequest.of(PAGE, SIZE), 3);
 
-      Organization org1 = Organization.builder()
-          .id(1L)
-          .login("org-login-A")
-          .avatarUrl("http://avatar-A.url")
-          .build();
-      Organization org2 = Organization.builder()
-          .id(2L)
-          .login("org-login-B")
-          .avatarUrl("http://avatar-B.url")
-          .build();
-
-      Member mockMember = Member.builder()
-          .login("loginA")
-          .name("nameA")
-          .email(email)
-          .avatarUrl("http://avatar.url")
-          .memberRole(MemberRole.USER)
-          .githubId(123L)
-          .build();
-      mockMember.setOrganizations(Set.of(org1, org2));
-
-      when(memberRepository.findByEmail(email))
-          .thenReturn(Optional.of(mockMember));
+      when(organizationRepository.findByMemberIdProjected(
+          eq(TEST_MEMBER_ID), eq(PageRequest.of(PAGE, SIZE))))
+          .thenReturn(page);
 
       // when
-      Set<OrganizationsResponse> result = memberService.getOrganizations();
+      PageResponse<OrganizationsResponse> response = memberService.getOrganizations(PAGE, SIZE);
 
       // then
-      assertThat(result)
-          .hasSize(2)
+      assertThat(response.getContent())
+          .hasSize(3)
           .extracting(OrganizationsResponse::id)
-          .containsExactlyInAnyOrder(1L, 2L);
+          .containsExactlyInAnyOrder(1L, 2L, 3L);
+      assertThat(response.getPage()).isEqualTo(PAGE);
+      assertThat(response.getSize()).isEqualTo(SIZE);
     }
+  }
+
+  @Nested
+  @DisplayName("로그인 상태 검증")
+  class IsLoginTests {
 
     @Test
-    @DisplayName("실패")
-    void failsWhenMemberDoesNotExist() {
+    @DisplayName("로그인 상태 검증 성공")
+    void isLoginSuccess() {
       // given
-      String email = "test@example.com";
-      when(memberRepository.findByEmail(email))
-          .thenReturn(Optional.empty());
+      Member member = Member.builder()
+          .login("pbk2312")
+          .memberRole(MemberRole.USER)
+          .avatarUrl("kkkkkk@aaaa")
+          .name("pbk2312")
+          .githubId(1L)
+          .email("pbk2312@inu.ac.kr")
+          .build();
 
-      // when / then
-      assertThatThrownBy(() -> memberService.getOrganizations())
-          .isInstanceOf(CustomException.class)
-          .satisfies(ex -> {
-            CustomException ce = (CustomException) ex;
-            assertThat(ce.getExceptionCode()).isEqualTo(MEMBER_NOT_FOUND);
-            assertThat(ce.getMessage()).isEqualTo("존재하지 않는 회원입니다.");
-          });
+      when(memberRepository.findById(1L)).thenReturn(java.util.Optional.of(member));
+
+      // when
+      MemberResponse response = memberService.isLogin();
+
+      // then
+      assertThat(response.login()).isEqualTo("pbk2312");
+      assertThat(response.authenticated()).isTrue();
+    }
+
+
+    @Test
+    @DisplayName("로그인하지 않은 상태이면 unauthenticatedResponse 반환")
+    void isLoginUnauthenticated() {
+      // given
+      SecurityContextHolder.clearContext();
+
+      // when
+      MemberResponse response = memberService.isLogin();
+
+      // then
+      assertThat(response.authenticated()).isFalse();
+      assertThat(response.id()).isNull();
     }
   }
 }
