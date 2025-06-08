@@ -1,10 +1,10 @@
-// src/pages/OrganizationSelectPage.tsx
 import React, { useState, useEffect } from 'react';
 import { Code2, Users, ArrowRight, Loader2, Building2, Check, Sparkles, Zap } from 'lucide-react';
 import '../css/OrganizationSelectPage.css';
 import { getOrganizations } from '../service/MemberService';
-import OrgTalkHeader from './OrgTalkHeader'; 
+import OrgTalkHeader from './OrgTalkHeader';
 import { useNavigate } from 'react-router-dom';
+import Pagination from './Pagination';
 
 // 플로팅 파티클 컴포넌트
 const FloatingParticle = ({ delay = 0, size = 'small', color = 'blue' }) => {
@@ -34,45 +34,43 @@ const FloatingParticle = ({ delay = 0, size = 'small', color = 'blue' }) => {
 };
 
 // 조직 카드 컴포넌트
-const OrganizationCard = ({ org, isSelected, isHovered, onSelect, onMouseEnter, onMouseLeave }) => {
-  return (
-    <div
-      onClick={() => onSelect(org)}
-      onMouseEnter={() => onMouseEnter(org.id)}
-      onMouseLeave={() => onMouseLeave()}
-      className={`org-card ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
-    >
-      <div className="org-card-header">
-        <div className="org-avatar">
-          <img 
-            src={org.avatarUrl} 
-            alt={org.login}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextSibling.style.display = 'flex';
-            }}
-          />
-          <div className="avatar-fallback">
-            <Building2 size={20} />
-          </div>
+const OrganizationCard = ({ org, isSelected, isHovered, onSelect, onMouseEnter, onMouseLeave }) => (
+  <div
+    onClick={() => onSelect(org)}
+    onMouseEnter={() => onMouseEnter(org.id)}
+    onMouseLeave={() => onMouseLeave()}
+    className={`org-card ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
+  >
+    <div className="org-card-header">
+      <div className="org-avatar">
+        <img 
+          src={org.avatarUrl} 
+          alt={org.login}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.nextSibling.style.display = 'flex';
+          }}
+        />
+        <div className="avatar-fallback">
+          <Building2 size={20} />
         </div>
-        <div className="org-info">
-          <h3 className="org-name">{org.login}</h3>
-          <p className="org-id">Organization ID: {org.id}</p>
+      </div>
+      <div className="org-info">
+        <h3 className="org-name">{org.login}</h3>
+        <p className="org-id">Organization ID: {org.id}</p>
+      </div>
+      {isSelected && (
+        <div className="selected-badge">
+          <Check size={16} />
         </div>
-        {isSelected && (
-          <div className="selected-badge">
-            <Check size={16} />
-          </div>
-        )}
-      </div>
-      <div className="org-card-footer">
-        <Users size={16} />
-        <span>멤버와 함께 소통하기</span>
-      </div>
+      )}
     </div>
-  );
-};
+    <div className="org-card-footer">
+      <Users size={16} />
+      <span>멤버와 함께 소통하기</span>
+    </div>
+  </div>
+);
 
 const OrganizationSelectPage = () => {
   const [organizations, setOrganizations] = useState([]);
@@ -81,8 +79,11 @@ const OrganizationSelectPage = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [hoveredOrg, setHoveredOrg] = useState(null);
   const [particles, setParticles] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize] = useState(5);
+  const [totalPages, setTotalPages] = useState(0);
 
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   // 파티클 생성
   useEffect(() => {
@@ -105,12 +106,14 @@ const OrganizationSelectPage = () => {
     generateParticles();
   }, []);
 
+  // 조직 목록 조회
   useEffect(() => {
     const fetchOrgData = async () => {
       setIsLoading(true);
       try {
-        const orgs = await getOrganizations();
-        setOrganizations(orgs);
+        const data = await getOrganizations(currentPage, pageSize);
+        setOrganizations(data.content);
+        setTotalPages(data.totalPages);
       } catch (error) {
         console.error(error);
       } finally {
@@ -119,7 +122,7 @@ const OrganizationSelectPage = () => {
     };
 
     fetchOrgData();
-  }, []);
+  }, [currentPage, pageSize]);
 
   const handleOrgSelect = (org) => {
     setSelectedOrg(prev => (prev?.id === org.id ? null : org));
@@ -136,28 +139,23 @@ const OrganizationSelectPage = () => {
 
   return (
     <>
-      {/* 페이지 최상단에 OrgTalkHeader */}
       <OrgTalkHeader />
-
       <div className="org-select-page">
         {/* 배경 효과 */}
         <div className="background-effects">
           <div className="bg-circle-1"></div>
           <div className="bg-circle-2"></div>
           <div className="bg-circle-3"></div>
-          
-          {/* 플로팅 파티클들 */}
-          {particles.map(particle => (
+          {particles.map(p => (
             <FloatingParticle 
-              key={particle.id} 
-              size={particle.size} 
-              color={particle.color}
-              delay={particle.delay} 
+              key={p.id} 
+              size={p.size} 
+              color={p.color}
+              delay={p.delay} 
             />
           ))}
         </div>
 
-        {/* 메인 콘텐츠 */}
         <div className="main-content">
           <div className="org-select-container">
             {/* 헤더 섹션 */}
@@ -175,7 +173,7 @@ const OrganizationSelectPage = () => {
             </div>
 
             {/* 로딩 상태 */}
-            {isLoading && (
+            {isLoading ? (
               <div className="loading-container">
                 <Loader2 size={48} className="loading-icon" />
                 <p className="loading-text">조직 목록을 불러오는 중...</p>
@@ -185,91 +183,97 @@ const OrganizationSelectPage = () => {
                   <Sparkles size={16} style={{ color: '#ec4899', animation: 'pulse 1s ease-in-out infinite 0.4s' }} />
                 </div>
               </div>
-            )}
-
-            {/* 조직 목록 */}
-            {!isLoading && organizations.length > 0 && (
-              <div className="organizations-grid">
-                {organizations.map((org, index) => (
-                  <div
-                    key={org.id}
-                    style={{ 
-                      animationDelay: `${index * 0.1}s`,
-                      animation: 'scale-in 0.6s ease-out both'
-                    }}
-                  >
-                    <OrganizationCard
-                      org={org}
-                      isSelected={selectedOrg?.id === org.id}
-                      isHovered={hoveredOrg === org.id}
-                      onSelect={handleOrgSelect}
-                      onMouseEnter={setHoveredOrg}
-                      onMouseLeave={() => setHoveredOrg(null)}
-                    />
+            ) : (
+              <>
+                {/* 조직 목록 */}
+                {organizations.length > 0 ? (
+                  <div className="organizations-grid">
+                    {organizations.map((org, index) => (
+                      <div
+                        key={org.id}
+                        style={{ 
+                          animationDelay: `${index * 0.1}s`,
+                          animation: 'scale-in 0.6s ease-out both'
+                        }}
+                      >
+                        <OrganizationCard
+                          org={org}
+                          isSelected={selectedOrg?.id === org.id}
+                          isHovered={hoveredOrg === org.id}
+                          onSelect={handleOrgSelect}
+                          onMouseEnter={setHoveredOrg}
+                          onMouseLeave={() => setHoveredOrg(null)}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                ) : (
+                  <div className="empty-state">
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <Building2 size={48} className="empty-icon" />
+                      <Sparkles 
+                        size={20} 
+                        style={{ 
+                          position: 'absolute', 
+                          top: '-8px', 
+                          right: '-8px',
+                          color: '#fbbf24',
+                          animation: 'pulse 2s ease-in-out infinite'
+                        }} 
+                      />
+                    </div>
+                    <h3 className="empty-title">참여 가능한 조직이 없습니다</h3>
+                    <p className="empty-description">
+                      GitHub Organization에 먼저 참여한 후 다시 시도해주세요
+                    </p>
+                  </div>
+                )}
 
-            {/* 조직이 없는 경우 */}
-            {!isLoading && organizations.length === 0 && (
-              <div className="empty-state">
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <Building2 size={48} className="empty-icon" />
-                  <Sparkles 
-                    size={20} 
-                    style={{ 
-                      position: 'absolute', 
-                      top: '-8px', 
-                      right: '-8px',
-                      color: '#fbbf24',
-                      animation: 'pulse 2s ease-in-out infinite'
-                    }} 
+                {/* 페이징 */}
+                {totalPages > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
                   />
+                )}
+
+                {/* 참여 버튼 */}
+                {selectedOrg && (
+                  <div className="join-button-container">
+                    <button
+                      onClick={handleJoinOrganization}
+                      disabled={isJoining}
+                      className={`join-button ${isJoining ? 'loading' : ''}`}
+                    >
+                      {isJoining ? (
+                        <>
+                          <Loader2 size={20} className="btn-loading-icon" />
+                          <span>참여 중...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Building2 size={20} />
+                          <span>{selectedOrg.login}에 참여하기</span>
+                          <ArrowRight size={18} />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* 상태 표시 */}
+                <div className="status-indicator">
+                  <div className="status-badge">
+                    <div className="status-dot"></div>
+                    <span className="status-text">GitHub 연동 활성화</span>
+                    <Zap size={16} style={{ color: '#fbbf24' }} />
+                  </div>
                 </div>
-                <h3 className="empty-title">참여 가능한 조직이 없습니다</h3>
-                <p className="empty-description">
-                  GitHub Organization에 먼저 참여한 후 다시 시도해주세요
-                </p>
-              </div>
+              </>
             )}
-
-            {/* 참여 버튼 */}
-            {selectedOrg && (
-              <div className="join-button-container">
-                <button
-                  onClick={handleJoinOrganization}
-                  disabled={isJoining}
-                  className={`join-button ${isJoining ? 'loading' : ''}`}
-                >
-                  {isJoining ? (
-                    <>
-                      <Loader2 size={20} className="btn-loading-icon" />
-                      <span>참여 중...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Building2 size={20} />
-                      <span>{selectedOrg.login}에 참여하기</span>
-                      <ArrowRight size={18} />
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {/* 상태 표시 */}
-            <div className="status-indicator">
-              <div className="status-badge">
-                <div className="status-dot"></div>
-                <span className="status-text">GitHub 연동 활성화</span>
-                <Zap size={16} style={{ color: '#fbbf24' }} />
-              </div>
-            </div>
           </div>
         </div>
-
-        {/* 하단 장식 */}
         <div className="bottom-decoration"></div>
       </div>
     </>
