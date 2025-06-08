@@ -44,6 +44,7 @@ public class SecurityConfig {
         )
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+            .requestMatchers("/actuator/**").permitAll()
             .requestMatchers("/ws-stomp/**").permitAll()
             .anyRequest().authenticated()
         )

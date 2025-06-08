@@ -24,8 +24,8 @@ public class JwtFilter extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String uri = request.getRequestURI();
-    // "/ws-stomp/**" 경로는 필터링 제외
-    return pathMatcher.match("/ws-stomp/**", uri);
+    return pathMatcher.match("/ws-stomp/**", uri)
+        || pathMatcher.match("/actuator/**", uri);
   }
 
   @Override

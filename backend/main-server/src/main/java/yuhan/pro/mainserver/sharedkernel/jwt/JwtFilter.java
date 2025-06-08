@@ -27,11 +27,10 @@ public class JwtFilter extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(@NonNull HttpServletRequest request) throws ServletException {
     String path = request.getRequestURI();
-    if (path.startsWith("/ws-stomp")) {
-      return true;
-    }
-    return false;
+    return path.startsWith("/ws-stomp")
+        || path.startsWith("/actuator/");
   }
+
 
   @Override
   protected void doFilterInternal(

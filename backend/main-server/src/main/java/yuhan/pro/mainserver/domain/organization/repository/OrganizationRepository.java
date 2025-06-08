@@ -1,8 +1,11 @@
 package yuhan.pro.mainserver.domain.organization.repository;
 
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import yuhan.pro.mainserver.domain.member.entity.Member;
 import yuhan.pro.mainserver.domain.organization.dto.OrganizationsInfoResponse;
 import yuhan.pro.mainserver.domain.organization.entity.Organization;
 
@@ -19,4 +22,12 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
       GROUP BY o
       """)
   Optional<OrganizationsInfoResponse> findInfoWithMemberCount(Long orgId);
+
+  @Query("""
+      SELECT o FROM Organization o
+      JOIN o.members m
+      WHERE m = :member
+      """)
+  Page<Organization> findByMember(Member member, Pageable pageable);
+
 }

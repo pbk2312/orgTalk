@@ -14,6 +14,15 @@ public class MemberMapper {
   private MemberMapper() {
   }
 
+  public static OrganizationsResponse toOrganizationResponse(Organization organization) {
+    return OrganizationsResponse.builder()
+        .id(organization.getId())
+        .login(organization.getLogin())
+        .avatarUrl(organization.getAvatarUrl())
+        .build();
+  }
+
+
   public static Set<OrganizationsResponse> toOrganizationsResponse(
       Set<Organization> organizations
   ) {

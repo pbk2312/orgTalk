@@ -6,6 +6,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +21,8 @@ import yuhan.pro.mainserver.domain.member.mapper.MemberMapper;
 import yuhan.pro.mainserver.domain.member.repository.MemberRepository;
 import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
 import yuhan.pro.mainserver.domain.organization.entity.Organization;
+import yuhan.pro.mainserver.domain.organization.repository.OrganizationRepository;
+import yuhan.pro.mainserver.sharedkernel.dto.PageResponse;
 import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 
 @Service
@@ -27,21 +31,27 @@ import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 public class MemberService {
 
   private final MemberRepository memberRepository;
+  private final OrganizationRepository organizationRepository;
 
   // Todo: 캐시 처리 고민(채팅 서버랑 큰 상호작용을 안할거고 메인 서버 용도로만 할건데 Redis 말고 카페인 캐시 고민)
   // Todo: 조직에 해당하지 않은 멤버는 401이나 403 예외 처리
 
+
   @Transactional(readOnly = true)
-  public Set<OrganizationsResponse> getOrganizations() {
-
+  public PageResponse<OrganizationsResponse> getOrganizations(int page, int size) {
     String email = getEmail();
-
     Member findMember = findMemberOrThrow(email);
 
-    Set<Organization> organizations = findMember.getOrganizations();
+    PageRequest pageRequest = PageRequest.of(page, size);
+    Page<Organization> organizationPage = organizationRepository.findByMember(findMember,
+        pageRequest);
 
-    return MemberMapper.toOrganizationsResponse(organizations);
+    Page<OrganizationsResponse> dtoPage = organizationPage.map(
+        MemberMapper::toOrganizationResponse);
+
+    return PageResponse.fromPage(dtoPage);
   }
+
 
   // Todo: 캐시 처리 고민
   @Transactional(readOnly = true)
