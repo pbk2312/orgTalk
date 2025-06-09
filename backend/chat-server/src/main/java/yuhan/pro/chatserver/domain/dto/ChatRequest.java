@@ -7,7 +7,9 @@ public record ChatRequest(
     String message,
     MessageType messageType,
     String codeContent,
-    Language language
+    Language language,
+    Long senderId,
+    String senderName
 ) {
 
 }

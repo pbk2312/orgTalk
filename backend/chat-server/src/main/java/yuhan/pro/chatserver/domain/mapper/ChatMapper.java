@@ -27,16 +27,15 @@ public class ChatMapper {
         .build();
   }
 
-  public static Chat fromRequest(ChatRequest request, ChatRoom room, String userName,
-      Long memberId) {
+  public static Chat fromRequest(ChatRequest req, Long roomId) {
     return Chat.builder()
-        .room(room)
-        .senderName(userName)
-        .senderId(memberId)
-        .message(request.message())
-        .type(request.messageType())
-        .codeContent(request.codeContent())
-        .language(request.language())
+        .roomId(roomId)
+        .senderName(req.senderName())
+        .senderId(req.senderId())
+        .message(req.message())
+        .type(req.messageType())
+        .codeContent(req.codeContent())
+        .language(req.language())
         .build();
   }
 }

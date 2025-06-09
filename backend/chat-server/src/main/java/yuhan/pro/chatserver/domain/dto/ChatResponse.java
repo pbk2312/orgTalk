@@ -7,7 +7,7 @@ import yuhan.pro.chatserver.domain.entity.MessageType;
 
 @Builder
 public record ChatResponse(
-    Long id,
+    String id,
     Long roomId,
     String senderName,
     Long senderId,
@@ -19,3 +19,4 @@ public record ChatResponse(
 ) {
 
 }
+
