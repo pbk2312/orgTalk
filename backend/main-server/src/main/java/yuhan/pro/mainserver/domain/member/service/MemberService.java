@@ -58,11 +58,6 @@ public class MemberService {
     return MemberMapper.toMemberResponse(member);
   }
 
-  private Member findMemberOrThrow(Long memberId) {
-    return memberRepository.findById(memberId)
-        .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
-  }
-
   @Transactional(readOnly = true)
   public Set<ChatMemberResponse> getChatMembers(ChatMembersRequest request) {
 
@@ -71,6 +66,11 @@ public class MemberService {
     return findMembers.stream()
         .map(MemberMapper::toChatMemberResponse)
         .collect(Collectors.toSet());
+  }
+
+  private Member findMemberOrThrow(Long memberId) {
+    return memberRepository.findById(memberId)
+        .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
   }
 
   private Set<Member> findChatMembers(Set<Long> memberIds) {

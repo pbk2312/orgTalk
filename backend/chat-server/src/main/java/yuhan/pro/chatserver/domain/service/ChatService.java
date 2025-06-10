@@ -1,6 +1,7 @@
 package yuhan.pro.chatserver.domain.service;
 
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_ID_NOT_FOUND;
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_MEMBER_NOT_FOUND;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import yuhan.pro.chatserver.domain.dto.ChatResponse;
 import yuhan.pro.chatserver.domain.entity.Chat;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
 import yuhan.pro.chatserver.domain.mapper.ChatMapper;
+import yuhan.pro.chatserver.domain.repository.ChatRoomMemberRepository;
 import yuhan.pro.chatserver.domain.repository.ChatRoomRepository;
 import yuhan.pro.chatserver.domain.repository.mongoDB.ChatRepository;
 import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
@@ -23,14 +25,18 @@ public class ChatService {
 
   private final ChatRepository chatRepository;
   private final ChatRoomRepository chatRoomRepository;
+  private final ChatRoomMemberRepository chatRoomMemberRepository;
 
 
+  @Transactional
   public void saveChat(
       ChatRequest chatRequest,
       Long roomId
   ) {
 
     ChatRoom chatRoom = findChatRoomOrThrow(roomId);
+
+    validateMemberInRoom(chatRequest.senderId(), roomId);
 
     Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom.getId());
     chatRepository.save(chat);
@@ -50,5 +56,11 @@ public class ChatService {
   private ChatRoom findChatRoomOrThrow(Long roomId) {
     return chatRoomRepository.findById(roomId)
         .orElseThrow(() -> new CustomException(ROOM_ID_NOT_FOUND));
+  }
+
+  public void validateMemberInRoom(Long memberId, Long roomId) {
+    if (!chatRoomMemberRepository.existsByChatRoom_IdAndMemberId(roomId, memberId)) {
+      throw new CustomException(ROOM_MEMBER_NOT_FOUND);
+    }
   }
 }

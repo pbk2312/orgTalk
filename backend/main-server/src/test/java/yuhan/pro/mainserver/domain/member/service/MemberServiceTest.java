@@ -1,6 +1,7 @@
 package yuhan.pro.mainserver.domain.member.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +29,7 @@ import yuhan.pro.mainserver.domain.member.repository.MemberRepository;
 import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
 import yuhan.pro.mainserver.domain.organization.repository.OrganizationRepository;
 import yuhan.pro.mainserver.sharedkernel.dto.PageResponse;
+import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 import yuhan.pro.mainserver.sharedkernel.jwt.CustomUserDetails;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,14 +44,11 @@ class MemberServiceTest {
   @InjectMocks
   private MemberService memberService;
 
-  private static final long TEST_MEMBER_ID = 1L;
-  private static final int PAGE = 1;
-  private static final int SIZE = 5;
 
   @BeforeEach
-  void setUpAuthentication() {
+  void setUp() {
     CustomUserDetails userDetails = CustomUserDetails.builder()
-        .memberId(TEST_MEMBER_ID)
+        .memberId(1L)
         .memberRole(MemberRole.USER)
         .organizationIds(Set.of(1L, 2L, 3L))
         .password("password")
@@ -70,28 +69,32 @@ class MemberServiceTest {
 
     @Test
     @DisplayName("성공 시 PageResponse 반환")
-    void returnsPageResponseWhenOrganizationsExist() {
+    void getOrganizationsSuccess() {
       // given
       OrganizationsResponse orgA = new OrganizationsResponse(1L, "avatarA", "orgA");
       OrganizationsResponse orgB = new OrganizationsResponse(2L, "avatarB", "orgB");
       OrganizationsResponse orgC = new OrganizationsResponse(3L, "avatarC", "orgC");
       Page<OrganizationsResponse> page = new PageImpl<>(List.of(orgA, orgB, orgC),
-          PageRequest.of(PAGE, SIZE), 3);
+          PageRequest.of(0, 1), 3);
 
       when(organizationRepository.findByMemberIdProjected(
-          eq(TEST_MEMBER_ID), eq(PageRequest.of(PAGE, SIZE))))
+          eq(1L), eq(PageRequest.of(0, 1))))
           .thenReturn(page);
 
       // when
-      PageResponse<OrganizationsResponse> response = memberService.getOrganizations(PAGE, SIZE);
+      PageResponse<OrganizationsResponse> response = memberService.getOrganizations(0, 1);
 
       // then
       assertThat(response.getContent())
           .hasSize(3)
           .extracting(OrganizationsResponse::id)
           .containsExactlyInAnyOrder(1L, 2L, 3L);
-      assertThat(response.getPage()).isEqualTo(PAGE);
-      assertThat(response.getSize()).isEqualTo(SIZE);
+      assertThat(response.getPage()).isEqualTo(0);
+      assertThat(response.getSize()).isEqualTo(1);
+      assertThat(response.getTotalElements()).isEqualTo(3);
+      assertThat(response.getTotalPages()).isEqualTo(3);
+      assertThat(response.getContent().getFirst().id()).isEqualTo(1L);
+      assertThat(response.getContent().getLast().id()).isEqualTo(3L);
     }
   }
 
@@ -136,5 +139,18 @@ class MemberServiceTest {
       assertThat(response.authenticated()).isFalse();
       assertThat(response.id()).isNull();
     }
+
+    @Test
+    @DisplayName("존재하지 않는 회원일 시, 예외 처리")
+    void isLoginFail() {
+      // given
+      when(memberRepository.findById(1L)).thenReturn(java.util.Optional.empty());
+
+      // when & then
+      assertThatThrownBy(() -> memberService.isLogin())
+          .isInstanceOf(CustomException.class)
+          .hasMessageContaining("존재하지 않는 회원입니다.");
+    }
   }
 }
+

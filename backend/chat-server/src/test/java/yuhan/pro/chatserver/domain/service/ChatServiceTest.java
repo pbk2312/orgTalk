@@ -11,6 +11,7 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,6 +32,7 @@ import yuhan.pro.chatserver.domain.entity.Language;
 import yuhan.pro.chatserver.domain.entity.MessageType;
 import yuhan.pro.chatserver.domain.entity.RoomType;
 import yuhan.pro.chatserver.domain.mapper.ChatMapper;
+import yuhan.pro.chatserver.domain.repository.ChatRoomMemberRepository;
 import yuhan.pro.chatserver.domain.repository.ChatRoomRepository;
 import yuhan.pro.chatserver.domain.repository.mongoDB.ChatRepository;
 import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
@@ -45,6 +47,9 @@ class ChatServiceTest {
 
   @Mock
   private ChatRoomRepository chatRoomRepository;
+
+  @Mock
+  private ChatRoomMemberRepository chatRoomMemberRepository;
 
   @InjectMocks
   private ChatService chatService;
@@ -80,6 +85,11 @@ class ChatServiceTest {
         .type(RoomType.PUBLIC)
         .ownerId(chatMemberDetails.getMemberId())
         .build();
+  }
+
+  @AfterEach
+  void clearAuthentication() {
+    SecurityContextHolder.clearContext();
   }
 
   @Nested
@@ -144,6 +154,36 @@ class ChatServiceTest {
 
       verify(chatRepository, never()).save(any(Chat.class));
     }
+
+    @Test
+    @DisplayName("채팅방에 있는 멤버가 아닐시, 예외처리")
+    void saveChatFailure2() {
+
+      // given
+      ChatRequest chatRequest = new ChatRequest(
+          "테스트 해볼게요!",
+          MessageType.TEXT,
+          null,
+          null,
+          chatMemberDetails.getMemberId(),
+          chatMemberDetails.getNickName()
+      );
+
+      // 채팅방은 존재
+      when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
+      // 그러나 멤버가 아님
+      when(chatRoomMemberRepository.existsByChatRoom_IdAndMemberId(1L,
+          chatMemberDetails.getMemberId()))
+          .thenReturn(false);
+
+      // when & then
+      assertThatThrownBy(() -> chatService.saveChat(chatRequest, 1L))
+          .isInstanceOf(CustomException.class)
+          .hasMessage("채팅방 멤버가 아닙니다.");
+
+      verify(chatRepository, never()).save(any(Chat.class));
+    }
+
   }
 
   @Nested

@@ -5,4 +5,5 @@ import yuhan.pro.chatserver.domain.entity.ChatRoomMember;
 
 public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, Long> {
 
+  boolean existsByChatRoom_IdAndMemberId(Long chatRoomId, Long memberId);
 }

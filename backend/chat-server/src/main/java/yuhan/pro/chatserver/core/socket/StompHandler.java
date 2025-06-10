@@ -16,7 +16,7 @@ import yuhan.pro.chatserver.sharedkernel.jwt.JwtAuthenticationService;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AuthChannelInterceptor implements ChannelInterceptor {
+public class StompHandler implements ChannelInterceptor {
 
   private final JwtAuthenticationService jwtAuthService;
 
