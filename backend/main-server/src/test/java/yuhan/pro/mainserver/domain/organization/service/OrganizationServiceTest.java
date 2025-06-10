@@ -1,9 +1,8 @@
 package yuhan.pro.mainserver.domain.organization.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
-import static yuhan.pro.mainserver.sharedkernel.exception.ExceptionCode.ORGANIZATION_NOT_FOUND;
 
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +33,7 @@ class OrganizationServiceTest {
   class GetOrganizationInfoTests {
 
     @Test
-    @DisplayName("DTO가 반환")
+    @DisplayName("DTO 확인")
     void returnsResponseDTO() {
       // given
       OrganizationsInfoResponse expected =
@@ -54,19 +53,18 @@ class OrganizationServiceTest {
     }
   }
 
+
   @Test
-  @DisplayName("CustomException이 발생한다")
+  @DisplayName("해당하는 조직 ID가 없을때")
   void throwsCustomException() {
     // given
     when(repository.findInfoWithMemberCount(ORG_ID))
         .thenReturn(Optional.empty());
 
-    // when & then
-    CustomException ex = assertThrows(
-        CustomException.class,
-        () -> service.getOrganizationInfo(ORG_ID)
-    );
-    assertThat(ex.getExceptionCode()).isEqualTo(ORGANIZATION_NOT_FOUND);
+    // then
+    assertThatThrownBy(() -> service.getOrganizationInfo(ORG_ID))
+        .isInstanceOf(CustomException.class)
+        .hasMessage("해당되는 조직 ID가 존재하지 않습니다");
   }
 }
 

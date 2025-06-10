@@ -1,9 +1,7 @@
 package yuhan.pro.chatserver.domain.service;
 
-import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.AUTHENTICATION_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_ID_NOT_FOUND;
 
-import java.security.Principal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +25,7 @@ public class ChatService {
   private final ChatRoomRepository chatRoomRepository;
 
 
-  public ChatResponse saveChat(
+  public void saveChat(
       ChatRequest chatRequest,
       Long roomId
   ) {
@@ -35,8 +33,7 @@ public class ChatService {
     ChatRoom chatRoom = findChatRoomOrThrow(roomId);
 
     Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom.getId());
-    Chat savedChat = chatRepository.save(chat);
-    return ChatMapper.toChatResponse(chatRoom, savedChat);
+    chatRepository.save(chat);
   }
 
   @Transactional(readOnly = true)
@@ -53,11 +50,5 @@ public class ChatService {
   private ChatRoom findChatRoomOrThrow(Long roomId) {
     return chatRoomRepository.findById(roomId)
         .orElseThrow(() -> new CustomException(ROOM_ID_NOT_FOUND));
-  }
-
-  private static void validatePrincipal(Principal principal) {
-    if (principal == null) {
-      throw new CustomException(AUTHENTICATION_NOT_FOUND);
-    }
   }
 }
