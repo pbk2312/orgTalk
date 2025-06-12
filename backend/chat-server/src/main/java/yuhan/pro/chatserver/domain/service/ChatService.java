@@ -3,6 +3,7 @@ package yuhan.pro.chatserver.domain.service;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_ID_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_MEMBER_NOT_FOUND;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,7 @@ public class ChatService {
   private final ChatRepository chatRepository;
   private final ChatRoomRepository chatRoomRepository;
   private final ChatRoomMemberRepository chatRoomMemberRepository;
-
+  private final MeterRegistry meterRegistry;
 
   @Transactional
   public void saveChat(
@@ -38,8 +39,12 @@ public class ChatService {
 
     validateMemberInRoom(chatRequest.senderId(), roomId);
 
-    Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom.getId());
-    chatRepository.save(chat);
+    meterRegistry
+        .timer("chat.saveChat.timer", "roomId", roomId.toString())
+        .record(() -> {
+          Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom.getId());
+          chatRepository.save(chat);
+        });
   }
 
   @Transactional(readOnly = true)

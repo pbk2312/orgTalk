@@ -2,6 +2,7 @@ package yuhan.pro.chatserver.core.socket;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -10,6 +11,8 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.messaging.SessionConnectedEvent;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 import yuhan.pro.chatserver.sharedkernel.jwt.JwtAuthenticationService;
 
@@ -43,5 +46,15 @@ public class StompHandler implements ChannelInterceptor {
     }
 
     return message;
+  }
+
+  @EventListener
+  public void handleWebSocketConnectionListener(SessionConnectedEvent event) {
+    log.info("사용자 입장");
+  }
+
+  @EventListener
+  public void handleWebSocketDisconnectionListener(SessionDisconnectEvent event) {
+    log.info("사용자 퇴장");
   }
 }

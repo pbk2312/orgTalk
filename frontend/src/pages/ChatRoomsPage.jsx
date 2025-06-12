@@ -56,7 +56,6 @@ const ChatRoomsPage = () => {
   const [joinLoading, setJoinLoading] = useState(false);  // 비밀번호 검증 API 호출 중 상태
   const [joinError, setJoinError] = useState('');         // 비밀번호 틀릴 때 보여줄 에러
 
-  // ---------- 조직 정보 및 채팅방 목록 로드 ----------
   useEffect(() => {
     if (!orgId) return;
 

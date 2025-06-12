@@ -21,7 +21,7 @@ public class KafkaListeners {
 
   @KafkaListener(
       topics = "chat-messages",
-      groupId = "chat-group",
+      groupId = "${spring.kafka.consumer.group-id}",
       containerFactory = "factory"
   )
   public void handleChatMessage(
@@ -35,6 +35,7 @@ public class KafkaListeners {
 
       // WebSocket으로 메시지 브로드캐스트
       messagingTemplate.convertAndSend("/topic/rooms/" + roomId, message);
+      log.info("WebSocket으로 메시지 브로드캐스트 - /topic/rooms/{}", roomId);
 
       // 메시지 처리 및 MongoDB 저장
       chatService.saveChat(message, Long.valueOf(roomId));

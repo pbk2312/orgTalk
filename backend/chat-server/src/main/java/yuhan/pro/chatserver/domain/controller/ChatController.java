@@ -5,13 +5,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import yuhan.pro.chatserver.domain.dto.ChatResponse;
 import yuhan.pro.chatserver.domain.service.ChatService;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 @Tag(name = "Chat", description = "채팅 관련 API")
@@ -32,13 +34,11 @@ public class ChatController {
   private final ChatService chatService;
 
   @MessageMapping("/chat/{roomId}")
-  @SendTo("/topic/room/{roomId}")
   public void sendChat(
       ChatRequest incoming,
       @DestinationVariable("roomId") Long roomId,
       Principal principal
   ) {
-
     ChatMemberDetails userDetails = getUserDetails(
         (UsernamePasswordAuthenticationToken) principal);
     Long memberId = userDetails.getMemberId();
@@ -76,7 +76,8 @@ public class ChatController {
         incoming.codeContent(),
         incoming.language(),
         memberId,
-        userName
+        userName,
+        LocalDateTime.now()
     );
   }
 
