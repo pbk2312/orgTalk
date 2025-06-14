@@ -224,7 +224,6 @@ const ChatRoomsPage = () => {
     <>
       <OrgTalkHeader />
 
-      {/* —————— 비밀번호 입력 모달 —————— */}
       <PasswordInputModal
         isOpen={showJoinModal}
         onClose={handleJoinClose}
@@ -233,7 +232,7 @@ const ChatRoomsPage = () => {
         isLoading={joinLoading}
         errorMessage={joinError}
       />
-      {/* —————————————————————————— */}
+
 
       <div className={styles['chat-rooms-page']}>
         <div className={styles['background-effects']}>

@@ -6,7 +6,7 @@ import './App.css';
 import LoginPage from './pages/LoginPage';
 import OrganizationSelectPage from './pages/OrganizationSelectPage';
 import ChatRoomsPage from './pages/ChatRoomsPage';
-import ChatRoom from './pages/ChatRoom'; 
+import ChatRoom from './pages/ChatRoom/ChatRoom'; 
 import ServerErrorPage from './pages/ServerErrorPage';
 import Error404Page from './pages/Error404Page'; 
 

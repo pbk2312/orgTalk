@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yuhan.pro.mainserver.domain.member.dto.ChatMemberResponse;
 import yuhan.pro.mainserver.domain.member.dto.ChatMembersRequest;
+import yuhan.pro.mainserver.domain.member.dto.MemberProfileUrlResponse;
 import yuhan.pro.mainserver.domain.member.dto.MemberResponse;
 import yuhan.pro.mainserver.domain.member.entity.Member;
 import yuhan.pro.mainserver.domain.member.mapper.MemberMapper;
@@ -66,6 +67,12 @@ public class MemberService {
     return findMembers.stream()
         .map(MemberMapper::toChatMemberResponse)
         .collect(Collectors.toSet());
+  }
+
+  @Transactional(readOnly = true)
+  public MemberProfileUrlResponse getMemberProfileUrl(Long memberId) {
+    Member member = findMemberOrThrow(memberId);
+    return new MemberProfileUrlResponse(member.getAvatarUrl());
   }
 
   private Member findMemberOrThrow(Long memberId) {

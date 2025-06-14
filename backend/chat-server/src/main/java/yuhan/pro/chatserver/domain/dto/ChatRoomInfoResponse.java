@@ -9,7 +9,6 @@ public record ChatRoomInfoResponse(
     String name,
     String description,
     RoomType type,
-    Long memberCount,
     Set<ChatMemberResponse> members
 ) {
 

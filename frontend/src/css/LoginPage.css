@@ -243,11 +243,6 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
-/* ===========================================
-   기능 카드
-   =========================================== */
-
 .feature-cards {
   display: grid;
   gap: 1rem;

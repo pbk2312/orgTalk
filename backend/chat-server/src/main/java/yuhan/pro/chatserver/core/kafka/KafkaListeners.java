@@ -43,4 +43,18 @@ public class KafkaListeners {
       log.error("Kafka 메시지 처리 오류", e);
     }
   }
+
+  @KafkaListener(
+      topicPattern = "chatroom-presence-.*",
+      containerFactory = "presenceKafkaListenerContainerFactory"
+  )
+  public void handlePresenceEvent(
+      String payload,
+      @Header(KafkaHeaders.RECEIVED_TOPIC) String topic
+  ) {
+    String roomId = topic.substring("chatroom-presence-".length());
+    messagingTemplate.convertAndSend("/topic/presence/" + roomId, payload);
+    log.info("WebSocket Presence 브로드캐스트 - /topic/presence/{}", roomId);
+  }
 }
+

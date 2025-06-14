@@ -28,7 +28,8 @@ public class JwtFilter extends OncePerRequestFilter {
   protected boolean shouldNotFilter(@NonNull HttpServletRequest request) throws ServletException {
     String path = request.getRequestURI();
     return path.startsWith("/ws-stomp")
-        || path.startsWith("/actuator/");
+        || path.startsWith("/actuator/")
+        || path.startsWith("/api/member/profile-url");
   }
 
 

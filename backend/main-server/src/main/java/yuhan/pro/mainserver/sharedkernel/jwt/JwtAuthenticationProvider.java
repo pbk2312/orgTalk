@@ -23,8 +23,6 @@ import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 public class JwtAuthenticationProvider {
 
   private final JwtClaimsProvider claimsProvider;
-  // loadUserByUsername 호출을 없애기 때문에 CustomUserDetailsService는 주입하지 않습니다.
-  // private final CustomUserDetailsService customUserDetailsService;
 
   public Authentication getAuthentication(String accessToken) {
     Claims claims = claimsProvider.getClaims(accessToken);
@@ -37,13 +35,11 @@ public class JwtAuthenticationProvider {
   private UserDetails getUserDetailsFromClaims(Claims claims) {
     validateClaims(claims);
 
-    // (1) 이메일 검증
     String email = claims.get("email", String.class);
     if (email == null || email.isBlank()) {
       throw new CustomException(INVALID_JWT_CLAIMS);
     }
 
-    // (2) 토큰에 들어 있는 값들을 꺼낸다.
     String name = claims.get("name", String.class);
     Long memberId = claims.get("memberId", Long.class);
 
@@ -60,7 +56,6 @@ public class JwtAuthenticationProvider {
             .map(Long::valueOf)
             .collect(Collectors.toSet());
 
-    // (3) 토큰 클레임 기반으로 직접 CustomUserDetails 생성
     return CustomUserDetails.builder()
         .memberId(memberId)
         .username(email)
@@ -95,7 +90,7 @@ public class JwtAuthenticationProvider {
     List<Integer> orgIdsFromToken = claims.get("orgIds", List.class);
     if (orgIdsFromToken != null) {
       orgIdsFromToken.stream()
-          .map(id -> "ROLE_ORG_" + id)      // “조직별 권한(ROLE_ORG_5 등)”을 추가하고 싶다면
+          .map(id -> "ROLE_ORG_" + id)
           .map(SimpleGrantedAuthority::new)
           .forEach(authorities::add);
     }

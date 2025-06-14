@@ -67,7 +67,6 @@ public class ChatRoomController {
     return chatRoomService.getChatRooms(organizationId, pageable);
   }
 
-  // Todo: 채팅방 구현
   @Operation(summary = "채팅방 정보 조회")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "채팅방 정보 조회 성공"),

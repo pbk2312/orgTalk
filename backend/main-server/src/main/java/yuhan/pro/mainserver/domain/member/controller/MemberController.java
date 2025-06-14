@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import yuhan.pro.mainserver.domain.member.dto.ChatMemberResponse;
 import yuhan.pro.mainserver.domain.member.dto.ChatMembersRequest;
+import yuhan.pro.mainserver.domain.member.dto.MemberProfileUrlResponse;
 import yuhan.pro.mainserver.domain.member.service.MemberService;
 import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
 import yuhan.pro.mainserver.sharedkernel.dto.PageResponse;
@@ -53,5 +54,15 @@ public class MemberController {
   @ResponseStatus(HttpStatus.OK)
   public Set<ChatMemberResponse> getChatMembers(@RequestBody ChatMembersRequest request) {
     return memberService.getChatMembers(request);
+  }
+
+  @Operation(summary = "채팅방에 참여하는 멤버 프로필 URL 가져오가")
+  @ApiResponses({
+      @ApiResponse(responseCode = "404", description = "존재하는 회원이 없다."),
+      @ApiResponse(responseCode = "200", description = "프로필 URL 조회 환료")
+  })
+  @GetMapping("/profile-url")
+  public MemberProfileUrlResponse getMemberProfileUrl(@RequestParam Long memberId) {
+    return memberService.getMemberProfileUrl(memberId);
   }
 }

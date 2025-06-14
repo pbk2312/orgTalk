@@ -65,13 +65,13 @@ public class ChatRoomMapper {
         .build();
   }
 
+
   public static ChatRoomInfoResponse toChatRoomInfoResponse(ChatRoom chatRoom,
       Set<ChatMemberResponse> members) {
     return ChatRoomInfoResponse.builder()
         .name(chatRoom.getName())
         .description(chatRoom.getDescription())
         .type(chatRoom.getType())
-        .memberCount((long) chatRoom.getMembers().size())
         .members(members)
         .build();
   }
