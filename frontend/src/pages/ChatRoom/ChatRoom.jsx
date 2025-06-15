@@ -15,7 +15,7 @@ import CodeModal from './CodeModal';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { okaidia } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { getChatRoomInfo, getChatsByRoomId } from '../../service/ChatService.jsx';
+import { getChatRoomInfo, getChatsByCursor } from '../../service/ChatService.jsx';
 import { useChatStomp } from '../../hooks/useChatStomp.js';
 import { useAuth } from '../../hooks/useAuth.ts';
 import styles from '../../css/ChatRoom.module.css';
@@ -35,6 +35,11 @@ const ChatRoom = () => {
   const [messages, setMessages] = useState([]);
   const [participants, setParticipants] = useState([]);
 
+  // Cursor-based pagination
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Input / modal state
   const [inputMessage, setInputMessage] = useState('');
   const [isComposing, setIsComposing] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
@@ -42,124 +47,148 @@ const ChatRoom = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [copiedCodeId, setCopiedCodeId] = useState(null);
 
+  // Scroll management
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const codeTextareaRef = useRef(null);
 
-  // 1) 방 정보 로드
-useEffect(() => {
-  if (authLoading) return;
-  (async () => {
-    try {
-      setLoading(true);
-      const data = await getChatRoomInfo(roomId);
-      setRoomInfo(data);
+  const isFirstLoad = useRef(true);
 
-      // 서버에서 이미 접속해 있는 유저 정보가 data.participants에 온다고 가정하면
-      if (data.participants) {
-        const initial = data.participants.map(u => ({
-          userId: String(u.id),
-          login: u.login,
-          avatarUrl: u.avatarUrl
-        }));
-        setParticipants(initial);
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  })();
-}, [authLoading, auth, roomIdParam, roomId, navigate]);
-
-
-  // 2) 이전 채팅 기록 로드
+  // Load room info
   useEffect(() => {
-    if (authLoading || !auth.authenticated || isNaN(roomId)) return;
+    if (authLoading) return;
     (async () => {
       try {
-        const chatResponses = await getChatsByRoomId(roomId);
-        const mapped = chatResponses.map(payload => ({
-          id: payload.id,
-          userId: String(payload.senderId),
-          nickname: payload.senderName,
-          content: payload.message,
-          timestamp: payload.createdAt,
-          isMe: payload.senderId === auth.id,
-          type: payload.messageType === 'CODE' ? 'code' : 'text',
-          language: payload.language?.toLowerCase() || null,
-          code: payload.codeContent
-        }));
-        setMessages(mapped);
+        setLoading(true);
+        const data = await getChatRoomInfo(roomId);
+        setRoomInfo(data);
+        if (data.participants) {
+          setParticipants(
+            data.participants.map(u => ({ userId: String(u.id), login: u.login, avatarUrl: u.avatarUrl }))
+          );
+        }
       } catch (err) {
-        console.error('이전 채팅 기록을 불러오는 중 오류:', err);
+        console.error(err);
+        setError(err);
+      } finally {
+        setLoading(false);
       }
     })();
-  }, [authLoading, auth, roomId]);
+  }, [authLoading, roomId]);
 
-  // 3) 실시간 메시지 수신
-  const handleIncomingMessage = useCallback(
-    (payload) => {
-      if (auth.id === 0) return;
-      const isMy = payload.senderId === auth.id;
-      const msg = {
-        id: payload.id || Date.now(),
-        userId: String(payload.senderId),
-        nickname: payload.senderName,
-        content: payload.message,
-        timestamp: payload.createdAt,
-        isMe: isMy,
-        type: payload.messageType === 'CODE' ? 'code' : 'text',
-        language: payload.language?.toLowerCase() || null,
-        code: payload.codeContent
-      };
-      if (!isMy) {
-        setMessages(prev => [...prev, msg]);
-      }
-    },
-    [auth.id]
-  );
+  // Load chats (cursor-based)
+  const loadChats = useCallback(async (cursor = null) => {
+    try {
+      const { chats, nextCursor: newCursor } = await getChatsByCursor(roomId, cursor);
+      const mapped = chats.map(p => ({
+        id: p.id,
+        userId: String(p.senderId),
+        nickname: p.senderName,
+        content: p.message,
+        timestamp: p.createdAt,
+        isMe: p.senderId === auth.id,
+        type: p.messageType === 'CODE' ? 'code' : 'text',
+        language: p.language?.toLowerCase() || null,
+        code: p.codeContent
+      }));
 
-  // 4) 실시간 입장/퇴장 처리
-  const handlePresenceUpdate = useCallback((presence) => {
-  console.log('🔥 Presence update received:', presence);
+      setMessages(prev => {
+        if (!cursor) return mapped;
+        const existing = new Set(prev.map(m => m.id));
+        const newOnes = mapped.filter(m => !existing.has(m.id));
+        return [...newOnes, ...prev];
+      });
+      setNextCursor(newCursor);
+      setHasMore(newCursor !== null && newCursor !== undefined);
+    } catch (err) {
+      console.error('Failed to load chats:', err);
+    }
+  }, [auth.id, roomId]);
 
-  // joined/left 프로퍼티가 없으면, 전체 목록이라고 보고 초기화
-  if (!presence.joined && !presence.left) {
-    const all = Object.entries(presence).map(([id, str]) => {
-      const [login, avatarUrl] = str.split('|');
-      return { userId: id, login, avatarUrl };
+  useEffect(() => {
+    if (authLoading || !auth.authenticated || isNaN(roomId)) return;
+    loadChats(null);
+  }, [authLoading, auth, roomId, loadChats]);
+
+  // Load more (preserve scroll)
+  const handleLoadMore = async () => {
+    const container = messagesContainerRef.current;
+    if (!hasMore || !nextCursor || isLoadingMore || !container) return;
+
+    setIsLoadingMore(true);
+    setShouldScrollToBottom(false);
+    const prevTop = container.scrollTop;
+    const prevHeight = container.scrollHeight;
+
+    try {
+      await loadChats(nextCursor);
+      requestAnimationFrame(() => {
+        const diff = container.scrollHeight - prevHeight;
+        container.scrollTop = prevTop + diff;
+        setIsLoadingMore(false);
+      });
+    } catch (err) {
+      console.error('Load more failed:', err);
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Real-time message handler
+  const handleIncomingMessage = useCallback(payload => {
+    if (auth.id === 0) return;
+    const isMy = payload.senderId === auth.id;
+    const msg = {
+      id: payload.id || Date.now(),
+      userId: String(payload.senderId),
+      nickname: payload.senderName,
+      content: payload.message,
+      timestamp: payload.createdAt,
+      isMe: isMy,
+      type: payload.messageType === 'CODE' ? 'code' : 'text',
+      language: payload.language?.toLowerCase() || null,
+      code: payload.codeContent
+    };
+    if (!isMy) {
+      setMessages(prev => [...prev, msg]);
+      setShouldScrollToBottom(true);
+    }
+  }, [auth.id]);
+
+  // Presence updates
+  const handlePresenceUpdate = useCallback(presence => {
+    if (!presence.joined && !presence.left) {
+      const all = Object.entries(presence).map(([id, str]) => {
+        const [login, avatarUrl] = str.split('|');
+        return { userId: id, login, avatarUrl };
+      });
+      setParticipants(all);
+      return;
+    }
+    setParticipants(prev => {
+      let updated = [...prev];
+      presence.joined?.forEach(u => {
+        if (!updated.find(p => p.userId === String(u.id))) {
+          updated.push({ userId: String(u.id), login: u.login, avatarUrl: u.avatarUrl });
+        }
+      });
+      presence.left?.forEach(u => {
+        updated = updated.filter(p => p.userId !== String(u.id));
+      });
+      return updated;
     });
-    console.log('🔄 Initial participants from full list:', all);
-    setParticipants(all);
-    return;
-  }
+  }, []);
 
-  // (기존 joined/left 처리 로직)
-  setParticipants(prev => {
-    let updated = [...prev];
-    presence.joined?.forEach(u => {
-      if (!updated.find(p => p.userId === String(u.id))) {
-        updated.push({ userId: String(u.id), login: u.login, avatarUrl: u.avatarUrl });
-      }
-    });
-    presence.left?.forEach(u => {
-      updated = updated.filter(p => p.userId !== String(u.id));
-    });
-    console.log('🔄 Updated participants after join/leave:', updated);
-    return updated;
-  });
-}, [setParticipants]);
-
-
-  // 5) STOMP 훅 연결 (메시지 + Presence)
+  // STOMP hook
   const { sendChat: sendMessage, connected } = useChatStomp(
     roomId,
     handleIncomingMessage,
     handlePresenceUpdate
   );
 
-  // 6) 텍스트 메시지 전송
+  // Send text
   const handleSendMessage = () => {
     if (!inputMessage.trim() || !connected || auth.id === 0) return;
     const outgoing = {
@@ -172,6 +201,7 @@ useEffect(() => {
       type: 'text'
     };
     setMessages(prev => [...prev, outgoing]);
+    setShouldScrollToBottom(true);
     sendMessage({
       ...outgoing,
       roomId,
@@ -186,7 +216,7 @@ useEffect(() => {
     setInputMessage('');
   };
 
-  // 7) 코드 메시지 전송
+  // Send code
   const handleSendCode = () => {
     if (!codeInput.trim() || !connected || auth.id === 0) return;
     const outgoing = {
@@ -201,6 +231,7 @@ useEffect(() => {
       code: codeInput.trim()
     };
     setMessages(prev => [...prev, outgoing]);
+    setShouldScrollToBottom(true);
     sendMessage({
       ...outgoing,
       roomId,
@@ -216,7 +247,7 @@ useEffect(() => {
     setShowCodeModal(false);
   };
 
-  // 8) 복사·키 핸들러
+  // Copy & key handlers
   const handleCopyCode = async (code, id) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -238,17 +269,28 @@ useEffect(() => {
     }
   };
 
-  // 9) 자동 스크롤
+  // Auto-scroll
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (shouldScrollToBottom && !isLoadingMore) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setShouldScrollToBottom(false);
+    }
+  }, [messages, shouldScrollToBottom, isLoadingMore]);
 
-  // 10) 모달 포커스
+  // Modal focus
   useEffect(() => {
     if (showCodeModal) codeTextareaRef.current?.focus();
   }, [showCodeModal]);
 
-  // 11) 시간 포맷
+  // Initial scroll on first load
+  useEffect(() => {
+    if (!loading && messages.length > 0 && isFirstLoad.current) {
+      setShouldScrollToBottom(true);
+      isFirstLoad.current = false;
+    }
+  }, [loading, messages.length]);
+
+  // Time format
   const formatTime = iso => {
     const date = new Date(iso);
     const diff = Math.floor((Date.now() - date) / 60000);
@@ -281,10 +323,19 @@ useEffect(() => {
       />
 
       <div className={styles.chatContainer}>
-        <div className={styles.messagesContainer}>
+        <div className={styles.messagesContainer} ref={messagesContainerRef}>
           <div className={styles.messagesList}>
+            {hasMore && (
+              <button
+                className={styles.loadMoreBtn}
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? '로딩 중...' : '이전 메시지 더 보기'}
+              </button>
+            )}
             {messages.map(message => {
-              const senderInfo = participants.find(p => p.userId === message.userId);
+              const sender = participants.find(p => p.userId === message.userId);
               return (
                 <div
                   key={message.id}
@@ -292,10 +343,12 @@ useEffect(() => {
                 >
                   {!message.isMe && (
                     <div className={styles.messageAvatar}>
-                      {senderInfo?.avatarUrl ? (
-                        <img src={senderInfo.avatarUrl} alt={senderInfo.login} className={styles.avatarImage} />
+                      {sender?.avatarUrl ? (
+                        <img src={sender.avatarUrl} alt={sender.login} className={styles.avatarImage} />
                       ) : (
-                        <div className={styles.avatarCircle}>{message.nickname?.[0] || '🤖'}</div>
+                        <div className={styles.avatarCircle}>
+                          {message.nickname?.[0] || '🤖'}
+                        </div>
                       )}
                     </div>
                   )}
@@ -383,4 +436,3 @@ useEffect(() => {
 };
 
 export default ChatRoom;
-

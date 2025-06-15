@@ -2,7 +2,6 @@
 
 .sidebar {
   width: 280px;
-  height: 100vh;
   background: linear-gradient(145deg, #1a1a2e, #16213e);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;

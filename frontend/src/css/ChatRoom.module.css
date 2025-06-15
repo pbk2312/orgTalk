@@ -1,5 +1,5 @@
 .chatRoom {
-  min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 50%, #0a0f1c 100%);
   position: relative;
   color: #f8fafc;
@@ -56,6 +56,7 @@
   flex: 1;
   display: flex;
   min-height: 0;
+  overflow: hidden;
 }
 
 .messagesContainer {
@@ -377,5 +378,112 @@
   .messagesList {
     padding: 1.25rem;
     gap: 1.25rem;
+  }
+}
+
+.loadMoreBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 300px;
+  margin: 20px auto;
+  padding: 12px 24px;
+  
+  /* 배경 및 색상 */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  
+  /* 폰트 */
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  
+  /* 효과 */
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.loadMoreBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.loadMoreBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.loadMoreBtn:hover::before {
+  left: 100%;
+}
+
+.loadMoreBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.loadMoreBtn:disabled {
+  background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%);
+  color: #718096;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(160, 174, 192, 0.2);
+}
+
+.loadMoreBtn:disabled::before {
+  display: none;
+}
+
+/* 로딩 애니메이션 추가 */
+.loadMoreBtn:disabled::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid #718096;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 8px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 다크 테마 대응 */
+@media (prefers-color-scheme: dark) {
+  .loadMoreBtn {
+    background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+    box-shadow: 0 4px 15px rgba(76, 81, 191, 0.3);
+  }
+  
+  .loadMoreBtn:hover {
+    background: linear-gradient(135deg, #553c9a 0%, #4c51bf 100%);
+    box-shadow: 0 8px 25px rgba(76, 81, 191, 0.4);
+  }
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .loadMoreBtn {
+    max-width: 280px;
+    padding: 10px 20px;
+    font-size: 13px;
+    margin: 16px auto;
   }
 }

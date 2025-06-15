@@ -123,3 +123,25 @@ export async function getChatsByRoomId(roomId) {
   }
 }
 
+/**
+ * @param {number} roomId
+ * @param {string|null} cursor
+ * @param {number} [size]   // optional: 넘어오지 않으면 백엔드 defaultValue가 사용됨
+ */
+export async function getChatsByCursor(roomId, cursor = null, size) {
+  try {
+    const params = {};
+    if (cursor) params.cursor = cursor;
+    if (size != null) {
+      params.size = size;
+    }
+    const { data } = await chatApi.get(`/api/chat/${roomId}`, { params });
+    return {
+      chats: data.chats,
+      nextCursor: data.nextCursor
+    };
+  } catch (error) {
+    console.error('커서 기반 채팅 조회 실패:', error);
+    throw error;
+  }
+}

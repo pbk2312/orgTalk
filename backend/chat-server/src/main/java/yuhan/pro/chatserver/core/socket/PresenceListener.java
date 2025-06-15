@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -20,9 +19,6 @@ import yuhan.pro.chatserver.core.MemberClient;
 import yuhan.pro.chatserver.domain.dto.MemberProfileUrlResponse;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
-/**
- * 사용자의 입장/퇴장 상태를 Redis에 저장하고, STOMP/WebSocket과 Kafka로 Presence 이벤트(전체 목록 JSON)를 발행
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -32,7 +28,6 @@ public class PresenceListener {
   private final RedisTemplate<String, String> redisTemplate;
   private final MemberClient memberClient;
   private final KafkaTemplate<String, String> kafkaTemplate;
-  private final SimpMessagingTemplate messagingTemplate;
   private final ObjectMapper objectMapper;
 
   @EventListener
@@ -113,7 +108,7 @@ public class PresenceListener {
     try {
       Map<Object, Object> entries = redisTemplate.opsForHash().entries(getRoomKey(roomId));
       String payload = objectMapper.writeValueAsString(entries);
-      
+
       kafkaTemplate.send("chatroom-presence-" + roomId, payload);
     } catch (JsonProcessingException e) {
       log.error("Presence JSON 변환 실패 for room {}", roomId, e);
