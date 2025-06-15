@@ -3,13 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   MessageCircle,
   Users,
-  Hash,
-  Lock,
-  Globe,
-  ChevronRight,
   Plus,
-  Search,
-  Clock
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import OrgTalkHeader from './OrgTalkHeader';
@@ -18,6 +12,9 @@ import PasswordInputModal from '../pages/PasswordInputModal';
 import { getOrganizationInfo } from '../service/OrganizationService';
 import { getChatRooms, joinChatRoom } from '../service/ChatService';
 import Pagination from './Pagination';
+
+import ChatRoomCard from './ChatRoomCard';
+import SearchFilter from './SearchFilter';
 
 import styles from '../css/ChatRoomsPage.module.css';
 
@@ -36,6 +33,7 @@ const ChatRoomsPage = () => {
   const [page, setPage] = useState(0);
   const [size] = useState(6);
   const [totalPages, setTotalPages] = useState(0);
+  /* eslint-disable-next-line no-unused-vars */
   const [totalElements, setTotalElements] = useState(0);
 
   // 4) 로딩/에러 (채팅방 조회)
@@ -105,7 +103,7 @@ const ChatRoomsPage = () => {
     loadOrganization();
     loadChatRooms();
 
-  }, [orgId, page]);
+  }, [orgId,  page, size, setTotalElements]);
 
 
   const handleOpenModal = () => setIsModalOpen(true);
@@ -116,7 +114,6 @@ const ChatRoomsPage = () => {
     // 곧바로 채팅룸으로 이ㅇ
     navigate(`/chatroom/${newRoomId}`);
   };
-
 
   // ---------- Private 방 입장을 위한 모달 열기 로직 ----------
   const handleRequestJoin = (room) => {
@@ -183,18 +180,6 @@ const ChatRoomsPage = () => {
       filterType === 'all' || room.type.toLowerCase() === filterType;
     return matchesSearch && matchesFilter;
   });
-
-  const getTypeIcon = (type) =>
-    type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />;
-
-  const formatTime = (isoString) => {
-    if (!isoString) return '';
-    try {
-      return new Date(isoString).toLocaleString();
-    } catch {
-      return isoString;
-    }
-  };
 
   // 로딩 중 또는 조직 정보가 없으면 로딩 스피너 화면
   if (isLoading || !organization) {
@@ -270,95 +255,25 @@ const ChatRoomsPage = () => {
               </p>
             </div>
 
-            {/* —— Search & Filter Section —— */}
-            <div className={styles['search-section']}>
-              <div className={styles['search-box']}>
-                <Search size={20} className={styles['search-icon']} />
-                <input
-                  type="text"
-                  placeholder="채팅방 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={styles['search-input']}
-                />
-              </div>
-              <div className={styles['filter-buttons']}>
-                {['all', 'public', 'private'].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setFilterType(type)}
-                    className={`${styles['filter-button']} ${
-                      filterType === type ? styles.active : ''
-                    }`}
-                  >
-                    {type === 'public' ? (
-                      <>
-                        <Globe size={16} /> 공개
-                      </>
-                    ) : type === 'private' ? (
-                      <>
-                        <Lock size={16} /> 비공개
-                      </>
-                    ) : (
-                      '전체'
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+             <SearchFilter
+   searchQuery={searchQuery}
+   onSearchChange={setSearchQuery}
+   filterType={filterType}
+   onFilterChange={setFilterType}
+ />
 
             {/* —— 채팅방 목록 Grid —— */}
             <div className={styles['rooms-grid']}>
               {filteredRooms.map((room) => (
-                <div
-                  key={room.id}
-                  onClick={() => handleRoomSelect(room)}
-                  onMouseEnter={() => setHoveredRoom(room.id)}
-                  onMouseLeave={() => setHoveredRoom(null)}
-                  className={`${styles['room-card']} ${
-                    hoveredRoom === room.id ? styles.hovered : ''
-                  } ${selectedRoom?.id === room.id ? styles.selected : ''}`}
-                >
-                  <div className={styles['room-card-header']}>
-                    <div className={styles['room-icon']}><Hash size={20} /></div>
-                    <div className={styles['room-info']}>
-                      <div className={styles['room-name-row']}>
-                        <h3 className={styles['room-name']}>{room.name}</h3>
-                        <div className={styles['room-type']}>{getTypeIcon(room.type)}</div>
-                      </div>
-                      <p className={styles['room-description']}>{room.description}</p>
-                    </div>
-                  </div>
-                  <div className={styles['room-card-body']}>
-                    <div className={styles['last-message']}>
-                      <p className={styles['last-message-text']}>{room.lastMessage}</p>
-                      <div className={styles['message-time']}>
-                        <Clock size={12} />
-                        <span>{formatTime(room.lastMessageAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles['room-card-footer']}>
-                    <div className={styles['member-count']}>
-                      <Users size={16} /> <span>{room.memberCount}명</span>
-                    </div>
-                    {/* —— 참여중 여부 표시 —— */}
-                    <div className={styles['room-status']}>
-                      {room.joined ? (
-                        <>
-                          <div className={styles['status-dot-joined']}></div>
-                          <span className={styles['status-text-joined']}>참여중</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className={styles['status-dot-notJoined']}></div>
-                          <span className={styles['status-text-notJoined']}>미참여</span>
-                        </>
-                      )}
-                    </div>
-                    <ChevronRight size={16} className={styles['enter-icon']} />
-                  </div>
-                </div>
+                 <ChatRoomCard
+      key={room.id}
+      room={room}
+      isHovered={hoveredRoom === room.id}
+      isSelected={selectedRoom?.id === room.id}
+      onClick={() => handleRoomSelect(room)}
+      onMouseEnter={() => setHoveredRoom(room.id)}
+      onMouseLeave={() => setHoveredRoom(null)}
+    />
               ))}
             </div>
 

@@ -1,25 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  Clock,
-  Code,
-  Copy,
-  Check
-} from 'lucide-react';
 
 import ChatHeader from './ChatHeader';
 import Sidebar from './Sidebar';
 import ChatInput from './ChatInput';
 import CodeModal from './CodeModal';
-
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { okaidia } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
+import MessageItem from './MessageItem';
 import { getChatRoomInfo, getChatsByCursor } from '../../service/ChatService.jsx';
 import { useChatStomp } from '../../hooks/useChatStomp.js';
 import { useAuth } from '../../hooks/useAuth.ts';
 import styles from '../../css/ChatRoom.module.css';
-import { supportedLanguages, getLanguageColor } from '../../constants/chatConstants';
 
 const ChatRoom = () => {
   const navigate = useNavigate();
@@ -290,16 +280,6 @@ const ChatRoom = () => {
     }
   }, [loading, messages.length]);
 
-  // Time format
-  const formatTime = iso => {
-    const date = new Date(iso);
-    const diff = Math.floor((Date.now() - date) / 60000);
-    if (diff < 1) return '방금 전';
-    if (diff < 60) return `${diff}분 전`;
-    if (diff < 1440) return `${Math.floor(diff / 60)}시간 전`;
-    return date.toLocaleDateString();
-  };
-
   if (authLoading || loading) {
     return <div className={styles.loading}>로딩 중...</div>;
   }
@@ -334,75 +314,15 @@ const ChatRoom = () => {
                 {isLoadingMore ? '로딩 중...' : '이전 메시지 더 보기'}
               </button>
             )}
-            {messages.map(message => {
-              const sender = participants.find(p => p.userId === message.userId);
-              return (
-                <div
-                  key={message.id}
-                  className={`${styles.message} ${message.isMe ? styles.messageMe : styles.messageOther}`}
-                >
-                  {!message.isMe && (
-                    <div className={styles.messageAvatar}>
-                      {sender?.avatarUrl ? (
-                        <img src={sender.avatarUrl} alt={sender.login} className={styles.avatarImage} />
-                      ) : (
-                        <div className={styles.avatarCircle}>
-                          {message.nickname?.[0] || '🤖'}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className={styles.messageContent}>
-                    {!message.isMe && (
-                      <div className={styles.messageHeader}>
-                        <span className={styles.messageNickname}>{message.nickname}</span>
-                        <span className={styles.messageTime}>
-                          <Clock size={12} />{formatTime(message.timestamp)}
-                        </span>
-                      </div>
-                    )}
-                    <div className={styles.messageBubble}>
-                      {message.type === 'text' ? (
-                        <p className={styles.messageText}>{message.content}</p>
-                      ) : (
-                        <div className={styles.codeMessage}>
-                          <div className={styles.codeHeader}>
-                            <div className={styles.codeLanguage}>
-                              <Code size={14} />
-                              <span style={{ color: getLanguageColor(message.language) }}>
-                                {supportedLanguages.find(l => l.value === message.language)?.label || message.language}
-                              </span>
-                            </div>
-                            <button
-                              className={styles.copyButton}
-                              onClick={() => handleCopyCode(message.code, message.id)}
-                            >
-                              {copiedCodeId === message.id ? <Check size={14} /> : <Copy size={14} />}
-                              {copiedCodeId === message.id ? '복사됨' : '복사'}
-                            </button>
-                          </div>
-                          <SyntaxHighlighter
-                            language={message.language}
-                            style={okaidia}
-                            showLineNumbers
-                            wrapLongLines
-                            className={styles.codeBlock}
-                          >
-                            {message.code}
-                          </SyntaxHighlighter>
-                        </div>
-                      )}
-                      {message.isMe && (
-                        <div className={styles.messageTimeMe}>
-                          <Clock size={12} />
-                          {formatTime(message.timestamp)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          {messages.map(message => (
+           <MessageItem
+             key={message.id}
+             message={message}
+             participants={participants}
+             onCopy={handleCopyCode}
+             copiedCodeId={copiedCodeId}
+           />
+         ))}
             <div ref={messagesEndRef} />
           </div>
         </div>
