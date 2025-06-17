@@ -54,6 +54,7 @@ const ChatRoom = () => {
       try {
         setLoading(true);
         const data = await getChatRoomInfo(roomId);
+        console.log('[ChatRoom] fetched roomInfo:', data);
         setRoomInfo(data);
         if (data.participants) {
           setParticipants(
@@ -149,6 +150,7 @@ const ChatRoom = () => {
 
   // Presence updates
   const handlePresenceUpdate = useCallback(presence => {
+    console.log('[ChatRoom] presence update received:', presence);
     if (!presence.joined && !presence.left) {
       const all = Object.entries(presence).map(([id, str]) => {
         const [login, avatarUrl] = str.split('|');

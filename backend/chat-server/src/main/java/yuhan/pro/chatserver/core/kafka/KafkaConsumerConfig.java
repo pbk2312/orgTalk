@@ -25,38 +25,37 @@ public class KafkaConsumerConfig {
     Map<String, Object> props = new HashMap<>();
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
     return props;
   }
 
-  // ------------ chat-messages 전용 ------------
   @Bean
   public ConsumerFactory<String, ChatRequest> chatRequestConsumerFactory() {
     JsonDeserializer<ChatRequest> deserializer = new JsonDeserializer<>(ChatRequest.class);
     deserializer.addTrustedPackages("yuhan.pro.chatserver.domain.dto");
+    String chatGroup = "${spring.application.name}-${random.uuid}";
     return new DefaultKafkaConsumerFactory<>(
-        consumerConfig("${spring.application.name}-${random.uuid}"),
+        consumerConfig(chatGroup),
         new StringDeserializer(),
         deserializer
     );
   }
 
-  @Bean(name = "factory")
+  @Bean(name = "chatMessageFactory")
   public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, ChatRequest>> factory(
       ConsumerFactory<String, ChatRequest> chatRequestConsumerFactory) {
     ConcurrentKafkaListenerContainerFactory<String, ChatRequest> factory =
         new ConcurrentKafkaListenerContainerFactory<>();
     factory.setConsumerFactory(chatRequestConsumerFactory);
+    factory.setConcurrency(5);
     return factory;
   }
 
-  // ------------ presence 전용 ------------
   @Bean
   public ConsumerFactory<String, String> presenceConsumerFactory(
-      @Value("${spring.kafka.consumer.group-id}") String groupId) {
-    // 그룹 아이디 분리 (옵션)
-    String presenceGroup = groupId + "-presence";
+      @Value("${spring.kafka.consumer.group-id}-${random.uuid}") String presenceGroup
+  ) {
     return new DefaultKafkaConsumerFactory<>(
         consumerConfig(presenceGroup),
         new StringDeserializer(),
@@ -64,7 +63,7 @@ public class KafkaConsumerConfig {
     );
   }
 
-  @Bean(name = "presenceKafkaListenerContainerFactory")
+  @Bean(name = "presenceFactory")
   public ConcurrentKafkaListenerContainerFactory<String, String> presenceKafkaListenerContainerFactory(
       ConsumerFactory<String, String> presenceConsumerFactory
   ) {

@@ -58,9 +58,6 @@ export function useChatStomp(
       const enriched = {
         ...chatRequest,
         sourcePort: portParam,
-        // TODO: 필요하다면 프로필 정보도 여기에 추가 가능
-        // senderAvatar: chatRequest.senderAvatar,
-        // senderNickname: chatRequest.senderName,
       };
       clientRef.current.publish({
         destination: `/send/chat/${normalizedRoomId}`,
@@ -118,13 +115,18 @@ export function useChatStomp(
             }
           );
 
+  
+
           // 2) Presence(입장/퇴장) 구독
           presSubRef.current = client.subscribe(
             `/topic/presence/${normalizedRoomId}`,
             ({ body }) => {
-              if (!body) return;
+              console.log("body : {}" ,body)
+              if (!body) 
+                return;
               try {
                 const presenceData = JSON.parse(body);
+                console.log("[useChatStomp] parsed presence data:", presenceData);
                 presCbRef.current(presenceData);
               } catch (e) {
                 console.error("Presence JSON 파싱 오류:", e);

@@ -45,7 +45,6 @@ public class ChatRoomService {
   private final PasswordEncoder passwordEncoder;
   private final MemberClient memberClient;
 
-  // Todo: 조직에 포함되지 않은 사람은 접근 불가하게 로직 추가
   @Transactional
   public ChatRoomCreateResponse saveChatRoom(ChatRoomCreateRequest request) {
 
@@ -101,7 +100,8 @@ public class ChatRoomService {
 
     Long memberId = getMemberId(authentication);
 
-    // validateMemberInOrg(organizationId, authentication);
+    // todo: 테스트를 위한
+    //validateMemberInOrg(organizationId, authentication);
 
     Page<ChatRoom> chatRoomPage = chatRoomRepository.findAllByOrganizationId(organizationId,
         pageable);

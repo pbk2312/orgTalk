@@ -109,7 +109,7 @@ public class PresenceListener {
       Map<Object, Object> entries = redisTemplate.opsForHash().entries(getRoomKey(roomId));
       String payload = objectMapper.writeValueAsString(entries);
 
-      kafkaTemplate.send("chatroom-presence-" + roomId, payload);
+      kafkaTemplate.send("chat-presence", roomId, payload);
     } catch (JsonProcessingException e) {
       log.error("Presence JSON 변환 실패 for room {}", roomId, e);
     }

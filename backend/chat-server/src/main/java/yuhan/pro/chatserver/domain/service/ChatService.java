@@ -64,32 +64,26 @@ public class ChatService {
         .toList();
   }
 
-  // Service
   @Transactional(readOnly = true)
   public ChatPageResponse getChatsByCursor(
       Long roomId, LocalDateTime cursor, int size
   ) {
     ChatRoom room = findChatRoomOrThrow(roomId);
 
-    // 최신→과거 순 desc, limit=size
     Pageable pg = PageRequest.of(0, size, Sort.by("createdAt").descending());
     List<Chat> chats;
     if (cursor != null) {
-      // cursor 이전(더 과거) 메시지 로드
       chats = chatRepository.findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
           roomId, cursor, pg);
     } else {
-      // 첫 로드: 최신 size개
       chats = chatRepository.findByRoomIdOrderByCreatedAtDesc(roomId, pg);
     }
 
-    // 화면 표시용으로 과거→최신 순으로 뒤집기
     List<ChatResponse> data = chats.stream()
         .map(chat -> ChatMapper.toChatResponse(room, chat))
         .sorted(Comparator.comparing(ChatResponse::createdAt))
         .toList();
 
-    // 다음 커서는 가장 앞(과거쪽)의 createdAt
     LocalDateTime nextCursor = data.isEmpty()
         ? null
         : data.getFirst().createdAt();
