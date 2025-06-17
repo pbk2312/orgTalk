@@ -1,15 +1,23 @@
-// src/components/MessageItem.jsx
+// MessageItem.jsx 수정
 import React from 'react';
 import { Clock, Code, Copy, Check } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { okaidia } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import styles from '../../css/ChatRoom.module.css'; // 스타일이 공용 모듈이라면 이대로, 컴포넌트별 CSS 모듈을 쓸 경우 경로/이름 조정
-import { formatTime } from '../../util/formatTime'; // util 경로 확인
+import styles from '../../css/ChatRoom.module.css';
+import { formatTime } from '../../util/formatTime';
 import { supportedLanguages, getLanguageColor } from '../../constants/chatConstants';
 
 const MessageItem = ({ message, participants, onCopy, copiedCodeId }) => {
-  // message: { id, userId, nickname, content, timestamp, isMe, type, language, code }
-  const sender = participants.find(p => p.userId === message.userId);
+  // 1순위: 메시지에 포함된 발신자 프로필 정보 사용
+  // 2순위: 현재 participants에서 찾기 (실시간 참여자 정보)
+  // 3순위: 메시지의 기본 정보 사용
+  const sender = message.senderProfile || 
+                 participants.find(p => p.userId === message.userId) ||
+                 {
+                   userId: message.userId,
+                   login: message.nickname,
+                   avatarUrl: null
+                 };
 
   return (
     <div
@@ -23,7 +31,7 @@ const MessageItem = ({ message, participants, onCopy, copiedCodeId }) => {
             <img src={sender.avatarUrl} alt={sender.login} className={styles.avatarImage} />
           ) : (
             <div className={styles.avatarCircle}>
-              {message.nickname?.[0] || '🤖'}
+              {(sender?.login || message.nickname)?.[0] || '🤖'}
             </div>
           )}
         </div>
@@ -33,7 +41,9 @@ const MessageItem = ({ message, participants, onCopy, copiedCodeId }) => {
         {/* 다른 사람 메시지일 때 헤더(닉네임+시간) */}
         {!message.isMe && (
           <div className={styles.messageHeader}>
-            <span className={styles.messageNickname}>{message.nickname}</span>
+            <span className={styles.messageNickname}>
+              {sender?.login || message.nickname}
+            </span>
             <span className={styles.messageTime}>
               <Clock size={12} /> {formatTime(message.timestamp)}
             </span>

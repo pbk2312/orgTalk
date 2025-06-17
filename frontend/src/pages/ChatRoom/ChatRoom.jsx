@@ -72,32 +72,39 @@ const ChatRoom = () => {
 
   // Load chats (cursor-based)
   const loadChats = useCallback(async (cursor = null) => {
-    try {
-      const { chats, nextCursor: newCursor } = await getChatsByCursor(roomId, cursor);
-      const mapped = chats.map(p => ({
-        id: p.id,
+  try {
+    const { chats, nextCursor: newCursor } = await getChatsByCursor(roomId, cursor);
+    const mapped = chats.map(p => ({
+      id: p.id,
+      userId: String(p.senderId),
+      nickname: p.senderName,
+      content: p.message,
+      timestamp: p.createdAt,
+      isMe: p.senderId === auth.id,
+      type: p.messageType === 'CODE' ? 'code' : 'text',
+      language: p.language?.toLowerCase() || null,
+      code: p.codeContent,
+      // 발신자 프로필 정보 추가
+      senderProfile: {
         userId: String(p.senderId),
-        nickname: p.senderName,
-        content: p.message,
-        timestamp: p.createdAt,
-        isMe: p.senderId === auth.id,
-        type: p.messageType === 'CODE' ? 'code' : 'text',
-        language: p.language?.toLowerCase() || null,
-        code: p.codeContent
-      }));
+        login: p.senderName,
+        avatarUrl: p.senderAvatarUrl || null // 서버에서 아바타 URL도 함께 제공되어야 함
+      }
+    }));
 
-      setMessages(prev => {
-        if (!cursor) return mapped;
-        const existing = new Set(prev.map(m => m.id));
-        const newOnes = mapped.filter(m => !existing.has(m.id));
-        return [...newOnes, ...prev];
-      });
-      setNextCursor(newCursor);
-      setHasMore(newCursor !== null && newCursor !== undefined);
-    } catch (err) {
-      console.error('Failed to load chats:', err);
-    }
-  }, [auth.id, roomId]);
+    setMessages(prev => {
+      if (!cursor) return mapped;
+      const existing = new Set(prev.map(m => m.id));
+      const newOnes = mapped.filter(m => !existing.has(m.id));
+      return [...newOnes, ...prev];
+    });
+    setNextCursor(newCursor);
+    setHasMore(newCursor !== null && newCursor !== undefined);
+  } catch (err) {
+    console.error('Failed to load chats:', err);
+  }
+}, [auth.id, roomId]);
+
 
   useEffect(() => {
     if (authLoading || !auth.authenticated || isNaN(roomId)) return;
@@ -129,24 +136,36 @@ const ChatRoom = () => {
 
   // Real-time message handler
   const handleIncomingMessage = useCallback(payload => {
-    if (auth.id === 0) return;
-    const isMy = payload.senderId === auth.id;
-    const msg = {
-      id: payload.id || Date.now(),
-      userId: String(payload.senderId),
-      nickname: payload.senderName,
-      content: payload.message,
-      timestamp: payload.createdAt,
-      isMe: isMy,
-      type: payload.messageType === 'CODE' ? 'code' : 'text',
-      language: payload.language?.toLowerCase() || null,
-      code: payload.codeContent
-    };
-    if (!isMy) {
-      setMessages(prev => [...prev, msg]);
-      setShouldScrollToBottom(true);
-    }
-  }, [auth.id]);
+  if (auth.id === 0) return;
+  const isMy = payload.senderId === auth.id;
+  
+  // 현재 participants에서 발신자 정보 찾기
+  const senderInfo = participants.find(p => p.userId === String(payload.senderId)) || {
+    userId: String(payload.senderId),
+    login: payload.senderName,
+    avatarUrl: payload.senderAvatarUrl || null
+  };
+  
+  const msg = {
+    id: payload.id || Date.now(),
+    userId: String(payload.senderId),
+    nickname: payload.senderName,
+    content: payload.message,
+    timestamp: payload.createdAt,
+    isMe: isMy,
+    type: payload.messageType === 'CODE' ? 'code' : 'text',
+    language: payload.language?.toLowerCase() || null,
+    code: payload.codeContent,
+    // 발신자 프로필 정보 추가
+    senderProfile: senderInfo
+  };
+  
+  if (!isMy) {
+    setMessages(prev => [...prev, msg]);
+    setShouldScrollToBottom(true);
+  }
+}, [auth.id, participants]);
+
 
   // Presence updates
   const handlePresenceUpdate = useCallback(presence => {
@@ -190,7 +209,12 @@ const ChatRoom = () => {
       content: inputMessage.trim(),
       timestamp: new Date().toISOString(),
       isMe: true,
-      type: 'text'
+      type: 'text',
+      senderProfile: {
+      userId: String(auth.id),
+      login: auth.login || '나',
+      avatarUrl: auth.avatarUrl || null
+    }
     };
     setMessages(prev => [...prev, outgoing]);
     setShouldScrollToBottom(true);

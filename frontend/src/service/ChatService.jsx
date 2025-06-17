@@ -2,23 +2,11 @@
 
 import { chatApi } from '../lib/axios.ts'; 
 
-/**
- * ChatRoom 생성 요청용 타입 (JSDoc 용)
- * @typedef {Object} ChatRoomCreateRequest
- * @property {number} organizationId     - 백엔드가 요구하는 조직 ID
- * @property {string} name               - 채팅방 이름 (필수)
- * @property {string} [description]      - 채팅방 설명 (선택)
- * @property {"PUBLIC" | "PRIVATE"} type  - RoomType enum 값
- */
 
-/**
- * 채팅방 생성 API를 호출합니다.
- * @param {ChatRoomCreateRequest} payload
- * @returns {Promise<any>} 생성을 성공하면 백엔드가 리턴하는 데이터
- */
 export async function createChatRoom(payload) {
   try {
     const res = await chatApi.post('/api/chatroom', payload);
+    alert('채팅방이 성공적으로 생성되었습니다.');
     return res.data;
   } catch (error) {
     console.error('Failed to create chat room:', error);
@@ -26,30 +14,12 @@ export async function createChatRoom(payload) {
   }
 }
 
-/**
- * 채팅방 목록 조회
- * @param {Object} params
- * @param {number} params.organizationId - 조회할 조직 ID
- * @param {number} params.page           - 0부터 시작하는 페이지 인덱스
- * @param {number} params.size           - 한 페이지당 가져올 개수
- * @param {string} params.sort           - 정렬 기준 (예: "lastMessageAt,DESC")
- * @returns {Promise<{
- *   chatRooms: any[],
- *   page: number,
- *   size: number,
- *   totalPages: number,
- *   totalElements: number
- * }>}
- */
 export async function getChatRooms(params) {
   try {
     const { data } = await chatApi.get(
       `/api/chatroom/list/${params.organizationId}`,
       { params }
     );
-
-    console.log('📥 API 응답 전체 데이터:', data);
-    console.log('📋 응답된 채팅방 목록 (content):', data.content);
     return {
       chatRooms: data.content,
       page: data.page,
@@ -63,15 +33,9 @@ export async function getChatRooms(params) {
   }
 }
 
-/**
- * 특정 채팅방의 상세 정보를 조회합니다.
- * @param {number} roomId - 조회할 채팅방 ID
- * @returns {Promise<ChatRoomInfoResponse>}
- */
 export async function getChatRoomInfo(roomId) {
   try {
     const { data } = await chatApi.get(`/api/chatroom/${roomId}`);
-    // data: { name, description, type, memberCount }
     return data;
   } catch (error) {
     console.error(
@@ -82,16 +46,6 @@ export async function getChatRoomInfo(roomId) {
   }
 }
 
-/**
- * 채팅방 참여(join) API 호출
- * 백엔드 컨트롤러: @PostMapping("/api/chatroom/{roomId}/join")
- * 요청 바디로 { password }를 함께 보내야 합니다.
- *
- * @param {Object} payload
- * @param {number} payload.roomId    - 참여하려는 채팅방 ID
- * @param {string} payload.password  - 비공개 방일 경우 입력한 평문 비밀번호
- * @returns {Promise<void>} 성공 시 204 No Content 반환 (throw 시 에러)
- */
 export async function joinChatRoom({ roomId, password }) {
   try {
     await chatApi.post(`/api/chatroom/${roomId}/join`, { password });
@@ -104,30 +58,6 @@ export async function joinChatRoom({ roomId, password }) {
   }
 }
 
-/**
- * 특정 채팅방의 모든 채팅 메시지를 조회합니다.
- * @param {number} roomId - 조회할 채팅방 ID
- * @returns {Promise<ChatResponse[]>} ChatResponse 배열
- */
-export async function getChatsByRoomId(roomId) {
-  try {
-    const { data } = await chatApi.get(`/api/chat/${roomId}`);
-    // 서버에서 반환된 ChatResponse 객체 배열을 그대로 반환
-    return data;
-  } catch (error) {
-    console.error(
-      `Failed to fetch chats for roomId ${roomId}:`,
-      error
-    );
-    throw error;
-  }
-}
-
-/**
- * @param {number} roomId
- * @param {string|null} cursor
- * @param {number} [size]   // optional: 넘어오지 않으면 백엔드 defaultValue가 사용됨
- */
 export async function getChatsByCursor(roomId, cursor = null, size) {
   try {
     const params = {};
