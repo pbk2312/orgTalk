@@ -10,9 +10,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 import yuhan.pro.mainserver.sharedkernel.jwt.JwtValidator;
-import yuhan.pro.mainserver.sharedkernel.jwt.TokenBlacklistService;
 import yuhan.pro.mainserver.sharedkernel.jwt.TokenProvider;
 import yuhan.pro.mainserver.sharedkernel.jwt.dto.AccessTokenResponse;
+import yuhan.pro.mainserver.sharedkernel.jwt.service.TokenBlacklistService;
 import yuhan.pro.mainserver.sharedkernel.util.CookieUtils;
 
 @Service

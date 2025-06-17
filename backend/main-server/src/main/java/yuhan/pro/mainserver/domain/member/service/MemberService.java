@@ -46,7 +46,6 @@ public class MemberService {
     return PageResponse.fromPage(dtoPage);
   }
 
-  // Todo: 캐시 처리 고민
   @Transactional(readOnly = true)
   public MemberResponse isLogin() {
     Long memberId = getMemberId();

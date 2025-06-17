@@ -1,12 +1,15 @@
-package yuhan.pro.mainserver.sharedkernel.jwt;
+package yuhan.pro.mainserver.sharedkernel.jwt.service;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import yuhan.pro.mainserver.sharedkernel.jwt.entity.BlacklistedToken;
+import yuhan.pro.mainserver.sharedkernel.jwt.repository.BlacklistedTokenRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +20,7 @@ public class TokenBlacklistService {
   private Long refreshTokenExpiration;
 
   private final RedisTemplate<String, Object> redisTemplate;
+  private final BlacklistedTokenRepository tokenRepo;
   private static final String PREFIX = "blacklist:";
 
   @CircuitBreaker(
@@ -30,6 +34,24 @@ public class TokenBlacklistService {
         refreshTokenExpiration,
         TimeUnit.MILLISECONDS
     );
+    tokenRepo.save(
+        BlacklistedToken.builder()
+            .token(refreshToken)
+            .expiry(Instant.now().plusMillis(refreshTokenExpiration))
+            .build()
+    );
+  }
+
+  @SuppressWarnings("unused")
+  private void blacklistFallback(String refreshToken, Throwable e) {
+    tokenRepo.save(
+        BlacklistedToken.builder()
+            .token(refreshToken)
+            .expiry(Instant.now().plusMillis(refreshTokenExpiration))
+            .build()
+    );
+    log.warn("[blacklistFallback] Redis down, saved to DB only. token={} error={}",
+        refreshToken, e.getClass().getSimpleName());
   }
 
   @CircuitBreaker(
@@ -41,16 +63,14 @@ public class TokenBlacklistService {
   }
 
   @SuppressWarnings("unused")
-  private void blacklistFallback(String refreshToken, Throwable e) {
-    log.error("[CircuitBreaker][blacklistFallback] Redis 연결 실패. 토큰 블랙리스트 등록 불가. token={}, error={}",
-        refreshToken, e.getClass().getSimpleName());
-  }
-
-  @SuppressWarnings("unused")
   private boolean isBlacklistedFallback(String refreshToken, Throwable e) {
-    log.error(
-        "[CircuitBreaker][isBlacklistedFallback] Redis 연결 실패. 모든 토큰을 차단 처리합니다. token={}, error={}",
-        refreshToken, e.getClass().getSimpleName());
-    return true;
+    boolean blocked = tokenRepo.existsByTokenAndExpiryAfter(
+        refreshToken, Instant.now()
+    );
+    log.warn(
+        "[isBlacklistedFallback] Redis down, DB check only. token={} blocked={} error={}",
+        refreshToken, blocked, e.getClass().getSimpleName()
+    );
+    return blocked;
   }
 }
