@@ -100,8 +100,7 @@ public class ChatRoomService {
 
     Long memberId = getMemberId(authentication);
 
-    // todo: 테스트를 위한
-    //validateMemberInOrg(organizationId, authentication);
+    validateMemberInOrg(organizationId, authentication);
 
     Page<ChatRoom> chatRoomPage = chatRoomRepository.findAllByOrganizationId(organizationId,
         pageable);

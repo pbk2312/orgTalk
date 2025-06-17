@@ -2,12 +2,14 @@ package yuhan.pro.chatserver.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -21,14 +23,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
+import yuhan.pro.chatserver.domain.dto.ChatPageResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRequest;
 import yuhan.pro.chatserver.domain.dto.ChatResponse;
 import yuhan.pro.chatserver.domain.entity.Chat;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
-import yuhan.pro.chatserver.domain.entity.Language;
 import yuhan.pro.chatserver.domain.entity.MessageType;
 import yuhan.pro.chatserver.domain.entity.RoomType;
 import yuhan.pro.chatserver.domain.mapper.ChatMapper;
@@ -106,7 +110,8 @@ class ChatServiceTest {
           null,
           null,
           chatMemberDetails.getMemberId(),
-          chatMemberDetails.getNickName()
+          chatMemberDetails.getNickName(),
+          LocalDateTime.now()
       );
 
       Chat savedChat = ChatMapper.fromRequest(chatRequest, 1L);
@@ -115,6 +120,9 @@ class ChatServiceTest {
           .thenReturn(Optional.of(chatRoom));
 
       when(chatRepository.save(any(Chat.class))).thenReturn(savedChat);
+      when(chatRoomMemberRepository.existsByChatRoom_IdAndMemberId(
+          chatRoom.getId(), chatMemberDetails.getMemberId()))
+          .thenReturn(true);
 
       // when
       chatService.saveChat(chatRequest, 1L);
@@ -142,7 +150,8 @@ class ChatServiceTest {
           null,
           null,
           chatMemberDetails.getMemberId(),
-          chatMemberDetails.getNickName()
+          chatMemberDetails.getNickName(),
+          LocalDateTime.now()
       );
 
       when(chatRoomRepository.findById(1L))
@@ -166,7 +175,8 @@ class ChatServiceTest {
           null,
           null,
           chatMemberDetails.getMemberId(),
-          chatMemberDetails.getNickName()
+          chatMemberDetails.getNickName(),
+          LocalDateTime.now()
       );
 
       // 채팅방은 존재
@@ -187,47 +197,159 @@ class ChatServiceTest {
   }
 
   @Nested
-  @DisplayName("채팅 히스토리 가져오기")
-  class getAllChatsTests {
+  @DisplayName("커서 기반 채팅 히스토리 가져오기")
+  class getChatsCursorTests {
 
     @Test
-    @DisplayName("채팅 히스토리 가져오기")
-    void getAllChatsSuccess() {
+    @DisplayName("커서가 null일 때, 처음 페이지 반환")
+    void getChatsNoCursor() {
       // given
+      LocalDateTime t1 = LocalDateTime.now().minusMinutes(10);
+      LocalDateTime t2 = LocalDateTime.now().minusMinutes(5);
+
+      // 오래된 채팅
       Chat chat1 = Chat.builder()
-          .id("1L")
+          .id("1")
           .roomId(chatRoom.getId())
-          .senderName(chatMemberDetails.getNickName())
-          .senderId(chatMemberDetails.getMemberId())
+          .senderName("userA")
+          .senderId(100L)
           .message("첫 번째 메시지")
           .type(MessageType.TEXT)
           .codeContent(null)
           .language(null)
           .build();
+      ReflectionTestUtils.setField(chat1, "createdAt", t1);
 
+      // 최신 채팅
       Chat chat2 = Chat.builder()
-          .id("2L")
+          .id("2")
           .roomId(chatRoom.getId())
-          .senderName(chatMemberDetails.getNickName())
-          .senderId(chatMemberDetails.getMemberId())
+          .senderName("userB")
+          .senderId(200L)
           .message("두 번째 메시지")
-          .type(MessageType.CODE)
-          .codeContent("console.log('hi');")
-          .language(Language.JAVASCRIPT)
+          .type(MessageType.TEXT)
+          .codeContent(null)
+          .language(null)
           .build();
+      ReflectionTestUtils.setField(chat2, "createdAt", t2);
 
-      List<Chat> chats = List.of(chat1, chat2);
+      when(chatRoomRepository.findById(chatRoom.getId()))
+          .thenReturn(Optional.of(chatRoom));
 
-      when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(chatRoom));
-      when(chatRepository.findByRoomIdOrderByCreatedAtAsc(chatRoom.getId())).thenReturn(chats);
+      when(chatRepository.findByRoomIdOrderByCreatedAtDesc(eq(chatRoom.getId()),
+          any(Pageable.class)))
+          .thenReturn(List.of(chat2, chat1));
 
       // when
-      List<ChatResponse> responses = chatService.getAllChats(1L);
+      int pageSize = 2;
+      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), null, pageSize);
 
       // then
-      assertThat(responses.size()).isEqualTo(2);
-      assertThat(responses.getFirst().id()).isEqualTo("1L");
-      assertThat(responses.getLast().id()).isEqualTo("2L");
+      List<ChatResponse> data = response.chats();
+      assertThat(data).hasSize(2);
+      assertThat(data.getFirst().message()).isEqualTo("첫 번째 메시지");
+      assertThat(data.getFirst().senderId()).isEqualTo(100L);
+      assertThat(response.nextCursor()).isEqualTo(t1);
+
+      verify(chatRoomRepository).findById(chatRoom.getId());
+      verify(chatRepository).findByRoomIdOrderByCreatedAtDesc(eq(chatRoom.getId()),
+          any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("커서가 있을 때 이전 메시지 반환")
+    void getChatsWithCursor() {
+      // given
+      LocalDateTime t1 = LocalDateTime.now().minusMinutes(20);
+      LocalDateTime t2 = LocalDateTime.now().minusMinutes(10);
+      LocalDateTime t3 = LocalDateTime.now().minusMinutes(5);
+
+      Chat chat1 = Chat.builder()
+          .id("1")
+          .roomId(chatRoom.getId())
+          .senderName("userA")
+          .senderId(100L)
+          .message("메시지 1")
+          .type(MessageType.TEXT)
+          .codeContent(null)
+          .language(null)
+          .build();
+      ReflectionTestUtils.setField(chat1, "createdAt", t1);
+
+      Chat chat2 = Chat.builder()
+          .id("2")
+          .roomId(chatRoom.getId())
+          .senderName("userB")
+          .senderId(200L)
+          .message("메시지 2")
+          .type(MessageType.TEXT)
+          .codeContent(null)
+          .language(null)
+          .build();
+      ReflectionTestUtils.setField(chat2, "createdAt", t2);
+
+      Chat chat3 = Chat.builder()
+          .id("3")
+          .roomId(chatRoom.getId())
+          .senderName("userC")
+          .senderId(300L)
+          .message("메시지 3")
+          .type(MessageType.TEXT)
+          .codeContent(null)
+          .language(null)
+          .build();
+      ReflectionTestUtils.setField(chat3, "createdAt", t3);
+
+      when(chatRoomRepository.findById(chatRoom.getId()))
+          .thenReturn(Optional.of(chatRoom));
+
+      LocalDateTime cursor = t3;
+      int pageSize = 1;
+
+      when(chatRepository.findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+          eq(chatRoom.getId()), eq(cursor), any(Pageable.class)))
+          .thenReturn(List.of(chat2));
+
+      // when
+      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), cursor, pageSize);
+
+      // then
+      List<ChatResponse> data = response.chats();
+      assertThat(data).hasSize(1);
+      assertThat(data.getFirst().message()).isEqualTo("메시지 2");
+      assertThat(data.getFirst().senderId()).isEqualTo(200L);
+
+      assertThat(response.nextCursor()).isEqualTo(t2);
+
+      verify(chatRoomRepository).findById(chatRoom.getId());
+      verify(chatRepository).findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+          eq(chatRoom.getId()), eq(cursor), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("커서가 있을 때 이전 메시지 없으면 빈 결과 반환")
+    void getChatsEmptyBeforeCursor() {
+      // given
+      LocalDateTime tCursor = LocalDateTime.now().minusMinutes(30);
+
+      when(chatRoomRepository.findById(chatRoom.getId()))
+          .thenReturn(Optional.of(chatRoom));
+
+      when(chatRepository.findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+          eq(chatRoom.getId()), eq(tCursor), any(Pageable.class)))
+          .thenReturn(List.of());
+
+      // when
+      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), tCursor, 10);
+
+      // then
+      List<ChatResponse> data = response.chats();
+      assertThat(data).isEmpty();
+      assertThat(response.nextCursor()).isNull();
+
+      verify(chatRoomRepository).findById(chatRoom.getId());
+      verify(chatRepository).findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+          eq(chatRoom.getId()), eq(tCursor), any(Pageable.class));
     }
 
     @Test
@@ -236,11 +358,14 @@ class ChatServiceTest {
       // given
       when(chatRoomRepository.findById(1L)).thenReturn(Optional.empty());
 
-      assertThatThrownBy(() -> chatService.getAllChats(1L))
+      // when & then
+      assertThatThrownBy(() -> chatService.getChatsByCursor(1L, null, 10))
           .isInstanceOf(CustomException.class)
           .hasMessage("해당하는 채팅방이 없습니다.");
 
-      verify(chatRepository, never()).save(any(Chat.class));
+      verify(chatRepository, never()).findByRoomIdOrderByCreatedAtDesc(any(), any(Pageable.class));
+      verify(chatRepository, never()).findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(any(),
+          any(), any(Pageable.class));
     }
   }
 }

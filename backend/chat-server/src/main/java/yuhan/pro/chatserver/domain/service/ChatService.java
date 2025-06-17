@@ -45,23 +45,8 @@ public class ChatService {
 
     validateMemberInRoom(chatRequest.senderId(), roomId);
 
-    meterRegistry
-        .timer("chat.saveChat.timer", "roomId", roomId.toString())
-        .record(() -> {
-          Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom.getId());
-          chatRepository.save(chat);
-        });
-  }
-
-  @Transactional(readOnly = true)
-  public List<ChatResponse> getAllChats(Long roomId) {
-    ChatRoom room = findChatRoomOrThrow(roomId);
-
-    List<Chat> chats = chatRepository.findByRoomIdOrderByCreatedAtAsc(roomId);
-
-    return chats.stream()
-        .map(chat -> ChatMapper.toChatResponse(room, chat))
-        .toList();
+    Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom.getId());
+    chatRepository.save(chat);
   }
 
   @Transactional(readOnly = true)
