@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -16,6 +15,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 import yuhan.pro.chatserver.core.MemberClient;
+import yuhan.pro.chatserver.core.kafka.KafkaProducer;
 import yuhan.pro.chatserver.domain.dto.MemberProfileUrlResponse;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
@@ -27,7 +27,7 @@ public class PresenceListener {
   private final Map<String, String> sessionRooms = new ConcurrentHashMap<>();
   private final RedisTemplate<String, String> redisTemplate;
   private final MemberClient memberClient;
-  private final KafkaTemplate<String, String> kafkaTemplate;
+  private final KafkaProducer kafkaProducer;
   private final ObjectMapper objectMapper;
 
   @EventListener
@@ -109,7 +109,7 @@ public class PresenceListener {
       Map<Object, Object> entries = redisTemplate.opsForHash().entries(getRoomKey(roomId));
       String payload = objectMapper.writeValueAsString(entries);
 
-      kafkaTemplate.send("chat-presence", roomId, payload);
+      kafkaProducer.send("chat-presence", roomId, payload);
     } catch (JsonProcessingException e) {
       log.error("Presence JSON 변환 실패 for room {}", roomId, e);
     }

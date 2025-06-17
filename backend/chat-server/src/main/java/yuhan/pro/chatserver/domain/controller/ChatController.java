@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import yuhan.pro.chatserver.core.kafka.KafkaProducer;
 import yuhan.pro.chatserver.domain.dto.ChatPageResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRequest;
 import yuhan.pro.chatserver.domain.service.ChatService;
@@ -30,7 +30,7 @@ import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 @Tag(name = "Chat", description = "채팅 관련 API")
 public class ChatController {
 
-  private final KafkaTemplate<String, ChatRequest> kafkaTemplate;
+  private final KafkaProducer kafkaProducer;
   private final ChatService chatService;
 
   @MessageMapping("/chat/{roomId}")
@@ -46,7 +46,7 @@ public class ChatController {
 
     ChatRequest enriched = createChatRequest(incoming, memberId, userName);
 
-    kafkaTemplate.send(
+    kafkaProducer.send(
         "chat-messages",
         roomId.toString(),
         enriched

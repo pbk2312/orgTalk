@@ -7,12 +7,16 @@ import yuhan.pro.chatserver.domain.dto.ChatRequest;
 
 @Component
 @RequiredArgsConstructor
-@SuppressWarnings("unused")
 public class KafkaProducer {
 
-  private final KafkaTemplate<String, ChatRequest> kafkaTemplate;
+  private final KafkaTemplate<String, ChatRequest> chatRequestKafkaTemplate;
+  private final KafkaTemplate<String, String> stringKafkaTemplate;
 
   public void send(String topic, String roomId, ChatRequest message) {
-    kafkaTemplate.send(topic, roomId, message);
+    chatRequestKafkaTemplate.send(topic, roomId, message);
+  }
+
+  public void send(String topic, String roomId, String message) {
+    stringKafkaTemplate.send(topic, roomId, message);
   }
 }
