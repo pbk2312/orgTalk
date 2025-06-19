@@ -100,6 +100,7 @@ public class ChatRoomService {
 
     Long memberId = getMemberId(authentication);
 
+    // todo: 주석 삭제
     // validateMemberInOrg(organizationId, authentication);
 
     Page<ChatRoom> chatRoomPage = chatRoomRepository.findAllByOrganizationId(organizationId,

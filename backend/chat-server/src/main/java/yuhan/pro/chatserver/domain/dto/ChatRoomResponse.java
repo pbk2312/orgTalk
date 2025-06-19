@@ -12,8 +12,7 @@ public record ChatRoomResponse(
     RoomType type,
     Long memberCount,
     Integer messageCount,
-    LocalDateTime lastMessageAt,
-    boolean joined
-) {
+    boolean joined,
+    LocalDateTime createdAt) {
 
 }
