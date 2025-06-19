@@ -10,7 +10,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -42,12 +41,6 @@ public class ChatRoom extends BaseEntity {
   private RoomType type;
 
   private Long ownerId; // 방장 ID
-
-  @Builder.Default
-  private Integer messageCount = 0;
-
-  @Builder.Default
-  private LocalDateTime lastMessageAt = LocalDateTime.now();
 
   // PRIVATE ROOM ONLY
   @Column(nullable = true)
