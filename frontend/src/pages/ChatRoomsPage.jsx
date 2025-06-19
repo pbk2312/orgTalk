@@ -50,10 +50,9 @@ const ChatRoomsPage = () => {
 
   // 7) “비밀번호 입력” 모달 제어를 위한 상태
   const [showJoinModal, setShowJoinModal] = useState(false);
-  const [roomToJoin, setRoomToJoin] = useState(null);     // 사용자가 입장하려고 시도한 방 객체
-  const [joinLoading, setJoinLoading] = useState(false);  // 비밀번호 검증 API 호출 중 상태
-  const [joinError, setJoinError] = useState('');         // 비밀번호 틀릴 때 보여줄 에러
-
+  const [roomToJoin, setRoomToJoin] = useState(null);     
+  const [joinLoading, setJoinLoading] = useState(false);  
+  const [joinError, setJoinError] = useState('');       
   useEffect(() => {
     if (!orgId) return;
 
@@ -77,7 +76,7 @@ const ChatRoomsPage = () => {
           organizationId: orgIdNum,
           page,
           size,
-          sort: 'lastMessageAt,DESC'
+          sort: 'createdAt,DESC',
         };
 
        
@@ -109,20 +108,19 @@ const ChatRoomsPage = () => {
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
-  // 생성 모달에서 방 생성 후, 로컬 state에 바로 추가
+
   const handleCreateRoom = ({ id: newRoomId }) => {
-    // 곧바로 채팅룸으로 이ㅇ
     navigate(`/chatroom/${newRoomId}`);
   };
 
-  // ---------- Private 방 입장을 위한 모달 열기 로직 ----------
+
   const handleRequestJoin = (room) => {
     setRoomToJoin(room);
     setJoinError('');
     setShowJoinModal(true);
   };
 
-  // 모달에서 ‘확인’ 클릭 시 실행
+
   const handleJoinSubmit = async (password) => {
     if (!roomToJoin) return;
 
@@ -132,7 +130,7 @@ const ChatRoomsPage = () => {
     try {
       await joinChatRoom({ roomId: roomToJoin.id, password });
 
-      // 성공 시 로컬 state ‘joined=true’로 업데이트
+
       setChatRooms((prevRooms) =>
         prevRooms.map((r) =>
           r.id === roomToJoin.id ? { ...r, joined: true } : r
@@ -143,7 +141,7 @@ const ChatRoomsPage = () => {
       setShowJoinModal(false);
       setJoinLoading(false);
 
-      // 비밀번호 맞으면 채팅방으로 이동
+
       navigate(`/chatroom/${roomToJoin.id}`);
     } catch (err) {
       console.error(`Failed to join chat room (roomId: ${roomToJoin.id}):`, err);
@@ -156,22 +154,17 @@ const ChatRoomsPage = () => {
     setJoinError('');
     setShowJoinModal(false);
   };
-  // ----------------------------------------------------------
-
-  // ---------- 채팅방 클릭 시 분기 처리 ----------
+  
   const handleRoomSelect = (room) => {
-    // Private & 미참여 상태라면 ‘비밀번호 입력 모달’ 열기
+
     if (room.type === 'PRIVATE' && !room.joined) {
       handleRequestJoin(room);
     } else {
-      // Public 이거나 이미 joined 상태면 바로 이동
       setSelectedRoom(room);
       navigate(`/chatroom/${room.id}`);
     }
   };
-  // ----------------------------------------------------------
 
-  // 검색/필터링된 방 목록
   const filteredRooms = chatRooms.filter((room) => {
     const matchesSearch = [room.name, room.description].some((text) =>
       text?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -181,7 +174,7 @@ const ChatRoomsPage = () => {
     return matchesSearch && matchesFilter;
   });
 
-  // 로딩 중 또는 조직 정보가 없으면 로딩 스피너 화면
+
   if (isLoading || !organization) {
     return (
       <>
@@ -227,7 +220,6 @@ const ChatRoomsPage = () => {
         </div>
         <div className={styles['main-content']}>
           <div className={styles['chat-rooms-container']}>
-            {/* —— Header Section (조직 정보 + 채팅방 만들기 버튼) —— */}
             <div className={styles['header-section']}>
               <div className={styles['header-top']}>
                 <div className={styles['org-info']}>
@@ -262,7 +254,6 @@ const ChatRoomsPage = () => {
    onFilterChange={setFilterType}
  />
 
-            {/* —— 채팅방 목록 Grid —— */}
             <div className={styles['rooms-grid']}>
               {filteredRooms.map((room) => (
                  <ChatRoomCard
@@ -277,7 +268,7 @@ const ChatRoomsPage = () => {
               ))}
             </div>
 
-            {/* —— 빈 상태 혹은 에러 표시 —— */}
+
             {filteredRooms.length === 0 && !isLoading && !error && (
               <div className={styles['empty-state']}>
                 <MessageCircle size={48} className={styles['empty-icon']} />
