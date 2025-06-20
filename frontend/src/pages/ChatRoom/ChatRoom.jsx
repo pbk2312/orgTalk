@@ -6,7 +6,7 @@ import Sidebar from './Sidebar';
 import ChatInput from './ChatInput';
 import CodeModal from './CodeModal';
 import MessageItem from './MessageItem';
-import { getChatRoomInfo, getChatsByCursor, deleteChatRoom } from '../../service/ChatService.jsx';
+import { getChatRoomInfo, getChatsByCursor, deleteChatRoom , updateChatRoom} from '../../service/ChatService.jsx';
 import { useChatStomp } from '../../hooks/useChatStomp.js';
 import { useAuth } from '../../hooks/useAuth.ts';
 import styles from '../../css/ChatRoom.module.css';
@@ -46,6 +46,19 @@ const ChatRoom = () => {
   const codeTextareaRef = useRef(null);
 
   const isFirstLoad = useRef(true);
+
+  const handleUpdateRoom = async (updateData) => {
+    console.log('📌 handleUpdateRoom called for roomId =', roomIdNum, 'updateData =', updateData);
+    try {
+      // 반드시 roomId 키에 URL param을 담아 보냅니다
+    await updateChatRoom({ roomId: roomIdNum, ...updateData });
+      console.log('✅ updateChatRoom completed, reloading info for', roomIdNum);
+      const fresh = await getChatRoomInfo(roomIdNum);
+      setRoomInfo(fresh);
+    } catch (err) {
+      console.error('채팅방 수정 실패:', err);
+    }
+  };
 
   const handleDeleteRoom = async () => {
     if (!roomIdNum) {
@@ -341,6 +354,7 @@ const ChatRoom = () => {
         connected={connected}
         onBack={() => navigate(-1)}
         onDeleteRoom={handleDeleteRoom}  
+        onUpdateRoom={handleUpdateRoom} 
       />
 
       <div className={styles.chatContainer}>
