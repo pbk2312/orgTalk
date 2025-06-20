@@ -28,6 +28,22 @@ services:
     depends_on:
       - redis
 
+  mongo-exporter:
+    image: percona/mongodb_exporter:0.39.0
+    container_name: orgtalk-mongo-exporter
+    restart: always
+    ports:
+      - "9216:9216"
+    environment:
+      MONGODB_URI: mongodb://admin:admin123@mongodb:27017/?authSource=admin
+    command:
+      - "--collect-all"
+      - "--compatible-mode"
+    networks:
+      - orgtalk-net
+    depends_on:
+      - mongodb
+
   prometheus:
     image: prom/prometheus:latest
     container_name: orgtalk-prometheus
@@ -39,12 +55,9 @@ services:
       - prometheus-data:/prometheus
     networks:
       - orgtalk-net
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
     depends_on:
       - redis-exporter
-
+      - mongo-exporter
   influxdb:
     image: influxdb:1.8
     container_name: orgtalk-influxdb
@@ -61,7 +74,7 @@ services:
     container_name: orgtalk-grafana
     restart: always
     ports:
-      - "3001:3000"      # 호스트 3001번 → 컨테이너 3000번
+      - "3001:3000"
     volumes:
       - grafana-data:/var/lib/grafana
     environment:
@@ -73,6 +86,43 @@ services:
       - prometheus
       - influxdb
 
+  mongodb:
+    image: mongo:latest
+    container_name: orgtalk-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - orgtalk-net
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: orgtalk-kafka
+    restart: always
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=1
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CFG_NUM_PARTITIONS=5
+    volumes:
+      - kafka-data:/bitnami/kafka
+    networks:
+      - orgtalk-net
+
+
 volumes:
   redis-data:
     driver: local
@@ -81,6 +131,10 @@ volumes:
   grafana-data:
     driver: local
   influxdb-data:
+    driver: local
+  mongo-data:
+    driver: local
+  kafka-data:
     driver: local
 
 networks:

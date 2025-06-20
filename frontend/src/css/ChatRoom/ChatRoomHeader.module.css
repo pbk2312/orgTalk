@@ -742,3 +742,301 @@
     border-color: rgba(148, 163, 184, 0.3);
   }
 }
+
+/* Edit Modal Styles */
+.editButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 0.5rem;
+}
+
+.editButton:hover {
+  background: rgba(51, 65, 85, 0.5);
+  color: #3b82f6;
+  transform: scale(1.05);
+}
+
+/* Edit Modal Overlay */
+.editModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.editModalBackdrop {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+/* Edit Modal Content */
+.editModalContent {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 2rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Edit Modal Header */
+.editModalHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.editModalIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  box-shadow: 0 8px 25px -8px rgba(59, 130, 246, 0.5);
+}
+
+.editModalTitle {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+/* Edit Form */
+.editModalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  margin-bottom: 0.5rem;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+.optional {
+  color: #94a3b8;
+  font-weight: normal;
+  margin-left: 0.25rem;
+}
+
+.formInput,
+.formTextarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: rgba(51, 65, 85, 0.5);
+  backdrop-filter: blur(10px);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.formInput::placeholder,
+.formTextarea::placeholder {
+  color: #64748b;
+}
+
+.formInput:focus,
+.formTextarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  background: rgba(51, 65, 85, 0.7);
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 4rem;
+  font-family: inherit;
+}
+
+/* Type Selector */
+.typeSelector {
+  display: flex;
+  gap: 1rem;
+}
+
+.typeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(51, 65, 85, 0.3);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  flex: 1;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+.typeOption:hover {
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.typeOption input[type="radio"] {
+  margin: 0;
+}
+
+.typeOption input[type="radio"]:checked + .typeOption,
+.typeOption:has(input[type="radio"]:checked) {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  color: white;
+}
+
+/* Edit Modal Actions */
+.editModalActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 2px solid rgba(51, 65, 85, 0.6);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  border-color: rgba(71, 85, 105, 0.8);
+  background: rgba(51, 65, 85, 0.3);
+  color: white;
+}
+
+.confirmEditButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+}
+
+.confirmEditButton:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 15px 35px -5px rgba(59, 130, 246, 0.5);
+}
+
+.confirmEditButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .editModalContent {
+    padding: 1.5rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .editModalHeader {
+    margin-bottom: 1.5rem;
+  }
+  
+  .editModalTitle {
+    font-size: 1.25rem;
+  }
+  
+  .editModalForm {
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .typeSelector {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .editModalActions {
+    gap: 0.75rem;
+  }
+  
+  .cancelButton,
+  .confirmEditButton {
+    flex: 1;
+    justify-content: center;
+  }
+}
