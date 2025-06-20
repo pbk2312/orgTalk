@@ -53,7 +53,6 @@ public class ChatController {
     );
   }
 
-
   @Operation(summary = "채팅 히스토리 조회 (커서 페이징)")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "채팅 히스토리 조회 성공"),

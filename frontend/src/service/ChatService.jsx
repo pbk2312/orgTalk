@@ -75,3 +75,34 @@ export async function getChatsByCursor(roomId, cursor = null, size) {
     throw error;
   }
 }
+
+
+export async function deleteChatRoom(roomId) {
+  try {
+    await chatApi.post(`/api/chatroom/${roomId}/delete`);
+    alert('채팅방이 성공적으로 삭제되었습니다.');
+  } catch (error) {
+    if (error.response && error.response.status === 403) {
+      alert('채팅방 방장이 아닙니다.');
+    } else {
+      console.error(`Failed to delete chat room (roomId: ${roomId}):`, error);
+    }
+    throw error;
+  }
+}
+
+
+export async function updateChatRoom({ roomId, ...payload }) {
+  try {
+    await chatApi.patch(`/api/chatroom/${roomId}/update`, payload);
+    alert('채팅방이 성공적으로 수정되었습니다.');
+  } catch (error) {
+    if (error.response?.data?.message) {
+      alert(error.response.data.message);
+    } else {
+      console.error(`Failed to update chat room (roomId: ${roomId}):`, error);
+      alert('알 수 없는 에러가 발생했습니다.');
+    }
+    throw error;
+  }
+}

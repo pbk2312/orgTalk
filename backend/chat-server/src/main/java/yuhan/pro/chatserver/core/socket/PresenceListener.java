@@ -19,6 +19,7 @@ import yuhan.pro.chatserver.core.kafka.KafkaProducer;
 import yuhan.pro.chatserver.domain.dto.MemberProfileUrlResponse;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
+// Todo: Kafka, Redis 장애 시 대처법 고민
 @Slf4j
 @Component
 @RequiredArgsConstructor

@@ -31,6 +31,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
+import yuhan.pro.chatserver.domain.dto.ChatRoomUpdateRequest;
 import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
 import yuhan.pro.chatserver.domain.entity.ChatRoomMember;
@@ -272,6 +273,186 @@ class ChatRoomServiceTest {
       ChatRoomMember saved = captor.getValue();
       assertThat(saved.getChatRoom().getId()).isEqualTo(1L);
       assertThat(saved.getMemberId()).isEqualTo(1L);
+    }
+  }
+
+  @Nested
+  @DisplayName("채팅방 삭제")
+  class deleteChatroom {
+
+
+    @Test
+    @DisplayName("채팅방 성공적으로 삭제")
+    void deleteRoomSuccess() {
+
+      // given
+      ChatRoom privateRoom = ChatRoom.builder()
+          .id(1L)
+          .ownerId(1L)
+          .organizationId(1L)
+          .type(RoomType.PRIVATE)
+          .password("123")
+          .build();
+      when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(privateRoom));
+
+      // when
+      chatRoomService.deleteChatRoom(1L);
+
+      // then
+      verify(chatRoomRepository).delete(privateRoom);
+    }
+
+    @Test
+    @DisplayName("채팅방 삭제 실패 - 방장이 아님")
+    void deleteRoomFail_NotOwner() {
+      // given
+      ChatRoom privateRoom = ChatRoom.builder()
+          .id(2L)
+          .ownerId(99L)
+          .organizationId(1L)
+          .type(RoomType.PRIVATE)
+          .password("pwd")
+          .build();
+
+      when(chatRoomRepository.findById(2L)).thenReturn(Optional.of(privateRoom));
+
+      // when & then
+      assertThatThrownBy(() -> chatRoomService.deleteChatRoom(2L))
+          .isInstanceOf(CustomException.class)
+          .hasMessage("채팅방 방장이 아닙니다.");
+
+      verify(chatRoomRepository, never()).delete(any(ChatRoom.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("updateChatRoom()")
+  class UpdateChatRoomTests {
+
+    @Test
+    @DisplayName("비공개 방 전환 실패 - 비밀번호 미입력")
+    void updateFail_NoPassword() {
+      // given
+      ChatRoom room = ChatRoom.builder()
+          .id(1L)
+          .ownerId(1L)
+          .name("room")
+          .description("desc")
+          .organizationId(1L)
+          .type(RoomType.PUBLIC)
+          .build();
+      when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+
+      ChatRoomUpdateRequest req = new ChatRoomUpdateRequest(
+          "room2", "desc2", RoomType.PRIVATE, null);
+
+      // when & then
+      assertThatThrownBy(() -> chatRoomService.updateChatRoom(1L, req))
+          .isInstanceOf(CustomException.class)
+          .hasMessage("비밀번호가 비어있습니다.");
+    }
+
+    @Test
+    @DisplayName("공개->비공개 전환 성공")
+    void updateSuccess_PublicToPrivate() {
+      // given
+      ChatRoom room = ChatRoom.builder()
+          .id(1L)
+          .ownerId(1L)
+          .name("room")
+          .description("desc")
+          .organizationId(1L)
+          .type(RoomType.PUBLIC)
+          .build();
+      when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+      when(passwordEncoder.encode("pw")).thenReturn("encoded");
+
+      ChatRoomUpdateRequest req = new ChatRoomUpdateRequest(
+          "room2", "desc2", RoomType.PRIVATE, "pw");
+
+      // when
+      chatRoomService.updateChatRoom(1L, req);
+
+      // then
+      assertThat(room.getType()).isEqualTo(RoomType.PRIVATE);
+      assertThat(room.getPassword()).isEqualTo("encoded");
+      assertThat(room.getName()).isEqualTo("room2");
+      assertThat(room.getDescription()).isEqualTo("desc2");
+    }
+
+    @Test
+    @DisplayName("비공개->공개 전환 성공")
+    void updateSuccess_PrivateToPublic() {
+      // given
+      ChatRoom room = ChatRoom.builder()
+          .id(1L)
+          .ownerId(1L)
+          .name("room")
+          .description("desc")
+          .organizationId(1L)
+          .type(RoomType.PRIVATE)
+          .password("encoded")
+          .build();
+      when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+
+      ChatRoomUpdateRequest req = new ChatRoomUpdateRequest(
+          "room2", "desc2", RoomType.PUBLIC, null);
+
+      // when
+      chatRoomService.updateChatRoom(1L, req);
+
+      // then
+      assertThat(room.getType()).isEqualTo(RoomType.PUBLIC);
+      assertThat(room.getPassword()).isNull();
+    }
+
+    @Test
+    @DisplayName("비공개 방 비밀번호만 변경 성공")
+    void updateSuccess_PrivateChangePassword() {
+      // given
+      ChatRoom room = ChatRoom.builder()
+          .id(1L)
+          .ownerId(1L)
+          .name("room")
+          .description("desc")
+          .organizationId(1L)
+          .type(RoomType.PRIVATE)
+          .password("old")
+          .build();
+      when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+      when(passwordEncoder.encode("newpw")).thenReturn("newEncoded");
+
+      ChatRoomUpdateRequest req = new ChatRoomUpdateRequest(
+          "room", "desc", RoomType.PRIVATE, "newpw");
+
+      // when
+      chatRoomService.updateChatRoom(1L, req);
+
+      // then
+      assertThat(room.getPassword()).isEqualTo("newEncoded");
+    }
+
+    @Test
+    @DisplayName("수정 실패 - 방장이 아님")
+    void updateFail_NotOwner() {
+      // given
+      ChatRoom room = ChatRoom.builder()
+          .id(1L)
+          .ownerId(99L)
+          .name("room")
+          .description("desc")
+          .organizationId(1L)
+          .type(RoomType.PUBLIC)
+          .build();
+      when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+
+      ChatRoomUpdateRequest req = new ChatRoomUpdateRequest(
+          "room2", "desc2", RoomType.PUBLIC, null);
+
+      // when & then
+      assertThatThrownBy(() -> chatRoomService.updateChatRoom(1L, req))
+          .isInstanceOf(CustomException.class)
+          .hasMessage("채팅방 방장이 아닙니다.");
     }
   }
 }

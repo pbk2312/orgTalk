@@ -146,6 +146,15 @@ const ChatRoomsPage = () => {
     } catch (err) {
       console.error(`Failed to join chat room (roomId: ${roomToJoin.id}):`, err);
       setJoinError('비밀번호가 틀렸거나 입장할 수 없습니다.');
+       console.error(`Failed to join chat room (roomId: ${roomToJoin.id}):`, err);
+       const resp = err.response;
+     if (resp && resp.data) {
+       const backendMsg = resp.data.detail || resp.data.message;
+       setJoinError(backendMsg);
+     } else {
+       setJoinError('알 수 없는 오류가 발생했습니다.');
+     }
+    } finally{
       setJoinLoading(false);
     }
   };
