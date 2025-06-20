@@ -132,6 +132,31 @@ public class ChatRoomService {
     return ChatRoomMapper.toChatRoomInfoResponse(chatRoom, chatMembers);
   }
 
+  @Transactional(readOnly = true)
+  public PageResponse<ChatRoomResponse> searchChatRooms(
+      Long organizationId,
+      String keyword,
+      Pageable pageable) {
+    Authentication authentication = getAuthentication();
+    Long memberId = getMemberId(authentication);
+
+    Page<ChatRoom> chatRoomPage;
+    if (keyword == null || keyword.isBlank()) {
+      chatRoomPage = chatRoomRepository.findAllByOrganizationId(organizationId, pageable);
+    } else {
+      chatRoomPage = chatRoomRepository.searchByOrgAndKeyword(
+          organizationId,
+          keyword.trim(),
+          pageable);
+    }
+
+    Page<ChatRoomResponse> dtoPage = chatRoomPage.map(chatRoom ->
+        ChatRoomMapper.toChatRoomResponse(chatRoom, memberId)
+    );
+
+    return PageResponse.fromPage(dtoPage);
+  }
+
   private static void validateMemberRoomIn(ChatRoom chatRoom, Long memberId) {
     boolean inRoom = chatRoom.getMembers().stream()
         .map(ChatRoomMember::getMemberId)
