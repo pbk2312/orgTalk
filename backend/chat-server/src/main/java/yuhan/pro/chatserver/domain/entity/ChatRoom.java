@@ -1,6 +1,8 @@
 package yuhan.pro.chatserver.domain.entity;
 
 
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_IS_EMPTY;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,7 +12,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -20,6 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import yuhan.pro.chatserver.sharedkernel.entity.BaseEntity;
+import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
 
 @Getter
 @Entity
@@ -43,12 +45,6 @@ public class ChatRoom extends BaseEntity {
 
   private Long ownerId; // 방장 ID
 
-  @Builder.Default
-  private Integer messageCount = 0;
-
-  @Builder.Default
-  private LocalDateTime lastMessageAt = LocalDateTime.now();
-
   // PRIVATE ROOM ONLY
   @Column(nullable = true)
   private String password;
@@ -65,5 +61,28 @@ public class ChatRoom extends BaseEntity {
       return false;
     }
     return encoder.matches(rawPassword, this.password);
+  }
+
+  public void updateRoom(String newName,
+      String newDescription,
+      RoomType newType,
+      String rawPassword,
+      PasswordEncoder encoder) {
+    this.name = newName;
+    this.description = newDescription;
+
+    if (this.type != newType) {
+      this.type = newType;
+      if (newType == RoomType.PRIVATE) {
+        if (rawPassword == null || rawPassword.isEmpty()) {
+          throw new CustomException(PRIVATE_ROOM_PASSWORD_IS_EMPTY);
+        }
+        this.password = encoder.encode(rawPassword);
+      } else {
+        this.password = null;
+      }
+    } else if (newType == RoomType.PRIVATE && rawPassword != null && !rawPassword.isEmpty()) {
+      this.password = encoder.encode(rawPassword);
+    }
   }
 }

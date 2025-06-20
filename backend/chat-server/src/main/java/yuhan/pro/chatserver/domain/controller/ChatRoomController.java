@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +25,7 @@ import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
+import yuhan.pro.chatserver.domain.dto.ChatRoomUpdateRequest;
 import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
 import yuhan.pro.chatserver.domain.service.ChatRoomService;
 import yuhan.pro.chatserver.sharedkernel.dto.PageResponse;
@@ -48,7 +50,6 @@ public class ChatRoomController {
   ) {
     return chatRoomService.saveChatRoom(request);
   }
-
 
   @Operation(summary = "채팅방 목록 조회")
   @ApiResponses({
@@ -93,5 +94,34 @@ public class ChatRoomController {
       @RequestBody @Valid JoinChatRoomRequest request
   ) {
     chatRoomService.joinChatRoom(roomId, request);
+  }
+
+  @Operation(summary = "채팅방 삭제")
+  @ApiResponses(
+      {
+          @ApiResponse(responseCode = "403", description = "채팅방 방장이 아닙니다."),
+          @ApiResponse(responseCode = "204", description = "채팅방이 성공적으로 삭제")
+      }
+  )
+  @PostMapping("/{roomId}/delete")
+  public void deleteChatRoom(
+      @PathVariable @Positive Long roomId
+  ) {
+    chatRoomService.deleteChatRoom(roomId);
+  }
+
+  @Operation(summary = "채팅방 수정")
+  @ApiResponses(
+      {
+          @ApiResponse(responseCode = "403", description = "채팅방 방장이 아닙니다."),
+          @ApiResponse(responseCode = "204", description = "채팅방 성공적으로 수정")
+      }
+  )
+  @PatchMapping("/{roomId}/update")
+  public void updateChatRoom(
+      @PathVariable @Positive Long roomId,
+      @RequestBody ChatRoomUpdateRequest request
+  ) {
+    chatRoomService.updateChatRoom(roomId, request);
   }
 }

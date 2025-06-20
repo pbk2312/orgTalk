@@ -6,15 +6,15 @@ import Sidebar from './Sidebar';
 import ChatInput from './ChatInput';
 import CodeModal from './CodeModal';
 import MessageItem from './MessageItem';
-import { getChatRoomInfo, getChatsByCursor } from '../../service/ChatService.jsx';
+import { getChatRoomInfo, getChatsByCursor, deleteChatRoom } from '../../service/ChatService.jsx';
 import { useChatStomp } from '../../hooks/useChatStomp.js';
 import { useAuth } from '../../hooks/useAuth.ts';
 import styles from '../../css/ChatRoom.module.css';
 
 const ChatRoom = () => {
   const navigate = useNavigate();
-  const { roomId: roomIdParam } = useParams();
-  const roomId = Number(roomIdParam);
+  const { roomId } = useParams();
+  const roomIdNum = Number(roomId);
 
   const { auth, loading: authLoading } = useAuth();
 
@@ -46,6 +46,20 @@ const ChatRoom = () => {
   const codeTextareaRef = useRef(null);
 
   const isFirstLoad = useRef(true);
+
+  const handleDeleteRoom = async () => {
+    if (!roomIdNum) {
+      console.warn('삭제할 roomId가 없습니다:', roomIdNum);
+      return;
+    }
+    try {
+      await deleteChatRoom(roomIdNum);
+      navigate(-1);
+    } catch {
+      // 이미 alert 처리됨
+    }
+  };
+
 
   // Load room info
   useEffect(() => {
@@ -326,6 +340,7 @@ const ChatRoom = () => {
         participants={participants}
         connected={connected}
         onBack={() => navigate(-1)}
+        onDeleteRoom={handleDeleteRoom}  
       />
 
       <div className={styles.chatContainer}>

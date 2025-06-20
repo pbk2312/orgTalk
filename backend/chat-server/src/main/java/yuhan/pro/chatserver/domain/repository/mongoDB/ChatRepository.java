@@ -15,4 +15,6 @@ public interface ChatRepository extends MongoRepository<Chat, String> {
 
   List<Chat> findByRoomIdOrderByCreatedAtDesc(
       Long roomId, Pageable pageable);
+
+  void deleteByRoomId(Long roomId);
 }

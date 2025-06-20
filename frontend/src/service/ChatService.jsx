@@ -75,3 +75,18 @@ export async function getChatsByCursor(roomId, cursor = null, size) {
     throw error;
   }
 }
+
+
+export async function deleteChatRoom(roomId) {
+  try {
+    await chatApi.post(`/api/chatroom/${roomId}/delete`);
+    alert('채팅방이 성공적으로 삭제되었습니다.');
+  } catch (error) {
+    if (error.response && error.response.status === 403) {
+      alert('채팅방 방장이 아닙니다.');
+    } else {
+      console.error(`Failed to delete chat room (roomId: ${roomId}):`, error);
+    }
+    throw error;
+  }
+}

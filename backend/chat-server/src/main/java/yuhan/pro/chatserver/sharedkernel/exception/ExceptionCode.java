@@ -26,6 +26,7 @@ public enum ExceptionCode {
 
   // 403
   ROOM_MEMBER_NOT_FOUND(FORBIDDEN, "채팅방 멤버가 아닙니다."),
+  ROOM_OWNER_MISMATCH(FORBIDDEN, "채팅방 방장이 아닙니다."),
 
   // 404,
   MEMBER_NOT_FOUND(NOT_FOUND, "존재하지 않는 회원입니다."),
