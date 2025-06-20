@@ -461,6 +461,28 @@
   .room-name {
     font-size: 1.125rem;
   }
+
+  .empty-state {
+  /* 배경이 어두운 경우 대비 */
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 2rem;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+}
+
+/* 제목(채팅방이 없습니다) */
+.empty-title {
+  color: #ffffff;          /* 흰색 텍스트 */
+  font-size: 1.5rem;
+  margin-top: 1rem;
+}
+
+/* 설명(새로운 채팅방을 만들어보세요) */
+.empty-description {
+  color: #eeeeee;          /* 약간 연한 흰색 */
+  font-size: 1rem;
+  margin-top: 0.5rem;
 }
 
 /* ===============================================

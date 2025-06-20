@@ -60,6 +60,7 @@ public class ChatRoomMapper {
         .description(chatRoom.getDescription())
         .type(chatRoom.getType())
         .memberCount((long) chatRoom.getMembers().size())
+        .createdAt(chatRoom.getCreatedAt())
         .joined(joined)
         .build();
   }

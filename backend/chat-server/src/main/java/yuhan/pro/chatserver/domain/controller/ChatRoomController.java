@@ -61,7 +61,7 @@ public class ChatRoomController {
       @PathVariable @Positive Long organizationId,
       @PageableDefault(
           size = 6,
-          sort = "lastMessageAt",
+          sort = "createdAt",
           direction = Sort.Direction.DESC
       ) Pageable pageable
   ) {

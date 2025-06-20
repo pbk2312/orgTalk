@@ -1,4 +1,3 @@
-// src/pages/ChatRoomCard.jsx
 import React from 'react';
 import { Hash, Lock, Globe, Users, Clock, ChevronRight } from 'lucide-react';
 import styles from '../css/ChatRoomCard.module.css';
@@ -20,11 +19,7 @@ const ChatRoomCard = ({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`
-        ${styles['room-card']}
-        ${isHovered ? styles.hovered : ''}
-        ${isSelected ? styles.selected : ''}
-      `}
+      className={`${styles['room-card']} ${isHovered ? styles.hovered : ''} ${isSelected ? styles.selected : ''}`}
     >
       <div className={styles['room-card-header']}>
         <div className={styles['room-icon']}><Hash size={20} /></div>
@@ -36,17 +31,19 @@ const ChatRoomCard = ({
           <p className={styles['room-description']}>{room.description}</p>
         </div>
       </div>
+
+      {/* 생성일 표시 */}
       <div className={styles['room-card-body']}>
-        <div className={styles['last-message']}>
-          <p className={styles['last-message-text']}>{room.lastMessage}</p>
-          <div className={styles['message-time']}>
-            <Clock size={12} />
-            <span>{formatTime(room.lastMessageAt)}</span>
-          </div>
+        <div className={styles['created-time']}>  
+          <Clock size={12} />
+          <span>{formatTime(room.createdAt)}</span>
         </div>
       </div>
+
       <div className={styles['room-card-footer']}>
-        <div className={styles['member-count']}><Users size={16} /> <span>{room.memberCount}명</span></div>
+        <div className={styles['member-count']}>
+          <Users size={16} /> <span>{room.memberCount}명</span>
+        </div>
         <div className={styles['room-status']}>
           {room.joined ? (
             <>
