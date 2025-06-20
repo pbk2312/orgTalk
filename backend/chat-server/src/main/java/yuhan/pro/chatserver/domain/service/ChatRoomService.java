@@ -6,6 +6,7 @@ import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_N
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ORGANIZATION_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_IS_EMPTY;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_NOT_MATCH;
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_OWNER_MISMATCH;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,6 +25,7 @@ import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
+import yuhan.pro.chatserver.domain.dto.ChatRoomUpdateRequest;
 import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
 import yuhan.pro.chatserver.domain.entity.ChatRoomMember;
@@ -31,6 +33,7 @@ import yuhan.pro.chatserver.domain.entity.RoomType;
 import yuhan.pro.chatserver.domain.mapper.ChatRoomMapper;
 import yuhan.pro.chatserver.domain.repository.ChatRoomMemberRepository;
 import yuhan.pro.chatserver.domain.repository.ChatRoomRepository;
+import yuhan.pro.chatserver.domain.repository.mongoDB.ChatRepository;
 import yuhan.pro.chatserver.sharedkernel.dto.PageResponse;
 import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
@@ -44,6 +47,7 @@ public class ChatRoomService {
   private final ChatRoomMemberRepository chatRoomMemberRepository;
   private final PasswordEncoder passwordEncoder;
   private final MemberClient memberClient;
+  private final ChatRepository chatRepository;
 
   @Transactional
   public ChatRoomCreateResponse saveChatRoom(ChatRoomCreateRequest request) {
@@ -132,7 +136,43 @@ public class ChatRoomService {
     return ChatRoomMapper.toChatRoomInfoResponse(chatRoom, chatMembers);
   }
 
-  private static void validateMemberRoomIn(ChatRoom chatRoom, Long memberId) {
+  @Transactional
+  public void deleteChatRoom(Long roomId) {
+    Authentication authentication = getAuthentication();
+
+    Long memberId = getMemberId(authentication);
+
+    ChatRoom chatRoom = findChatRoomOrThrow(roomId);
+    validateOwner(memberId, chatRoom);
+    chatRepository.deleteByRoomId(roomId);
+    chatRoomRepository.delete(chatRoom);
+  }
+
+  @Transactional
+  public void updateChatRoom(Long roomId, ChatRoomUpdateRequest req) {
+    Authentication auth = getAuthentication();
+    Long memberId = getMemberId(auth);
+
+    ChatRoom room = findChatRoomOrThrow(roomId);
+    validateOwner(memberId, room);
+
+    room.updateRoom(
+        req.name(),
+        req.description(),
+        req.type(),
+        req.password(),
+        passwordEncoder
+    );
+  }
+
+
+  private void validateOwner(Long memberId, ChatRoom chatRoom) {
+    if (!chatRoom.getOwnerId().equals(memberId)) {
+      throw new CustomException(ROOM_OWNER_MISMATCH);
+    }
+  }
+
+  private void validateMemberRoomIn(ChatRoom chatRoom, Long memberId) {
     boolean inRoom = chatRoom.getMembers().stream()
         .map(ChatRoomMember::getMemberId)
         .anyMatch(id -> id.equals(memberId));

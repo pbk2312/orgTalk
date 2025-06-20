@@ -16,6 +16,15 @@
   }
 }
 
+@keyframes pulse-danger {
+  0%, 100% { 
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); 
+  }
+  50% { 
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.7), 0 0 35px rgba(239, 68, 68, 0.3); 
+  }
+}
+
 @keyframes slide-down {
   from { 
     transform: translateY(-20px); 
@@ -24,6 +33,17 @@
   to { 
     transform: translateY(0); 
     opacity: 1; 
+  }
+}
+
+@keyframes modal-appear {
+  from { 
+    opacity: 0; 
+    transform: scale(0.9); 
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1); 
   }
 }
 
@@ -52,6 +72,12 @@
   50% { 
     transform: translateY(-3px); 
   }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
 }
 
 /* ===========================================
@@ -340,6 +366,193 @@
 }
 
 /* ===========================================
+   삭제 버튼
+   =========================================== */
+
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.75rem;
+  color: #f87171;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.deleteButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.1), 
+    rgba(220, 38, 38, 0.1)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.deleteButton:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  transform: scale(1.05);
+  animation: pulse-danger 2s ease-in-out infinite;
+}
+
+.deleteButton:hover::before {
+  opacity: 1;
+}
+
+.deleteButton:active {
+  transform: scale(0.95);
+  animation: shake 0.5s ease-in-out;
+}
+
+/* ===========================================
+   삭제 확인 모달
+   =========================================== */
+
+.deleteModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  min-height: 100vh;
+  min-width: 100vw;
+}
+
+.deleteModalBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  animation: modal-appear 0.3s ease-out;
+}
+
+.deleteModalContent {
+  position: relative;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 24rem;
+  width: 100%;
+  animation: modal-appear 0.4s ease-out;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.deleteModalHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.deleteModalIcon {
+  color: #ef4444;
+  animation: pulse-danger 2s ease-in-out infinite;
+}
+
+.deleteModalTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.deleteModalMessage {
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9375rem;
+}
+
+.deleteModalMessage strong {
+  color: white;
+  font-weight: 600;
+}
+
+.deleteWarning {
+  display: block;
+  margin-top: 0.5rem;
+  color: #f87171;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.deleteModalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 0.75rem 1.5rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.5rem;
+  color: #cbd5e1;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancelButton:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  transform: translateY(-1px);
+}
+
+.confirmDeleteButton {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.confirmDeleteButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.confirmDeleteButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+  animation: pulse-danger 1s ease-in-out infinite;
+}
+
+.confirmDeleteButton:hover::before {
+  opacity: 1;
+}
+
+.confirmDeleteButton:active {
+  transform: scale(0.95);
+}
+
+/* ===========================================
    반응형 디자인
    =========================================== */
 
@@ -374,6 +587,16 @@
   .connectionStatus {
     padding: 0.375rem 0.625rem;
     font-size: 0.8125rem;
+  }
+  
+  .deleteButton {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  
+  .deleteModalContent {
+    padding: 1.5rem;
+    margin: 1rem;
   }
 }
 
@@ -411,10 +634,22 @@
   }
   
   .memberCount,
-  .connectionStatus {
+  .connectionStatus,
+  .deleteButton {
     padding: 0.5rem;
     min-width: 2.25rem;
     justify-content: center;
+  }
+  
+  .deleteModalActions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .cancelButton,
+  .confirmDeleteButton {
+    width: 100%;
+    text-align: center;
   }
 }
 
@@ -438,6 +673,19 @@
     font-size: 0.75rem;
     max-width: 120px;
   }
+  
+  .deleteButton {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .deleteModalContent {
+    padding: 1.25rem;
+  }
+  
+  .deleteModalTitle {
+    font-size: 1.125rem;
+  }
 }
 
 /* ===========================================
@@ -446,18 +694,36 @@
 
 .backButton:focus,
 .memberCount:focus,
-.connectionStatus:focus {
+.connectionStatus:focus,
+.deleteButton:focus,
+.cancelButton:focus,
+.confirmDeleteButton:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
 }
 
+.deleteButton:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.5);
+}
+
+.confirmDeleteButton:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.5);
+}
+
 .backButton:focus-visible,
 .memberCount:focus-visible,
-.connectionStatus:focus-visible {
+.connectionStatus:focus-visible,
+.deleteButton:focus-visible,
+.cancelButton:focus-visible,
+.confirmDeleteButton:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
 }
 
+.deleteButton:focus-visible,
+.confirmDeleteButton:focus-visible {
+  outline-color: #f87171;
+}
 
 @media (prefers-color-scheme: dark) {
   .chatHeader {
@@ -469,5 +735,308 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+  
+  .deleteModalContent {
+    background: rgba(15, 23, 42, 0.99);
+    border-color: rgba(148, 163, 184, 0.3);
+  }
+}
+
+/* Edit Modal Styles */
+.editButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 0.5rem;
+}
+
+.editButton:hover {
+  background: rgba(51, 65, 85, 0.5);
+  color: #3b82f6;
+  transform: scale(1.05);
+}
+
+/* Edit Modal Overlay */
+.editModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.editModalBackdrop {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+/* Edit Modal Content */
+.editModalContent {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 2rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Edit Modal Header */
+.editModalHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.editModalIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  box-shadow: 0 8px 25px -8px rgba(59, 130, 246, 0.5);
+}
+
+.editModalTitle {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+/* Edit Form */
+.editModalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  margin-bottom: 0.5rem;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+.optional {
+  color: #94a3b8;
+  font-weight: normal;
+  margin-left: 0.25rem;
+}
+
+.formInput,
+.formTextarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: rgba(51, 65, 85, 0.5);
+  backdrop-filter: blur(10px);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.formInput::placeholder,
+.formTextarea::placeholder {
+  color: #64748b;
+}
+
+.formInput:focus,
+.formTextarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  background: rgba(51, 65, 85, 0.7);
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 4rem;
+  font-family: inherit;
+}
+
+/* Type Selector */
+.typeSelector {
+  display: flex;
+  gap: 1rem;
+}
+
+.typeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(51, 65, 85, 0.3);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  flex: 1;
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+.typeOption:hover {
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.typeOption input[type="radio"] {
+  margin: 0;
+}
+
+.typeOption input[type="radio"]:checked + .typeOption,
+.typeOption:has(input[type="radio"]:checked) {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  color: white;
+}
+
+/* Edit Modal Actions */
+.editModalActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 2px solid rgba(51, 65, 85, 0.6);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  border-color: rgba(71, 85, 105, 0.8);
+  background: rgba(51, 65, 85, 0.3);
+  color: white;
+}
+
+.confirmEditButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+}
+
+.confirmEditButton:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 15px 35px -5px rgba(59, 130, 246, 0.5);
+}
+
+.confirmEditButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .editModalContent {
+    padding: 1.5rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .editModalHeader {
+    margin-bottom: 1.5rem;
+  }
+  
+  .editModalTitle {
+    font-size: 1.25rem;
+  }
+  
+  .editModalForm {
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .typeSelector {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .editModalActions {
+    gap: 0.75rem;
+  }
+  
+  .cancelButton,
+  .confirmEditButton {
+    flex: 1;
+    justify-content: center;
   }
 }
