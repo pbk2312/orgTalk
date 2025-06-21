@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
@@ -80,6 +81,24 @@ public class ChatRoomController {
   ) {
     String jwtToken = authorizationHeader.replace("Bearer ", "");
     return chatRoomService.getChatRoomInfo(roomId, jwtToken);
+  }
+
+  @Operation(summary = "채팅방 검색")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "키워드로 채팅방 검색 성공"),
+  })
+  @GetMapping("/search/{organizationId}")
+  @ResponseStatus(HttpStatus.OK)
+  public PageResponse<ChatRoomResponse> searchChatRooms(
+      @PathVariable @Positive Long organizationId,
+      @RequestParam(required = false) String keyword,
+      @PageableDefault(
+          size = 6,
+          sort = "createdAt",
+          direction = Sort.Direction.DESC
+      ) Pageable pageable
+  ) {
+    return chatRoomService.searchChatRooms(organizationId, keyword, pageable);
   }
 
   @Operation(summary = "채팅방 입장")

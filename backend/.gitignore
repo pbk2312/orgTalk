@@ -7,7 +7,7 @@ build/
 
 backend/chat-server/src/main/resources/application.yml
 backend/main-server/src/main/resources/application.yml
-
+backend/docker-compose.yml
 
 
 ### STS ###
