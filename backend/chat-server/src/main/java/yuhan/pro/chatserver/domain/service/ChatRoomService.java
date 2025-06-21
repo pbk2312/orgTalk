@@ -117,6 +117,23 @@ public class ChatRoomService {
     return PageResponse.fromPage(dtoPage);
   }
 
+  @Transactional
+  public PageResponse<ChatRoomResponse> searchChatRooms(Long organizationId, String keyword,
+      Pageable pageable) {
+
+    Authentication authentication = getAuthentication();
+
+    Long memberId = getMemberId(authentication);
+
+    Page<ChatRoom> chatRooms = chatRoomRepository.searchByOrgAndKeyword(organizationId, keyword,
+        pageable);
+
+    Page<ChatRoomResponse> dtoPage = chatRooms.map(
+        chatRoom -> ChatRoomMapper.toChatRoomResponse(chatRoom, memberId));
+    return PageResponse.fromPage(dtoPage);
+  }
+
+
   @Transactional(readOnly = true)
   public ChatRoomInfoResponse getChatRoomInfo(Long roomId, String jwtToken) {
     ChatRoom chatRoom = findChatRoomOrThrow(roomId);
