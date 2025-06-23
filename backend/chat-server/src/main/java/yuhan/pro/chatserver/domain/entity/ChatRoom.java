@@ -11,7 +11,9 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -28,6 +30,11 @@ import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Table(
+    indexes = {
+        @Index(name = "idx_chatroom_orgid_createdat", columnList = "organizationId, createdAt")
+    }
+)
 public class ChatRoom extends BaseEntity {
 
   @Id

@@ -5,12 +5,27 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import yuhan.pro.chatserver.domain.dto.ChatRoomSummary;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
-  Page<ChatRoom> findAllByOrganizationId(Long organizationId, Pageable pageable);
 
+  @Query("""
+      select new yuhan.pro.chatserver.domain.dto.ChatRoomSummary(
+        c.id,
+        c.name,
+        c.description,
+        c.type,
+        c.createdAt
+      )
+      from ChatRoom c
+      where c.organizationId = :orgId
+      order by c.createdAt desc
+      """)
+  Page<ChatRoomSummary> findChatRoomsByOrg(
+      @Param("orgId") Long organizationId,
+      Pageable pageable);
 
   @Query("SELECT c " +
       "FROM ChatRoom c " +

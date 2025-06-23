@@ -8,11 +8,14 @@ import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_NOT_MATCH;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_OWNER_MISMATCH;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +28,7 @@ import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
+import yuhan.pro.chatserver.domain.dto.ChatRoomSummary;
 import yuhan.pro.chatserver.domain.dto.ChatRoomUpdateRequest;
 import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
@@ -101,20 +105,60 @@ public class ChatRoomService {
   public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, Pageable pageable) {
 
     Authentication authentication = getAuthentication();
-
     Long memberId = getMemberId(authentication);
 
     // todo: 주석 삭제
     // validateMemberInOrg(organizationId, authentication);
 
-    Page<ChatRoom> chatRoomPage = chatRoomRepository.findAllByOrganizationId(organizationId,
-        pageable);
+    // 1단계: 기본 ChatRoom 정보 조회 (인덱스 활용)
+    Page<ChatRoomSummary> summaryPage = chatRoomRepository
+        .findChatRoomsByOrg(organizationId, pageable);
 
-    Page<ChatRoomResponse> dtoPage = chatRoomPage.map(chatRoom ->
-        ChatRoomMapper.toChatRoomResponse(chatRoom, memberId)
+    if (summaryPage.isEmpty()) {
+      return PageResponse.fromPage(Page.empty(pageable));
+    }
+
+    // 2단계: ChatRoom ID 목록 추출
+    List<Long> chatRoomIds = summaryPage.getContent()
+        .stream()
+        .map(ChatRoomSummary::id)
+        .toList();
+
+    // 3단계: 멤버 수 조회 (배치)
+    Map<Long, Long> memberCounts = chatRoomMemberRepository
+        .findMemberCountsByChatRoomIds(chatRoomIds)
+        .stream()
+        .collect(Collectors.toMap(
+            arr -> (Long) arr[0],
+            arr -> (Long) arr[1],
+            (existing, replacement) -> existing // 중복 키 처리
+        ));
+
+    // 4단계: 참여 여부 조회 (배치)
+    Set<Long> joinedRoomIds = chatRoomMemberRepository
+        .findJoinedChatRoomIds(chatRoomIds, memberId);
+
+    // 5단계: ChatRoomResponse 조합
+    List<ChatRoomResponse> responses = summaryPage.getContent()
+        .stream()
+        .map(summary -> new ChatRoomResponse(
+            summary.id(),
+            summary.name(),
+            summary.description(),
+            summary.type(),
+            memberCounts.getOrDefault(summary.id(), 0L), // 멤버 수
+            joinedRoomIds.contains(summary.id()),        // 참여 여부
+            summary.createdAt()
+        ))
+        .toList();
+
+    Page<ChatRoomResponse> responsePage = new PageImpl<>(
+        responses,
+        pageable,
+        summaryPage.getTotalElements()
     );
 
-    return PageResponse.fromPage(dtoPage);
+    return PageResponse.fromPage(responsePage);
   }
 
   @Transactional
