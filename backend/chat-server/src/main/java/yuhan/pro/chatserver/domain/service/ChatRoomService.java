@@ -103,63 +103,22 @@ public class ChatRoomService {
 
   @Transactional(readOnly = true)
   public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, Pageable pageable) {
+    Long memberId = getMemberId(getAuthentication());
 
-    Authentication authentication = getAuthentication();
-    Long memberId = getMemberId(authentication);
-
-    // todo: 주석 삭제
-    // validateMemberInOrg(organizationId, authentication);
-
-    // 1단계: 기본 ChatRoom 정보 조회 (인덱스 활용)
-    Page<ChatRoomSummary> summaryPage = chatRoomRepository
-        .findChatRoomsByOrg(organizationId, pageable);
-
+    Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, pageable);
     if (summaryPage.isEmpty()) {
       return PageResponse.fromPage(Page.empty(pageable));
     }
 
-    // 2단계: ChatRoom ID 목록 추출
-    List<Long> chatRoomIds = summaryPage.getContent()
-        .stream()
-        .map(ChatRoomSummary::id)
-        .toList();
+    List<Long> chatRoomIds = extractRoomIds(summaryPage);
+    Map<Long, Long> memberCounts = fetchMemberCounts(chatRoomIds);
+    Set<Long> joinedRoomIds = fetchJoinedRoomIds(chatRoomIds, memberId);
 
-    // 3단계: 멤버 수 조회 (배치)
-    Map<Long, Long> memberCounts = chatRoomMemberRepository
-        .findMemberCountsByChatRoomIds(chatRoomIds)
-        .stream()
-        .collect(Collectors.toMap(
-            arr -> (Long) arr[0],
-            arr -> (Long) arr[1],
-            (existing, replacement) -> existing // 중복 키 처리
-        ));
-
-    // 4단계: 참여 여부 조회 (배치)
-    Set<Long> joinedRoomIds = chatRoomMemberRepository
-        .findJoinedChatRoomIds(chatRoomIds, memberId);
-
-    // 5단계: ChatRoomResponse 조합
-    List<ChatRoomResponse> responses = summaryPage.getContent()
-        .stream()
-        .map(summary -> new ChatRoomResponse(
-            summary.id(),
-            summary.name(),
-            summary.description(),
-            summary.type(),
-            memberCounts.getOrDefault(summary.id(), 0L), // 멤버 수
-            joinedRoomIds.contains(summary.id()),        // 참여 여부
-            summary.createdAt()
-        ))
-        .toList();
-
-    Page<ChatRoomResponse> responsePage = new PageImpl<>(
-        responses,
-        pageable,
-        summaryPage.getTotalElements()
-    );
-
+    Page<ChatRoomResponse> responsePage = mapToResponsePage(summaryPage, memberCounts,
+        joinedRoomIds, pageable);
     return PageResponse.fromPage(responsePage);
   }
+
 
   @Transactional
   public PageResponse<ChatRoomResponse> searchChatRooms(Long organizationId, String keyword,
@@ -277,5 +236,49 @@ public class ChatRoomService {
         throw new CustomException(ORGANIZATION_NOT_FOUND);
       }
     }
+  }
+
+  private Page<ChatRoomSummary> fetchSummaries(Long orgId, Pageable pageable) {
+    return chatRoomRepository.findChatRoomsByOrg(orgId, pageable);
+  }
+
+  private List<Long> extractRoomIds(Page<ChatRoomSummary> summaryPage) {
+    return summaryPage.getContent().stream()
+        .map(ChatRoomSummary::id)
+        .toList();
+  }
+
+  private Map<Long, Long> fetchMemberCounts(List<Long> roomIds) {
+    return chatRoomMemberRepository.findMemberCountsByChatRoomIds(roomIds).stream()
+        .collect(Collectors.toMap(
+            arr -> (Long) arr[0],
+            arr -> (Long) arr[1],
+            (existing, replacement) -> existing
+        ));
+  }
+
+  private Set<Long> fetchJoinedRoomIds(List<Long> roomIds, Long memberId) {
+    return chatRoomMemberRepository.findJoinedChatRoomIds(roomIds, memberId);
+  }
+
+  private Page<ChatRoomResponse> mapToResponsePage(
+      Page<ChatRoomSummary> summaryPage,
+      Map<Long, Long> memberCounts,
+      Set<Long> joinedRoomIds,
+      Pageable pageable
+  ) {
+    List<ChatRoomResponse> responses = summaryPage.getContent().stream()
+        .map(summary -> ChatRoomMapper.toChatRoomResponse(
+            summary,
+            memberCounts.getOrDefault(summary.id(), 0L),
+            joinedRoomIds.contains(summary.id())
+        ))
+        .toList();
+
+    return new PageImpl<>(
+        responses,
+        pageable,
+        summaryPage.getTotalElements()
+    );
   }
 }
