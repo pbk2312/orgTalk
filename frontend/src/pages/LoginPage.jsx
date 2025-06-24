@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Github, Users, MessageCircle, ArrowRight, Code2, GitBranch, Sparkles, Zap, Globe } from 'lucide-react';
-import OrgTalkGuestHeader from './OrgTalkGuestHeader';
 import '../css/LoginPage.css';
+import throttle from 'lodash.throttle';
 
 // 플로팅 파티클 컴포넌트
 const FloatingParticle = ({ delay = 0, size = 'small' }) => {
@@ -50,13 +50,13 @@ const LoginPage = () => {
 
   // 마우스 트래킹
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
+  const handleMouseMove = throttle((e) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  }, 50); // 50ms마다 (최대 초당 20번) 호출
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  window.addEventListener('mousemove', handleMouseMove);
+  return () => window.removeEventListener('mousemove', handleMouseMove);
+}, []);
 
   const handleGitHubLogin = () => {
     setIsLoading(true);

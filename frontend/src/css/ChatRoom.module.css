@@ -75,197 +75,6 @@
   gap: 1.5rem;
 }
 
-/* 메시지 스타일 */
-.message {
-  display: flex;
-  gap: 1rem;
-  max-width: 75%;
-}
-
-.messageMe {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-}
-
-.messageOther {
-  align-self: flex-start;
-}
-
-.messageAvatar {
-  flex-shrink: 0;
-}
-
-.avatarCircle {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #60a5fa, #a78bfa);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.avatarImage {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.messageContent {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  min-width: 0;
-  flex: 1;
-}
-
-.messageHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.25rem;
-}
-
-.messageNickname {
-  font-weight: 600;
-  color: #7dd3fc;
-  font-size: 0.9375rem;
-  letter-spacing: -0.025em;
-}
-
-.messageTime {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  color: #94a3b8;
-  font-size: 0.8125rem;
-  font-weight: 400;
-}
-
-.messageBubble {
-  position: relative;
-  padding: 1rem 1.25rem;
-  border-radius: 1.25rem;
-  backdrop-filter: blur(20px);
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.messageOther .messageBubble {
-  background: rgba(30, 41, 59, 0.9);
-  border: 1px solid rgba(71, 85, 105, 0.4);
-  color: #f1f5f9;
-}
-
-.messageMe .messageBubble {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(139, 92, 246, 0.4));
-  border: 1px solid rgba(96, 165, 250, 0.5);
-  color: #ffffff;
-}
-
-.messageText {
-  margin: 0;
-  line-height: 1.6;
-  word-wrap: break-word;
-  font-weight: 400;
-}
-
-.messageTimeMe {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  justify-content: flex-end;
-  color: #94a3b8;
-  font-size: 0.8125rem;
-  margin-top: 0.375rem;
-  font-weight: 400;
-}
-
-/* 코드 메시지 스타일 */
-.codeMessage {
-  width: 100%;
-  min-width: 350px;
-  max-width: 100%;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
-.codeHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  background: rgba(15, 23, 42, 0.95);
-  border-bottom: 1px solid rgba(71, 85, 105, 0.4);
-}
-
-.codeLanguage {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.copyButton {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(71, 85, 105, 0.6);
-  border: 1px solid rgba(100, 116, 139, 0.4);
-  border-radius: 0.5rem;
-  color: #e2e8f0;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  padding: 0.5rem 0.875rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.copyButton:hover {
-  background: rgba(96, 165, 250, 0.2);
-  border-color: rgba(96, 165, 250, 0.5);
-  color: #ffffff;
-  transform: translateY(-1px);
-}
-
-.codeBlock {
-  margin: 0;
-  padding: 1.25rem;
-  background: rgba(15, 23, 42, 0.98);
-  overflow-x: auto;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  border: none;
-}
-
-.codeBlock code {
-  color: #f1f5f9;
-  background: transparent;
-  font-family: inherit;
-  font-weight: 400;
-}
-
-.codeDescription {
-  margin: 0.75rem 0 0 0;
-  color: #cbd5e1;
-  font-size: 0.9375rem;
-  font-style: italic;
-  font-weight: 400;
-}
-
 /* 로딩 및 에러 상태 */
 .loading, .error {
   display: flex;
@@ -408,6 +217,20 @@
   position: relative;
   overflow: hidden;
 }
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 
 .loadMoreBtn::before {
   content: '';

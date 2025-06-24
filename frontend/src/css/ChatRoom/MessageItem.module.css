@@ -1,0 +1,254 @@
+/* ===== 기본 메시지 레이아웃 ===== */
+.message {
+  display: flex;
+  gap: 1rem;
+  max-width: 75%;
+  margin-bottom: 1rem;
+}
+
+.messageMe {
+  align-self: flex-start;
+  flex-direction: row;
+}
+
+.messageOther {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+/* ===== 아바타 스타일 ===== */
+.messageAvatar {
+  flex-shrink: 0;
+}
+
+.avatarCircle {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatarImage {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== 메시지 콘텐츠 ===== */
+.messageContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.messageNickname {
+  font-weight: 600;
+  color: #38bdf8;
+  letter-spacing: -0.025em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 시간 표시 - 말풍선 아래로 이동 */
+.messageTime {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  opacity: 0.8;
+}
+
+/* 내 메시지의 시간은 오른쪽 정렬 */
+.messageMe .messageTime {
+  justify-content: flex-end;
+  color: #cbd5e1;
+}
+
+/* 상대방 메시지의 시간은 왼쪽 정렬 */
+.messageOther .messageTime {
+  justify-content: flex-start;
+}
+
+/* ===== 메시지 말풍선 ===== */
+.messageBubble {
+  position: relative;
+  padding: 1rem 1.25rem;
+  border-radius: 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* blur 효과 제거하여 가독성 향상 */
+}
+
+.messageOther .messageBubble {
+  background: linear-gradient(135deg, #374151, #4b5563);
+  border-color: #6b7280;
+  color: #f9fafb;
+  /* 그라데이션으로 내 메시지와 동등한 시각적 비중 */
+}
+
+/* 내 메시지 - 블루 계열로 구분 */
+.messageMe .messageBubble {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #ffffff;
+  /* 그라데이션으로 시각적 구분감 향상 */
+}
+
+.messageText {
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  font-weight: 400;
+  /* 폰트 웨이트 명시로 가독성 향상 */
+}
+
+/* 호버 효과 추가 */
+.messageBubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+/* ===== 코드 메시지 전용 스타일 ===== */
+.codeMessage {
+  width: 100%;
+  min-width: 320px;
+  max-width: 100%;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  border: 1px solid #334155;
+  /* 더 선명한 테두리 */
+}
+
+.codeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+  /* 더 선명한 배경 */
+}
+
+.codeLanguage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #475569;
+  border: 1px solid #64748b;
+  border-radius: 0.375rem;
+  color: #f1f5f9;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  /* 더 선명한 버튼 배경 */
+}
+
+.copyButton:hover {
+  background: #3b82f6;
+  border-color: #60a5fa;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.copyButton:active {
+  transform: translateY(0);
+}
+
+.codeBlock {
+  margin: 0;
+  padding: 1rem;
+  background: #0f172a;
+  overflow-x: auto;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', 'Roboto Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: none;
+  /* 더 선명한 코드 배경 */
+}
+
+.codeBlock code {
+  color: #f1f5f9;
+  background: transparent;
+  font-family: inherit;
+}
+
+/* ===== 반응형 디자인 ===== */
+@media (max-width: 768px) {
+  .message {
+    max-width: 90%;
+  }
+  
+  .codeMessage {
+    min-width: 280px;
+  }
+  
+  .codeBlock {
+    font-size: 0.8125rem;
+    padding: 0.875rem;
+  }
+  
+  .messageBubble {
+    padding: 0.875rem 1.125rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* ===== 추가 가독성 향상 ===== */
+/* 메시지 간 간격 조정 */
+.message + .message {
+  margin-top: 0.75rem;
+}
+
+/* 텍스트 선택 시 하이라이트 색상 */
+.messageText::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: inherit;
+}
+
+/* 다크 테마에서 텍스트 가독성 최적화 */
+@media (prefers-color-scheme: dark) {
+  .messageOther .messageBubble {
+    background: #1e293b;
+    color: #f8fafc;
+  }
+  
+  .messageMe .messageBubble {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #ffffff;
+  }
+}

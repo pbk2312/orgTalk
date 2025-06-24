@@ -1,4 +1,4 @@
-/* CreateChatRoomModal.module.css */
+/* CreateChatRoomModal.module.css - 개선된 버전 */
 
 /* Overlay */
 .overlay {
@@ -7,8 +7,8 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,7 +43,7 @@
   background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   border-radius: 50%;
   filter: blur(60px);
-  opacity: 0.2;
+  opacity: 0.15;
 }
 
 .bg-circle-2 {
@@ -55,7 +55,7 @@
   background: linear-gradient(135deg, #10b981, #3b82f6);
   border-radius: 50%;
   filter: blur(60px);
-  opacity: 0.2;
+  opacity: 0.15;
 }
 
 /* Container */
@@ -63,11 +63,13 @@
   position: relative;
   width: 100%;
   max-width: 28rem;
-  background: rgba(30, 41, 59, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(51, 65, 85, 0.6);
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(71, 85, 105, 0.8);
   border-radius: 1.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -86,8 +88,8 @@
   position: absolute;
   inset: 0;
   border-radius: 1.5rem;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
-  opacity: 0.6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(139, 92, 246, 0.4));
+  opacity: 0.3;
   pointer-events: none;
 }
 
@@ -118,7 +120,7 @@
   height: 3rem;
   border-radius: 0.75rem;
   background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  box-shadow: 0 8px 25px -8px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 8px 25px -8px rgba(59, 130, 246, 0.6);
 }
 
 .header-icon {
@@ -134,15 +136,17 @@
 
 .title {
   font-size: 1.5rem;
-  font-weight: bold;
-  color: white;
+  font-weight: 700;
+  color: #f8fafc;
   margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .subtitle {
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.875rem;
   margin: 0;
+  font-weight: 400;
 }
 
 .close-button {
@@ -152,16 +156,17 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 0.5rem;
-  background: transparent;
-  border: none;
-  color: #94a3b8;
+  background: rgba(71, 85, 105, 0.3);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  color: #cbd5e1;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .close-button:hover {
-  background: rgba(51, 65, 85, 0.5);
-  color: white;
+  background: rgba(71, 85, 105, 0.6);
+  color: #f8fafc;
+  border-color: rgba(71, 85, 105, 0.8);
 }
 
 /* Form */
@@ -180,15 +185,16 @@
   display: flex;
   align-items: center;
   font-size: 0.875rem;
-  font-weight: 500;
-  color: #cbd5e1;
+  font-weight: 600;
+  color: #e2e8f0;
   margin-bottom: 0.5rem;
 }
 
 .label-icon {
   width: 1rem;
   height: 1rem;
-  margin-right: 0.25rem;
+  margin-right: 0.5rem;
+  color: #94a3b8;
 }
 
 .input-wrapper {
@@ -199,39 +205,47 @@
 
 .input,
 .textarea {
-  width: 90%;
-  padding: 0.75rem 1rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
   border-radius: 0.75rem;
-  border: none;
-  background: rgba(51, 65, 85, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  background: rgba(30, 41, 59, 0.8);
   backdrop-filter: blur(10px);
-  color: white;
+  color: #f8fafc;
   font-size: 1rem;
+  font-weight: 400;
   transition: all 0.2s ease;
   outline: none;
+  box-sizing: border-box;
 }
 
 .input::placeholder,
 .textarea::placeholder {
-  color: #64748b;
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 .input:focus,
 .textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: #3b82f6;
+  background: rgba(30, 41, 59, 0.95);
+  box-shadow: 
+    0 0 0 3px rgba(59, 130, 246, 0.2),
+    0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .textarea {
   resize: none;
   min-height: 4.5rem;
+  line-height: 1.5;
 }
 
 .input-glow {
   position: absolute;
   inset: 0;
   border-radius: 0.75rem;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -254,20 +268,22 @@
   align-items: center;
   padding: 1rem;
   border-radius: 0.75rem;
-  background: rgba(51, 65, 85, 0.3);
+  background: rgba(30, 41, 59, 0.6);
   backdrop-filter: blur(10px);
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 2px solid transparent;
+  border: 1px solid rgba(71, 85, 105, 0.4);
 }
 
 .radio-card:hover {
-  background: rgba(51, 65, 85, 0.5);
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(71, 85, 105, 0.6);
 }
 
 .radio-card.selected {
   border-color: #3b82f6;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25));
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
 }
 
 .radio-input {
@@ -290,13 +306,15 @@
   width: 2rem;
   height: 2rem;
   border-radius: 0.5rem;
-  background: #4b5563;
-  color: white;
+  background: rgba(71, 85, 105, 0.6);
+  color: #cbd5e1;
   transition: all 0.2s ease;
 }
 
 .radio-icon.active {
   background: #3b82f6;
+  color: white;
+  box-shadow: 0 4px 8px -2px rgba(59, 130, 246, 0.4);
 }
 
 .radio-text {
@@ -305,14 +323,15 @@
 }
 
 .radio-title {
-  color: white;
-  font-weight: 500;
+  color: #f8fafc;
+  font-weight: 600;
   font-size: 0.875rem;
 }
 
 .radio-subtitle {
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.75rem;
+  font-weight: 400;
 }
 
 .selection-dot {
@@ -324,6 +343,7 @@
   background: #3b82f6;
   border-radius: 50%;
   animation: pulse 2s infinite;
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.6);
 }
 
 @keyframes pulse {
@@ -331,8 +351,20 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
+}
+
+/* Error Message */
+.error-message {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
 }
 
 /* Submit Button */
@@ -351,18 +383,28 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+  box-shadow: 
+    0 10px 25px -10px rgba(59, 130, 246, 0.5),
+    0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.submit-button:hover {
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.5);
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 20px 40px -12px rgba(59, 130, 246, 0.6),
+    0 8px 16px -4px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:active:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .submit-button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  background: linear-gradient(135deg, #6b7280, #9ca3af);
+  box-shadow: none;
 }
 
 .submit-button.loading {
@@ -387,6 +429,10 @@
 
 /* Responsive Design */
 @media (max-width: 640px) {
+  .overlay {
+    padding: 0.5rem;
+  }
+  
   .content {
     padding: 1.5rem;
   }
@@ -406,4 +452,42 @@
   .form {
     gap: 1.25rem;
   }
+  
+  .input,
+  .textarea {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* 고대비 모드 지원 */
+@media (prefers-contrast: high) {
+  .container {
+    border: 2px solid #64748b;
+    background: rgba(15, 23, 42, 1);
+  }
+  
+  .input,
+  .textarea {
+    border: 2px solid #64748b;
+    background: rgba(15, 23, 42, 1);
+  }
+  
+  .radio-card {
+    border: 2px solid #64748b;
+  }
+  
+  .radio-card.selected {
+    border: 2px solid #3b82f6;
+  }
+}
+
+/* 포커스 가시성 개선 */
+.close-button:focus,
+.input:focus,
+.textarea:focus,
+.radio-card:focus-within,
+.submit-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
