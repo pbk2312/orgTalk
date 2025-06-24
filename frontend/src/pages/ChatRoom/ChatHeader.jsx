@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Hash, Lock, Globe, Users, Trash2, Edit3 } from 'lucide-react';
+import { ArrowLeft, Lock, Globe, Users, Trash2, Edit3 } from 'lucide-react';
 import styles from '../../css/ChatRoom/ChatRoomHeader.module.css';
 
 const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, onUpdateRoom }) => {
@@ -69,7 +69,9 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
             <ArrowLeft size={20} />
           </button>
           <div className={styles.roomInfo}>
-            <div className={styles.roomIcon}><Hash size={20} /></div>
+            <div className={styles.roomIcon}>
+  {getTypeIcon(roomInfo.type)}
+</div>
             <div className={styles.roomDetails}>
               <div className={styles.roomNameRow}>
                 <h1 className={styles.roomName}>{roomInfo.name}</h1>

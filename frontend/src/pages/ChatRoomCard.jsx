@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hash, Lock, Globe, Users, Clock, ChevronRight } from 'lucide-react';
+import { Hash, Lock, Globe, Users, ChevronRight,  Calendar } from 'lucide-react';
 import styles from '../css/ChatRoomCard.module.css';
 import { formatTime } from '../util/ChatRoomsFormatTime';
 
@@ -11,6 +11,19 @@ const ChatRoomCard = ({
   onMouseEnter,
   onMouseLeave
 }) => {
+  // 메인 아이콘을 방 타입에 따라 변경
+  const getMainIcon = (type) => {
+    switch(type) {
+      case 'PRIVATE':
+        return <Lock size={20} />;
+      case 'PUBLIC':
+        return <Globe size={20} />;
+      default:
+        return <Hash size={20} />;
+    }
+  };
+
+  // 작은 타입 아이콘 (기존 유지)
   const getTypeIcon = (type) =>
     type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />;
 
@@ -22,10 +35,12 @@ const ChatRoomCard = ({
       className={`${styles['room-card']} ${isHovered ? styles.hovered : ''} ${isSelected ? styles.selected : ''}`}
     >
       <div className={styles['room-card-header']}>
-        <div className={styles['room-icon']}><Hash size={20} /></div>
+        {/* 메인 아이콘을 방 타입에 따라 표시 */}
+        <div className={styles['room-icon']}>{getMainIcon(room.type)}</div>
         <div className={styles['room-info']}>
           <div className={styles['room-name-row']}>
             <h3 className={styles['room-name']}>{room.name}</h3>
+            {/* 작은 타입 아이콘은 제거하거나 유지 가능 */}
             <div className={styles['room-type']}>{getTypeIcon(room.type)}</div>
           </div>
           <p className={styles['room-description']}>{room.description}</p>
@@ -35,7 +50,8 @@ const ChatRoomCard = ({
       {/* 생성일 표시 */}
       <div className={styles['room-card-body']}>
         <div className={styles['created-time']}>  
-          <Clock size={12} />
+          <Calendar size={14} />
+          <span className={styles['created-label']}>생성일</span>
           <span>{formatTime(room.createdAt)}</span>
         </div>
       </div>

@@ -6,19 +6,22 @@ import yuhan.pro.chatserver.domain.dto.ChatRoomCreateRequest;
 import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
+import yuhan.pro.chatserver.domain.dto.ChatRoomSummary;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
 import yuhan.pro.chatserver.domain.entity.ChatRoomMember;
 
 public class ChatRoomMapper {
 
   private ChatRoomMapper() {
-
+    // Utility class
   }
 
-  public static ChatRoom fromChatRoomCreateRequest(ChatRoomCreateRequest request, Long ownerId,
-      String encodedPassword) {
-    return ChatRoom
-        .builder()
+  public static ChatRoom fromChatRoomCreateRequest(
+      ChatRoomCreateRequest request,
+      Long ownerId,
+      String encodedPassword
+  ) {
+    return ChatRoom.builder()
         .ownerId(ownerId)
         .organizationId(request.organizationId())
         .name(request.name())
@@ -29,50 +32,60 @@ public class ChatRoomMapper {
   }
 
   public static ChatRoomMember fromMemberId(Long memberId, ChatRoom chatRoom) {
-    return ChatRoomMember
-        .builder()
+    return ChatRoomMember.builder()
         .chatRoom(chatRoom)
         .memberId(memberId)
         .build();
   }
 
   public static ChatRoomCreateResponse toChatRoomCreateResponse(ChatRoom chatRoom) {
-    return ChatRoomCreateResponse.builder()
-        .id(chatRoom.getId())
-        .build();
+    // 레코드 생성자 직접 호출
+    return new ChatRoomCreateResponse(chatRoom.getId());
   }
 
   public static ChatRoomResponse toChatRoomResponse(ChatRoom chatRoom, Long memberId) {
+    boolean joined = memberId != null &&
+        chatRoom.getMembers().stream()
+            .map(ChatRoomMember::getMemberId)
+            .anyMatch(memberId::equals);
 
-    boolean joined = false;
-    if (memberId != null) {
-      for (ChatRoomMember member : chatRoom.getMembers()) {
-        if (member.getMemberId().equals(memberId)) {
-          joined = true;
-          break;
-        }
-      }
-    }
-
-    return ChatRoomResponse.builder()
-        .id(chatRoom.getId())
-        .name(chatRoom.getName())
-        .description(chatRoom.getDescription())
-        .type(chatRoom.getType())
-        .memberCount((long) chatRoom.getMembers().size())
-        .createdAt(chatRoom.getCreatedAt())
-        .joined(joined)
-        .build();
+    return new ChatRoomResponse(
+        chatRoom.getId(),
+        chatRoom.getName(),
+        chatRoom.getDescription(),
+        chatRoom.getType(),
+        (long) chatRoom.getMembers().size(),
+        joined,
+        chatRoom.getCreatedAt()
+    );
   }
 
+  public static ChatRoomResponse toChatRoomResponse(
+      ChatRoomSummary summary,
+      Long memberCount,
+      boolean joined
+  ) {
+    return new ChatRoomResponse(
+        summary.id(),
+        summary.name(),
+        summary.description(),
+        summary.type(),
+        memberCount,
+        joined,
+        summary.createdAt()
+    );
+  }
 
-  public static ChatRoomInfoResponse toChatRoomInfoResponse(ChatRoom chatRoom,
-      Set<ChatMemberResponse> members) {
-    return ChatRoomInfoResponse.builder()
-        .name(chatRoom.getName())
-        .description(chatRoom.getDescription())
-        .type(chatRoom.getType())
-        .members(members)
-        .build();
+  public static ChatRoomInfoResponse toChatRoomInfoResponse(
+      ChatRoom chatRoom,
+      Set<ChatMemberResponse> members
+  ) {
+    // 레코드 생성자 직접 호출
+    return new ChatRoomInfoResponse(
+        chatRoom.getName(),
+        chatRoom.getDescription(),
+        chatRoom.getType(),
+        members
+    );
   }
 }
