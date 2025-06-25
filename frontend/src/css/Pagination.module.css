@@ -122,6 +122,20 @@
   color: #3b82f6;
 }
 
+/* 말줄임표 스타일 추가 */
+.ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  user-select: none;
+  opacity: 0.8;
+}
+
 /* 반응형 디자인 */
 @media (max-width: 768px) {
   .pagination-container {
@@ -144,6 +158,12 @@
     width: 2.25rem;
     height: 2.25rem;
     font-size: 0.8125rem;
+  }
+  
+  .ellipsis {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 0.875rem;
   }
 }
 
