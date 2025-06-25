@@ -2,6 +2,7 @@ package yuhan.pro.chatserver.domain.controller;
 
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,7 @@ import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomUpdateRequest;
 import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
+import yuhan.pro.chatserver.domain.entity.RoomType;
 import yuhan.pro.chatserver.domain.service.ChatRoomService;
 import yuhan.pro.chatserver.sharedkernel.dto.PageResponse;
 
@@ -60,13 +62,15 @@ public class ChatRoomController {
   @ResponseStatus(HttpStatus.OK)
   public PageResponse<ChatRoomResponse> getChatRooms(
       @PathVariable @Positive Long organizationId,
+      @Parameter(description = "채팅방 타입 (PUBLIC, PRIVATE). 미지정 시 전체 조회")
+      @RequestParam(value = "type", required = false) RoomType type,
       @PageableDefault(
-          size = 6,
+          size = 9,
           sort = "createdAt",
           direction = Sort.Direction.DESC
       ) Pageable pageable
   ) {
-    return chatRoomService.getChatRooms(organizationId, pageable);
+    return chatRoomService.getChatRooms(organizationId, type, pageable);
   }
 
   @Operation(summary = "채팅방 정보 조회")
@@ -93,7 +97,7 @@ public class ChatRoomController {
       @PathVariable @Positive Long organizationId,
       @RequestParam(required = false) String keyword,
       @PageableDefault(
-          size = 6,
+          size = 9,
           sort = "createdAt",
           direction = Sort.Direction.DESC
       ) Pageable pageable

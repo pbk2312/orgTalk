@@ -1,6 +1,7 @@
 package yuhan.pro.chatserver.sharedkernel.exception;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
@@ -32,6 +33,9 @@ public enum ExceptionCode {
   MEMBER_NOT_FOUND(NOT_FOUND, "존재하지 않는 회원입니다."),
   ORGANIZATION_NOT_FOUND(NOT_FOUND, "해당되는 조직 ID가 존재하지 않습니다"),
   ROOM_ID_NOT_FOUND(NOT_FOUND, "해당하는 채팅방이 없습니다."),
+
+  // 409
+  CHAT_ROOM_NAME_DUPLICATE(CONFLICT, "이미 존재하는 채팅방 이름입니다."),
 
   ;
 

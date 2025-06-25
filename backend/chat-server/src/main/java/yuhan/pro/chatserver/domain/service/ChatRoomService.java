@@ -1,6 +1,7 @@
 package yuhan.pro.chatserver.domain.service;
 
 
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.CHAT_ROOM_NAME_DUPLICATE;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_ACCEPTED;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ORGANIZATION_NOT_FOUND;
@@ -60,6 +61,8 @@ public class ChatRoomService {
 
     Long memberId = getMemberId(authentication);
 
+    valiadteChatRoomNameDuplicated(request);
+
     validateMemberInOrg(request.organizationId(), authentication);
 
     RoomType type = request.type();
@@ -102,10 +105,11 @@ public class ChatRoomService {
 
 
   @Transactional(readOnly = true)
-  public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, Pageable pageable) {
+  public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, RoomType type,
+      Pageable pageable) {
     Long memberId = getMemberId(getAuthentication());
 
-    Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, pageable);
+    Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, type, pageable);
     if (summaryPage.isEmpty()) {
       return PageResponse.fromPage(Page.empty(pageable));
     }
@@ -238,8 +242,8 @@ public class ChatRoomService {
     }
   }
 
-  private Page<ChatRoomSummary> fetchSummaries(Long orgId, Pageable pageable) {
-    return chatRoomRepository.findChatRoomsByOrg(orgId, pageable);
+  private Page<ChatRoomSummary> fetchSummaries(Long orgId, RoomType type, Pageable pageable) {
+    return chatRoomRepository.findChatRoomsByOrgAndType(orgId, type, pageable);
   }
 
   private List<Long> extractRoomIds(Page<ChatRoomSummary> summaryPage) {
@@ -280,5 +284,12 @@ public class ChatRoomService {
         pageable,
         summaryPage.getTotalElements()
     );
+  }
+
+  private void valiadteChatRoomNameDuplicated(ChatRoomCreateRequest request) {
+    if (chatRoomRepository.existsByOrganizationIdAndName(
+        request.organizationId(), request.name())) {
+      throw new CustomException(CHAT_ROOM_NAME_DUPLICATE);
+    }
   }
 }
