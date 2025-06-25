@@ -33,6 +33,33 @@ export async function getChatRooms(params) {
   }
 }
 
+
+export async function searchChatRooms({ organizationId, keyword, page, size, sort }) {
+  try {
+    const params = {};
+    if (keyword) params.keyword = keyword;
+    if (page != null) params.page = page;
+    if (size != null) params.size = size;
+    if (sort) params.sort = sort;
+
+    const { data } = await chatApi.get(
+      `/api/chatroom/search/${organizationId}`,
+      { params }
+    );
+
+    return {
+      chatRooms: data.content,
+      page: data.page,
+      size: data.size,
+      totalPages: data.totalPages,
+      totalElements: data.totalElements,
+    };
+  } catch (error) {
+    console.error('Failed to search chat rooms:', error);
+    throw error;
+  }
+}
+
 export async function getChatRoomInfo(roomId) {
   try {
     const { data } = await chatApi.get(`/api/chatroom/${roomId}`);

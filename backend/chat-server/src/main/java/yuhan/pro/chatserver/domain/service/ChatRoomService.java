@@ -102,10 +102,11 @@ public class ChatRoomService {
 
 
   @Transactional(readOnly = true)
-  public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, Pageable pageable) {
+  public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, RoomType type,
+      Pageable pageable) {
     Long memberId = getMemberId(getAuthentication());
 
-    Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, pageable);
+    Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, type, pageable);
     if (summaryPage.isEmpty()) {
       return PageResponse.fromPage(Page.empty(pageable));
     }
@@ -238,8 +239,8 @@ public class ChatRoomService {
     }
   }
 
-  private Page<ChatRoomSummary> fetchSummaries(Long orgId, Pageable pageable) {
-    return chatRoomRepository.findChatRoomsByOrg(orgId, pageable);
+  private Page<ChatRoomSummary> fetchSummaries(Long orgId, RoomType type, Pageable pageable) {
+    return chatRoomRepository.findChatRoomsByOrgAndType(orgId, type, pageable);
   }
 
   private List<Long> extractRoomIds(Page<ChatRoomSummary> summaryPage) {

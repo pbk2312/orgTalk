@@ -165,12 +165,12 @@ class ChatRoomServiceTest {
       long totalElements = 2L;
       Page<ChatRoom> page = new PageImpl<>(roomList, pageable, totalElements);
 
-      when(chatRoomRepository.findAllByOrganizationId(organizationId, pageable))
+      when(chatRoomRepository.findChatRoomsByOrgAndType(organizationId, RoomType.PUBLIC, pageable))
           .thenReturn(page);
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.getChatRooms(organizationId, pageable);
+          chatRoomService.getChatRooms(organizationId, RoomType.PUBLIC, pageable);
 
       // then
       assertThat(response).isNotNull();
@@ -188,7 +188,8 @@ class ChatRoomServiceTest {
       Long organizationId = 100L;
       Pageable pageable = PageRequest.of(0, 2);
 
-      assertThatThrownBy(() -> chatRoomService.getChatRooms(organizationId, pageable))
+      assertThatThrownBy(
+          () -> chatRoomService.getChatRooms(organizationId, RoomType.PUBLIC, pageable))
           .isInstanceOf(CustomException.class)
           .hasMessage("해당되는 조직 ID가 존재하지 않습니다");
     }

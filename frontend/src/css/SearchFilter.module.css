@@ -1,10 +1,88 @@
-/* 검색 & 필터 섹션 */
+/* src/css/SearchFilter.module.css */
+
+/* ── 박스 모델 초기화 ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ── 검색 & 필터 섹션 ── */
 .search-section {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   margin-bottom: 3rem;
   animation: slide-up 0.8s ease-out 0.2s both;
+}
+
+/* 검색 상태 표시 영역 */
+.search-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  animation: slideDown 0.3s ease-out;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-icon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.status-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.reset-button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.reset-button:active {
+  transform: translateY(0);
 }
 
 .search-box {
@@ -14,9 +92,11 @@
   width: 100%;
 }
 
+/* ── 입력창 ── */
 .search-input {
   width: 100%;
-  padding: 1.25rem 1.25rem 1.25rem 4rem;
+  /* 오른쪽 padding을 버튼 너비만큼만 줘서 X가 밀릴 공간 없애기 */
+  padding: 1.25rem 2.25rem 1.25rem 3rem;
   background: rgba(30, 41, 59, 0.4);
   backdrop-filter: blur(20px);
   border: 2px solid rgba(255, 255, 255, 0.1);
@@ -25,6 +105,7 @@
   font-size: 1.125rem;
   transition: all 0.3s ease;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  outline: none;
 }
 
 .search-input::placeholder {
@@ -32,25 +113,55 @@
 }
 
 .search-input:focus {
-  outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1),
+              0 8px 32px rgba(0, 0, 0, 0.2);
   transform: translateY(-2px);
 }
 
+/* ── 돋보기 아이콘 (왼쪽) ── */
 .search-icon {
   position: absolute;
-  left: 1.25rem;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;
-  transition: color 0.3s ease;
+  pointer-events: none;
+  z-index: 2;
 }
 
-.search-input:focus + .search-icon {
+.search-box:focus-within .search-icon {
   color: #3b82f6;
 }
 
+/* ── 클리어 버튼 (X) ── */
+.clear-button {
+  position: absolute;
+  /* 테두리 바로 안쪽에 붙도록 아주 작게 */
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.clear-button:hover {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  transform: translateY(-50%) scale(1.1);
+}
+
+/* ── 필터 버튼 그룹 ── */
 .filter-buttons {
   display: flex;
   gap: 1rem;
@@ -87,16 +198,53 @@
   box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
 }
 
-/* 반응형 관련 (필요하다면 같이 복사) */
+/* ── 반응형 ── */
 @media (max-width: 768px) {
+  .search-status {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .status-info {
+    justify-content: center;
+  }
+  
+  .reset-button {
+    justify-content: center;
+  }
+  
   .filter-buttons {
     gap: 0.75rem;
+    justify-content: center;
+  }
+  
+  .filter-button {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
   }
 }
 
 @media (max-width: 480px) {
   .search-input {
-    padding: 1rem 1rem 1rem 3.5rem;
+    padding: 1rem 2.5rem 1rem 2.5rem;
     font-size: 1rem;
+  }
+
+  .clear-button {
+    /* padding-right이 2.5rem이므로 right는 0.75rem */
+    right: 0.75rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .search-icon {
+    left: 0.75rem;
+  }
+  
+  .filter-button {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
   }
 }

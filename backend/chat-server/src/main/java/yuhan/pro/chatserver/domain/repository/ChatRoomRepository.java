@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import yuhan.pro.chatserver.domain.dto.ChatRoomSummary;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
+import yuhan.pro.chatserver.domain.entity.RoomType;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
@@ -21,11 +22,14 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
       )
       from ChatRoom c
       where c.organizationId = :orgId
+        and ( :type is null or c.type = :type )
       order by c.createdAt desc
       """)
-  Page<ChatRoomSummary> findChatRoomsByOrg(
+  Page<ChatRoomSummary> findChatRoomsByOrgAndType(
       @Param("orgId") Long organizationId,
-      Pageable pageable);
+      @Param("type") RoomType type,
+      Pageable pageable
+  );
 
   @Query("SELECT c " +
       "FROM ChatRoom c " +
