@@ -40,4 +40,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
       @Param("orgId") Long organizationId,
       @Param("kw") String keyword,
       Pageable pageable);
+
+
+  boolean existsByOrganizationIdAndName(Long organizationId, String name);
 }

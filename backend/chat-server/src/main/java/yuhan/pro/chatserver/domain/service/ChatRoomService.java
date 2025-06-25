@@ -1,6 +1,7 @@
 package yuhan.pro.chatserver.domain.service;
 
 
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.CHAT_ROOM_NAME_DUPLICATE;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_ACCEPTED;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ORGANIZATION_NOT_FOUND;
@@ -59,6 +60,8 @@ public class ChatRoomService {
     Authentication authentication = getAuthentication();
 
     Long memberId = getMemberId(authentication);
+
+    valiadteChatRoomNameDuplicated(request);
 
     validateMemberInOrg(request.organizationId(), authentication);
 
@@ -281,5 +284,12 @@ public class ChatRoomService {
         pageable,
         summaryPage.getTotalElements()
     );
+  }
+
+  private void valiadteChatRoomNameDuplicated(ChatRoomCreateRequest request) {
+    if (chatRoomRepository.existsByOrganizationIdAndName(
+        request.organizationId(), request.name())) {
+      throw new CustomException(CHAT_ROOM_NAME_DUPLICATE);
+    }
   }
 }

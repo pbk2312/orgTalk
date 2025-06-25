@@ -207,14 +207,8 @@ const ChatRoomsPage = () => {
 
       navigate(`/chatroom/${roomToJoin.id}`);
     } catch (err) {
-      console.error(`Failed to join chat room (roomId: ${roomToJoin.id}):`, err);
-      const resp = err.response;
-      if (resp && resp.data) {
-        const backendMsg = resp.data.detail || resp.data.message;
-        setJoinError(backendMsg);
-      } else {
-        setJoinError('알 수 없는 오류가 발생했습니다.');
-      }
+      const msg = err.message || '알 수 없는 오류가 발생했습니다.';
+      setJoinError(msg);
     } finally {
       setJoinLoading(false);
     }

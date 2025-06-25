@@ -13,7 +13,6 @@ const SearchFilter = ({
   totalElements = 0,
   filteredElements = 0,
   activeSearchQuery = '',
-  // 추가: 현재 페이지 정보
   currentPage = 0,
   totalPages = 0,
 }) => {
