@@ -152,4 +152,20 @@ public class ChatRoomController {
   ) {
     chatRoomService.updateChatRoom(roomId, request);
   }
+
+  @PostMapping("/{roomId}/kickMember")
+  @ApiResponses(
+      {
+          @ApiResponse(responseCode = "403", description = "채팅방 방장이 아닙니다."),
+          @ApiResponse(responseCode = "404", description = "강퇴하려는 멤버 ID가 채팅방에 존재 하지 않습니다"),
+          @ApiResponse(responseCode = "204", description = "해당 멤버 성공적으로 삭제")
+      }
+  )
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void kickMember(
+      @PathVariable @Positive Long roomId,
+      Long kickedMemberId
+  ) {
+    chatRoomService.kickOutMember(roomId, kickedMemberId);
+  }
 }

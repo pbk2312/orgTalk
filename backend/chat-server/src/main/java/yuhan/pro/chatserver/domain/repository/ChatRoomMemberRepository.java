@@ -1,6 +1,7 @@
 package yuhan.pro.chatserver.domain.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -28,4 +29,6 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
   Set<Long> findJoinedChatRoomIds(
       @Param("chatRoomIds") List<Long> chatRoomIds,
       @Param("memberId") Long memberId);
+
+  Optional<ChatRoomMember> findByChatRoom_IdAndMemberId(Long chatRoomId, Long memberId);
 }

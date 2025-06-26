@@ -121,3 +121,18 @@ export async function updateChatRoom({ roomId, ...payload }) {
     throw new Error(getErrorMessage(error, '채팅방 수정 중 오류가 발생했습니다.'));
   }
 }
+
+
+export async function kickMember(roomId, kickedMemberId) {
+  try {
+    await chatApi.post(
+      `/api/chatroom/${roomId}/kickMember`,
+      null,
+      { params: { kickedMemberId } }
+    );
+    return { message: '멤버가 성공적으로 강퇴되었습니다.' };
+  } catch (error) {
+    console.error(`Failed to kick member (roomId: ${roomId}, memberId: ${kickedMemberId}):`, error);
+    throw new Error(getErrorMessage(error, '멤버 강퇴 중 오류가 발생했습니다.'));
+  }
+}
