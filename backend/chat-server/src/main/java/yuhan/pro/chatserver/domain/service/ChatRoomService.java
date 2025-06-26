@@ -125,14 +125,16 @@ public class ChatRoomService {
 
 
   @Transactional
-  public PageResponse<ChatRoomResponse> searchChatRooms(Long organizationId, String keyword,
+  public PageResponse<ChatRoomResponse> searchChatRooms(Long organizationId, RoomType type,
+      String keyword,
       Pageable pageable) {
 
     Authentication authentication = getAuthentication();
 
     Long memberId = getMemberId(authentication);
 
-    Page<ChatRoom> chatRooms = chatRoomRepository.searchByOrgAndKeyword(organizationId, keyword,
+    Page<ChatRoom> chatRooms = chatRoomRepository.searchByOrgAndKeyword(organizationId, type,
+        keyword,
         pageable);
 
     Page<ChatRoomResponse> dtoPage = chatRooms.map(

@@ -31,16 +31,23 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
       Pageable pageable
   );
 
-  @Query("SELECT c " +
-      "FROM ChatRoom c " +
-      "WHERE c.organizationId = :orgId " +
-      "  AND (LOWER(c.name) LIKE LOWER(CONCAT('%', :kw, '%')) " +
-      "       OR LOWER(c.description) LIKE LOWER(CONCAT('%', :kw, '%')))")
+  @Query("""
+      SELECT c
+      FROM ChatRoom c
+      WHERE c.organizationId = :orgId
+        AND (:type IS NULL OR c.type = :type)
+        AND (
+          LOWER(c.name) LIKE LOWER(CONCAT('%', :kw, '%'))
+          OR LOWER(c.description) LIKE LOWER(CONCAT('%', :kw, '%'))
+        )
+      """
+  )
   Page<ChatRoom> searchByOrgAndKeyword(
       @Param("orgId") Long organizationId,
+      @Param("type") RoomType type,
       @Param("kw") String keyword,
-      Pageable pageable);
-
+      Pageable pageable
+  );
 
   boolean existsByOrganizationIdAndName(Long organizationId, String name);
 }
