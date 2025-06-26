@@ -35,19 +35,22 @@ export async function getChatRooms(params) {
   }
 }
 
-export async function searchChatRooms({ organizationId, keyword, page, size, sort }) {
+export async function searchChatRooms({ organizationId, keyword, type, page, size, sort }) {
   try {
     const params = {};
     if (keyword) params.keyword = keyword;
+    if (type) params.type = type;  // type 파라미터 추가
     if (page != null) params.page = page;
     if (size != null) params.size = size;
     if (sort) params.sort = sort;
-
+    
+    console.log('🔍 searchChatRooms params:', params); // 디버깅용
+    
     const { data } = await chatApi.get(
       `/api/chatroom/search/${organizationId}`,
       { params }
     );
-
+    
     return {
       chatRooms: data.content,
       page: data.page,
@@ -73,7 +76,7 @@ export async function getChatRoomInfo(roomId) {
 
 export async function joinChatRoom({ roomId, password }) {
   try {
-    await chatApi.post(`/api/chatroom/${roomId}/join`, { password });
+    await chatApi.post(`/api/chatroom/${roomId}/join`, { roomId, password });
   } catch (error) {
     console.error(`Failed to join chat room (roomId: ${roomId}):`, error);
     throw new Error(getErrorMessage(error, '채팅방 참가 중 오류가 발생했습니다.'));
@@ -116,5 +119,20 @@ export async function updateChatRoom({ roomId, ...payload }) {
   } catch (error) {
     console.error(`Failed to update chat room (roomId: ${roomId}):`, error);
     throw new Error(getErrorMessage(error, '채팅방 수정 중 오류가 발생했습니다.'));
+  }
+}
+
+
+export async function kickMember(roomId, kickedMemberId) {
+  try {
+    await chatApi.post(
+      `/api/chatroom/${roomId}/kickMember`,
+      null,
+      { params: { kickedMemberId } }
+    );
+    return { message: '멤버가 성공적으로 강퇴되었습니다.' };
+  } catch (error) {
+    console.error(`Failed to kick member (roomId: ${roomId}, memberId: ${kickedMemberId}):`, error);
+    throw new Error(getErrorMessage(error, '멤버 강퇴 중 오류가 발생했습니다.'));
   }
 }

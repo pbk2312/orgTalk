@@ -1,10 +1,12 @@
 package yuhan.pro.chatserver.domain.service;
 
 
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.CHAT_ROOM_MEMBER_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.CHAT_ROOM_NAME_DUPLICATE;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_ACCEPTED;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ORGANIZATION_NOT_FOUND;
+import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.OWNER_CANNOT_BE_KICKED;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_IS_EMPTY;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_NOT_MATCH;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_OWNER_MISMATCH;
@@ -125,14 +127,16 @@ public class ChatRoomService {
 
 
   @Transactional
-  public PageResponse<ChatRoomResponse> searchChatRooms(Long organizationId, String keyword,
+  public PageResponse<ChatRoomResponse> searchChatRooms(Long organizationId, RoomType type,
+      String keyword,
       Pageable pageable) {
 
     Authentication authentication = getAuthentication();
 
     Long memberId = getMemberId(authentication);
 
-    Page<ChatRoom> chatRooms = chatRoomRepository.searchByOrgAndKeyword(organizationId, keyword,
+    Page<ChatRoom> chatRooms = chatRoomRepository.searchByOrgAndKeyword(organizationId, type,
+        keyword,
         pageable);
 
     Page<ChatRoomResponse> dtoPage = chatRooms.map(
@@ -187,6 +191,34 @@ public class ChatRoomService {
         req.password(),
         passwordEncoder
     );
+  }
+
+
+  @Transactional
+  public void kickOutMember(Long roomId, Long kickedMemberId) {
+    Authentication auth = getAuthentication();
+    Long memberId = getMemberId(auth);
+    ChatRoom room = findChatRoomOrThrow(roomId);
+    validateOwner(memberId, room);
+
+    validateKickOwnerId(kickedMemberId, memberId);
+
+    ChatRoomMember member = findChatMemberAndThrows(roomId,
+        kickedMemberId);
+
+    chatRoomMemberRepository.delete(member);
+  }
+
+  private ChatRoomMember findChatMemberAndThrows(Long roomId, Long kickedMemberId) {
+    return chatRoomMemberRepository
+        .findByChatRoom_IdAndMemberId(roomId, kickedMemberId)
+        .orElseThrow(() -> new CustomException(CHAT_ROOM_MEMBER_NOT_FOUND));
+  }
+
+  private static void validateKickOwnerId(Long kickedMemberId, Long memberId) {
+    if (memberId.equals(kickedMemberId)) {
+      throw new CustomException(OWNER_CANNOT_BE_KICKED);
+    }
   }
 
 

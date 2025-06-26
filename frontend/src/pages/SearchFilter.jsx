@@ -11,7 +11,6 @@ const SearchFilter = ({
   filterType,
   onFilterChange,
   totalElements = 0,
-  filteredElements = 0,
   activeSearchQuery = '',
   currentPage = 0,
   totalPages = 0,
@@ -34,7 +33,7 @@ const SearchFilter = ({
   const hasActiveSearch = activeSearchQuery.trim();
   const hasActiveFilter = filterType !== 'all';
   
-  // 결과 텍스트를 더 정확하게 생성
+  // 결과 텍스트 생성 - 백엔드 필터링 결과만 사용
   const getResultText = () => {
     // 검색어와 필터가 모두 있는 경우
     if (hasActiveSearch && hasActiveFilter) {
@@ -55,7 +54,7 @@ const SearchFilter = ({
 
   const resultText = getResultText();
   
-  // 페이징 정보가 있는 경우 더 자세한 정보 표시
+  // 페이징 정보 표시 - totalElements는 이미 백엔드에서 필터링된 결과
   const getDetailedResultText = () => {
     if (!resultText) return null;
     
@@ -64,7 +63,7 @@ const SearchFilter = ({
       const endItem = Math.min((currentPage + 1) * 9, totalElements);
       return `${resultText} · ${startItem}-${endItem} / ${totalElements}개`;
     } else {
-      return `${resultText} · ${filteredElements}개`;
+      return `${resultText} · ${totalElements}개`;
     }
   };
 

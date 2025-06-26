@@ -85,6 +85,7 @@ public class ChatRoomMapper {
         chatRoom.getName(),
         chatRoom.getDescription(),
         chatRoom.getType(),
+        chatRoom.getOwnerId(),
         members
     );
   }

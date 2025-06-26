@@ -9,6 +9,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import OrgTalkHeader from './OrgTalkHeader';
 import CreateChatRoomModal from './CreateChatRoomModal';
 import PasswordInputModal from '../pages/PasswordInputModal'; 
+import PublicRoomJoinModal from './PublicRoomJoinModal'; 
 import { getOrganizationInfo } from '../service/OrganizationService';
 import { getChatRooms, searchChatRooms, joinChatRoom } from '../service/ChatService';
 import Pagination from './Pagination';
@@ -56,84 +57,75 @@ const ChatRoomsPage = () => {
   // 8) 검색 실행을 위한 상태 (엔터 키로만 검색)
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
 
+  // 9) 공개방 참여 안내 모달 제어를 위한 상태 (새로 추가)
+  const [showPublicJoinModal, setShowPublicJoinModal] = useState(false);
+  const [publicRoomToJoin, setPublicRoomToJoin] = useState(null);
+  const [publicJoinLoading, setPublicJoinLoading] = useState(false);
+
   // 채팅방 목록 로드 함수 (검색/필터 포함) - 서버 타입 필터링 지원 + 클라이언트 백업 필터링
-  const loadChatRooms = useCallback(async (resetPage = false) => {
-    if (!orgId) return;
+  // 수정된 loadChatRooms 함수 - 클라이언트 필터링 로직 제거
+const loadChatRooms = useCallback(async (resetPage = false) => {
+  if (!orgId) return;
 
-    setIsLoading(true);
-    setError(null);
+  setIsLoading(true);
+  setError(null);
 
-    try {
-      const orgIdNum = Number(orgId);
-      const currentPage = resetPage ? 0 : page;
+  try {
+    const orgIdNum = Number(orgId);
+    const currentPage = resetPage ? 0 : page;
 
-      let response;
-      if (activeSearchQuery.trim()) {
-        // 검색 시 타입 필터 포함
-        const params = {
-          organizationId: orgIdNum,
-          keyword: activeSearchQuery.trim(),
-          type: filterType !== 'all' ? filterType.toUpperCase() : undefined,
-          page: currentPage,
-          size,
-          sort: 'createdAt,DESC',
-        };
+    let response;
+    if (activeSearchQuery.trim()) {
+      // 검색 시 타입 필터 포함
+      const params = {
+        organizationId: orgIdNum,
+        keyword: activeSearchQuery.trim(),
+        type: filterType !== 'all' ? filterType.toUpperCase() : undefined,
+        page: currentPage,
+        size,
+        sort: 'createdAt,DESC',
+      };
 
-        response = await searchChatRooms(params);
-      } else {
-        // 일반 목록 조회 시 타입 필터 포함
-        const params = {
-          organizationId: orgIdNum,
-          type: filterType !== 'all' ? filterType.toUpperCase() : undefined,
-          page: currentPage,
-          size,
-          sort: 'createdAt,DESC',
-        };
+      response = await searchChatRooms(params);
+    } else {
+      // 일반 목록 조회 시 타입 필터 포함
+      const params = {
+        organizationId: orgIdNum,
+        type: filterType !== 'all' ? filterType.toUpperCase() : undefined,
+        page: currentPage,
+        size,
+        sort: 'createdAt,DESC',
+      };
 
-        response = await getChatRooms(params);
-      }
-
-      console.log('API Response:', response);
-      console.log('Filter Type:', filterType);
-
-      let roomsData = response?.chatRooms || response?.content || [];
-      let totalPagesData = response?.totalPages || 0;
-      let totalElementsData = response?.totalElements || 0;
-
-      // 서버 필터링이 제대로 동작하지 않는 경우를 위한 클라이언트 백업 필터링
-      if (filterType !== 'all') {
-        const originalCount = roomsData.length;
-        roomsData = roomsData.filter(room => {
-          const roomType = room.type?.toLowerCase();
-          return roomType === filterType;
-        });
-        console.log(`Client filtering: ${originalCount} -> ${roomsData.length} rooms`);
-        
-        // 클라이언트 필터링을 적용한 경우 페이징 정보 재계산
-        if (roomsData.length !== originalCount) {
-          totalElementsData = roomsData.length; // 임시로 현재 결과만 반영
-          totalPagesData = Math.ceil(roomsData.length / size);
-        }
-      }
-
-      setChatRooms(roomsData);
-      setTotalPages(totalPagesData);
-      setTotalElements(totalElementsData);
-      
-      if (resetPage && page !== 0) {
-        setPage(0);
-      }
-      
-    } catch (err) {
-      console.error('Failed to fetch chat rooms:', err);
-      setError('채팅방 목록을 불러오는 중 오류가 발생했습니다.');
-      setChatRooms([]);
-      setTotalElements(0);
-      setTotalPages(0);
-    } finally {
-      setIsLoading(false);
+      response = await getChatRooms(params);
     }
-  }, [orgId, page, size, activeSearchQuery, filterType]);
+
+    console.log('API Response:', response);
+    console.log('Filter Type:', filterType);
+
+    // 백엔드에서 필터링된 결과를 그대로 사용
+    const roomsData = response?.chatRooms || response?.content || [];
+    const totalPagesData = response?.totalPages || 0;
+    const totalElementsData = response?.totalElements || 0;
+
+    setChatRooms(roomsData);
+    setTotalPages(totalPagesData);
+    setTotalElements(totalElementsData);
+    
+    if (resetPage && page !== 0) {
+      setPage(0);
+    }
+    
+  } catch (err) {
+    console.error('Failed to fetch chat rooms:', err);
+    setError('채팅방 목록을 불러오는 중 오류가 발생했습니다.');
+    setChatRooms([]);
+    setTotalElements(0);
+    setTotalPages(0);
+  } finally {
+    setIsLoading(false);
+  }
+}, [orgId, page, size, activeSearchQuery, filterType]);
 
   // 조직 정보 로드
   useEffect(() => {
@@ -180,6 +172,7 @@ const ChatRoomsPage = () => {
     navigate(`/chatroom/${newRoomId}`);
   };
 
+  // 비밀번호 입력 모달 관련 함수들
   const handleRequestJoin = (room) => {
     setRoomToJoin(room);
     setJoinError('');
@@ -218,13 +211,55 @@ const ChatRoomsPage = () => {
     setJoinError('');
     setShowJoinModal(false);
   };
+
+  // 공개방 참여 안내 모달 관련 함수들 (새로 추가)
+  const handlePublicRoomJoinRequest = (room) => {
+    setPublicRoomToJoin(room);
+    setShowPublicJoinModal(true);
+  };
+
+  const handlePublicRoomJoinConfirm = async (room) => {
+  setPublicJoinLoading(true);
+
+  try {
+    // 공개방은 password를 null로 전달
+    await joinChatRoom({ roomId: room.id, password: null });
+
+    setChatRooms((prevRooms) =>
+      prevRooms.map((r) =>
+        r.id === room.id ? { ...r, joined: true } : r
+      )
+    );
+
+    setSelectedRoom({ ...room, joined: true });
+    setShowPublicJoinModal(false);
+    setPublicJoinLoading(false);
+
+    navigate(`/chatroom/${room.id}`);
+  } catch (err) {
+    console.error('Failed to join public room:', err);
+  } finally {
+    setPublicJoinLoading(false);
+  }
+};
+
+  const handlePublicRoomJoinClose = () => {
+    setShowPublicJoinModal(false);
+    setPublicRoomToJoin(null);
+  };
   
+  // 수정된 방 선택 핸들러
   const handleRoomSelect = (room) => {
-    if (room.type === 'PRIVATE' && !room.joined) {
-      handleRequestJoin(room);
-    } else {
+    if (room.joined) {
+      // 이미 참여한 방이면 바로 입장
       setSelectedRoom(room);
       navigate(`/chatroom/${room.id}`);
+    } else if (room.type === 'PRIVATE') {
+      // 비공개방이면 비밀번호 입력 모달 표시
+      handleRequestJoin(room);
+    } else if (room.type === 'PUBLIC') {
+      // 공개방이면 참여 안내 모달 표시
+      handlePublicRoomJoinRequest(room);
     }
   };
 
@@ -284,6 +319,7 @@ const ChatRoomsPage = () => {
     <>
       <OrgTalkHeader />
 
+      {/* 비밀번호 입력 모달 (비공개방용) */}
       <PasswordInputModal
         isOpen={showJoinModal}
         onClose={handleJoinClose}
@@ -291,6 +327,15 @@ const ChatRoomsPage = () => {
         roomName={roomToJoin?.name || ''}
         isLoading={joinLoading}
         errorMessage={joinError}
+      />
+
+      {/* 공개방 참여 안내 모달 (새로 추가) */}
+      <PublicRoomJoinModal
+        isOpen={showPublicJoinModal}
+        onClose={handlePublicRoomJoinClose}
+        onConfirm={handlePublicRoomJoinConfirm}
+        room={publicRoomToJoin}
+        isLoading={publicJoinLoading}
       />
 
       <div className={styles['chat-rooms-page']}>

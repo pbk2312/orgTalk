@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Lock, Globe, Users, Trash2, Edit3 } from 'lucide-react';
+import { ArrowLeft, Lock, Globe, Users, Trash2, Edit3, UserMinus, Crown, Shield } from 'lucide-react';
 import styles from '../../css/ChatRoom/ChatRoomHeader.module.css';
+import { kickMember } from '../../service/ChatService'; 
 
-const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, onUpdateRoom }) => {
+const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, onUpdateRoom, currentUserId, onMemberKicked , roomIdNum}) => {
+  console.log(roomInfo)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [kickingMemberId, setKickingMemberId] = useState(null);
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
@@ -14,6 +18,9 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
 
   const getTypeIcon = type =>
     type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />;
+
+  // 현재 사용자가 방장인지 확인
+  const isOwner = roomInfo.ownerId === currentUserId;
 
   const handleDeleteClick = () => setShowDeleteConfirm(true);
   const handleConfirmDelete = () => {
@@ -61,6 +68,60 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
 
   const handleCancelEdit = () => setShowEditModal(false);
 
+  // 멤버 관리 모달 열기/닫기
+  const handleMemberClick = () => setShowMemberModal(true);
+  const handleCloseMemberModal = () => setShowMemberModal(false);
+
+  // 멤버 강퇴 처리
+  const handleKickMember = async (memberId) => {
+  if (!isOwner) {
+    alert('방장만 멤버를 강퇴할 수 있습니다.');
+    return;
+  }
+
+  if (memberId === currentUserId) {
+    alert('자신을 강퇴할 수 없습니다.');
+    return;
+  }
+
+  if (memberId === roomInfo.ownerId) {
+    alert('방장을 강퇴할 수 없습니다.');
+    return;
+  }
+
+  const member = participants.find(p => p.userId === memberId);
+  if (!member) return;
+
+  const confirmed = window.confirm(`'${member.login}' 님을 강퇴하시겠습니까?`);
+  if (!confirmed) return;
+
+  try {
+    setKickingMemberId(memberId);
+    await kickMember(roomIdNum, memberId);
+    
+    // 강퇴 성공 시 즉시 UI에서 제거
+    onMemberKicked?.(memberId);
+    
+    // 모달 닫기 (선택사항)
+    setShowMemberModal(false);
+    
+    alert('멤버가 성공적으로 강퇴되었습니다.');
+  } catch (error) {
+    console.error('멤버 강퇴 실패:', error);
+    alert(error.message || '멤버 강퇴 중 오류가 발생했습니다.');
+  } finally {
+    setKickingMemberId(null);
+  }
+};
+
+  // 멤버 역할 표시
+  const getMemberRole = (member) => {
+    if (member.userId === roomInfo.ownerId) {
+      return { icon: <Crown size={14} />, text: '방장', className: styles.ownerRole };
+    }
+    return null;
+  };
+
   return (
     <>
       <header className={styles.chatHeader}>
@@ -70,8 +131,8 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
           </button>
           <div className={styles.roomInfo}>
             <div className={styles.roomIcon}>
-  {getTypeIcon(roomInfo.type)}
-</div>
+              {getTypeIcon(roomInfo.type)}
+            </div>
             <div className={styles.roomDetails}>
               <div className={styles.roomNameRow}>
                 <h1 className={styles.roomName}>{roomInfo.name}</h1>
@@ -84,21 +145,117 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
           </div>
         </div>
         <div className={styles.headerRight}>
-          <div className={styles.memberCount} title="현재 참여자 수">
-            <Users size={18} /><span>{participants.length}명</span>
-          </div>
+          <button 
+            className={styles.memberButton} 
+            onClick={handleMemberClick} 
+            title="멤버 관리"
+            aria-label="멤버 관리"
+          >
+            <Users size={18} />
+            <span>{participants.length}</span>
+          </button>
           <div className={styles.connectionStatus} title={connected ? '실시간 연결됨' : '연결 중...'}>
             <div className={`${styles.statusDot} ${connected ? styles.active : styles.inactive}`} />
             <span>{connected ? '실시간' : '연결 중...'}</span>
           </div>
-          <button className={styles.editButton} onClick={handleEditClick} title="채팅방 수정" aria-label="채팅방 수정">
-            <Edit3 size={18} />
-          </button>
-          <button className={styles.deleteButton} onClick={handleDeleteClick} title="채팅방 삭제" aria-label="채팅방 삭제">
-            <Trash2 size={18} />
-          </button>
+          {isOwner && (
+            <>
+              <button className={styles.editButton} onClick={handleEditClick} title="채팅방 수정" aria-label="채팅방 수정">
+                <Edit3 size={18} />
+              </button>
+              <button className={styles.deleteButton} onClick={handleDeleteClick} title="채팅방 삭제" aria-label="채팅방 삭제">
+                <Trash2 size={18} />
+              </button>
+            </>
+          )}
         </div>
       </header>
+
+      {/* 멤버 관리 모달 */}
+      {showMemberModal && (
+        <div className={styles.memberModal}>
+          <div className={styles.memberModalBackdrop} onClick={handleCloseMemberModal} />
+          <div className={styles.memberModalContent}>
+            <div className={styles.memberModalHeader}>
+              <Users size={24} className={styles.memberModalIcon} />
+              <h3 className={styles.memberModalTitle}>
+                멤버 관리 ({participants.length}명)
+              </h3>
+              <button 
+                className={styles.closeButton} 
+                onClick={handleCloseMemberModal}
+                aria-label="닫기"
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.memberList}>
+              {participants.map((member) => {
+                const role = getMemberRole(member);
+                const isCurrentUser = member.userId === currentUserId;
+                const canKick = isOwner && !isCurrentUser && member.userId !== roomInfo.ownerId;
+                
+                return (
+                  <div key={member.userId} className={styles.memberItem}>
+                    <div className={styles.memberInfo}>
+                      {member.avatarUrl ? (
+                        <img 
+                          src={member.avatarUrl} 
+                          alt={`${member.login} 프로필`}
+                          className={styles.memberAvatar}
+                        />
+                      ) : (
+                        <div className={styles.memberAvatarPlaceholder}>
+                          {member.login.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className={styles.memberDetails}>
+                        <div className={styles.memberNameRow}>
+                          <span className={styles.memberName}>
+                            {member.login}
+                            {isCurrentUser && <span className={styles.youLabel}> (나)</span>}
+                          </span>
+                          {role && (
+                            <div className={`${styles.memberRole} ${role.className}`}>
+                              {role.icon}
+                              <span>{role.text}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.memberActions}>
+                      {canKick && (
+                        <button
+                          className={styles.kickButton}
+                          onClick={() => handleKickMember(member.userId)}
+                          disabled={kickingMemberId === member.userId}
+                          title="강퇴하기"
+                          aria-label={`${member.login} 강퇴하기`}
+                        >
+                          {kickingMemberId === member.userId ? (
+                            <div className={styles.loadingSpinner} />
+                          ) : (
+                            <UserMinus size={16} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {isOwner && (
+              <div className={styles.memberModalFooter}>
+                <div className={styles.ownerNotice}>
+                  <Shield size={16} />
+                  <span>방장 권한으로 멤버를 관리할 수 있습니다.</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showEditModal && (
         <div className={styles.editModal}>

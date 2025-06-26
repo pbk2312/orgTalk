@@ -9,6 +9,7 @@ public record ChatRoomInfoResponse(
     String name,
     String description,
     RoomType type,
+    Long ownerId,
     Set<ChatMemberResponse> members
 ) {
 

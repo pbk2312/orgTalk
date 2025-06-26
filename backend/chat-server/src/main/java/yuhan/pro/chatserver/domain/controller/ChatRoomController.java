@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -33,6 +34,7 @@ import yuhan.pro.chatserver.domain.entity.RoomType;
 import yuhan.pro.chatserver.domain.service.ChatRoomService;
 import yuhan.pro.chatserver.sharedkernel.dto.PageResponse;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/chatroom")
 @RequiredArgsConstructor
@@ -73,6 +75,27 @@ public class ChatRoomController {
     return chatRoomService.getChatRooms(organizationId, type, pageable);
   }
 
+  @Operation(summary = "채팅방 검색")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "키워드로 채팅방 검색 성공"),
+  })
+  @GetMapping("/search/{organizationId}")
+  @ResponseStatus(HttpStatus.OK)
+  public PageResponse<ChatRoomResponse> searchChatRooms(
+      @PathVariable @Positive Long organizationId,
+      @RequestParam(required = false) String keyword,
+      @Parameter(description = "채팅방 타입 (PUBLIC, PRIVATE). 미지정 시 전체 검색")
+      @RequestParam(value = "type", required = false) RoomType type,
+      @PageableDefault(
+          size = 9,
+          sort = "createdAt",
+          direction = Sort.Direction.DESC
+      ) Pageable pageable
+  ) {
+    log.info("type={}, keyword={}", type, keyword);
+    return chatRoomService.searchChatRooms(organizationId, type, keyword, pageable);
+  }
+
   @Operation(summary = "채팅방 정보 조회")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "채팅방 정보 조회 성공"),
@@ -87,24 +110,6 @@ public class ChatRoomController {
     return chatRoomService.getChatRoomInfo(roomId, jwtToken);
   }
 
-  @Operation(summary = "채팅방 검색")
-  @ApiResponses({
-      @ApiResponse(responseCode = "200", description = "키워드로 채팅방 검색 성공"),
-  })
-  @GetMapping("/search/{organizationId}")
-  @ResponseStatus(HttpStatus.OK)
-  public PageResponse<ChatRoomResponse> searchChatRooms(
-      @PathVariable @Positive Long organizationId,
-      @RequestParam(required = false) String keyword,
-      @PageableDefault(
-          size = 9,
-          sort = "createdAt",
-          direction = Sort.Direction.DESC
-      ) Pageable pageable
-  ) {
-    return chatRoomService.searchChatRooms(organizationId, keyword, pageable);
-  }
-
   @Operation(summary = "채팅방 입장")
   @ApiResponses({
       @ApiResponse(responseCode = "204", description = "채팅방 입장 성공"),
@@ -114,7 +119,7 @@ public class ChatRoomController {
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void joinChatRoom(
       @PathVariable @Positive Long roomId,
-      @RequestBody @Valid JoinChatRoomRequest request
+      @RequestBody JoinChatRoomRequest request
   ) {
     chatRoomService.joinChatRoom(roomId, request);
   }
@@ -146,5 +151,21 @@ public class ChatRoomController {
       @RequestBody ChatRoomUpdateRequest request
   ) {
     chatRoomService.updateChatRoom(roomId, request);
+  }
+
+  @PostMapping("/{roomId}/kickMember")
+  @ApiResponses(
+      {
+          @ApiResponse(responseCode = "403", description = "채팅방 방장이 아닙니다."),
+          @ApiResponse(responseCode = "404", description = "강퇴하려는 멤버 ID가 채팅방에 존재 하지 않습니다"),
+          @ApiResponse(responseCode = "204", description = "해당 멤버 성공적으로 삭제")
+      }
+  )
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void kickMember(
+      @PathVariable @Positive Long roomId,
+      Long kickedMemberId
+  ) {
+    chatRoomService.kickOutMember(roomId, kickedMemberId);
   }
 }

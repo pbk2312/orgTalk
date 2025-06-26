@@ -77,6 +77,21 @@ const ChatRoom = () => {
     };
   }, [auth.id, initParticipants, createUserProfile]);
 
+
+  const handleMemberKicked = useCallback((kickedUserId) => {
+  console.log(`[ChatRoom] Member ${kickedUserId} was kicked`);
+  
+  // initParticipants에서도 제거
+  setInitParticipants(prev => 
+    prev.filter(p => p.userId !== String(kickedUserId))
+  );
+  
+  // 실시간 participants에서도 제거
+  setParticipants(prev => 
+    prev.filter(p => p.userId !== String(kickedUserId))
+  );
+}, []);
+
   // 메시지 생성 공통 함수
   const createMessage = useCallback((messageData, isCode = false) => ({
     id: messageData.id || Date.now(),
@@ -389,8 +404,11 @@ const ChatRoom = () => {
           participants={initParticipants}
           connected={connected}
           onBack={() => navigate(-1)}
-          onDeleteRoom={handleDeleteRoom}  
+          onDeleteRoom={handleDeleteRoom}
+          currentUserId={auth.id}
+          onMemberKicked={handleMemberKicked}
           onUpdateRoom={handleUpdateRoom} 
+          roomIdNum={roomIdNum}   
         />
       )}
 
