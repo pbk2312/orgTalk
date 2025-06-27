@@ -6,7 +6,10 @@ build/
 !**/src/test/**/build/
 
 backend/chat-server/src/main/resources/application.yml
+backend/chat-server/src/main/resources/schema.sql
+backend/chat-server/src/main/resources/mongo-init.js
 backend/main-server/src/main/resources/application.yml
+
 backend/docker-compose.yml
 
 

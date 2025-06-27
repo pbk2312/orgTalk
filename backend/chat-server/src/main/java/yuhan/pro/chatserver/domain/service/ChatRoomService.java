@@ -32,6 +32,7 @@ import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomSummary;
+import yuhan.pro.chatserver.domain.dto.ChatRoomSummaryProjection;
 import yuhan.pro.chatserver.domain.dto.ChatRoomUpdateRequest;
 import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
@@ -126,22 +127,45 @@ public class ChatRoomService {
   }
 
 
-  @Transactional
-  public PageResponse<ChatRoomResponse> searchChatRooms(Long organizationId, RoomType type,
+  @Transactional(readOnly = true)
+  public PageResponse<ChatRoomResponse> searchChatRooms(
+      Long organizationId,
+      RoomType type,
       String keyword,
-      Pageable pageable) {
+      Pageable pageable
+  ) {
+    Long memberId = getMemberId(getAuthentication());
+    Page<ChatRoomSummary> summaryPage;
 
-    Authentication authentication = getAuthentication();
+    // 1) 키워드 없음
+    if (keyword == null || keyword.isBlank()) {
+      summaryPage = chatRoomRepository.findSummaryByOrgAndType(organizationId, type, pageable);
 
-    Long memberId = getMemberId(authentication);
+      // 2) 짧은 키워드: prefix-search
+    } else if (keyword.length() <= 2) {
+      summaryPage = chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
+          organizationId, type, keyword, pageable);
 
-    Page<ChatRoom> chatRooms = chatRoomRepository.searchByOrgAndKeyword(organizationId, type,
-        keyword,
-        pageable);
+      // 3) 긴 키워드: fulltext-search
+    } else {
+      Page<ChatRoomSummaryProjection> projectionPage =
+          chatRoomRepository.findSummaryByOrgTypeAndFullText(
+              organizationId, (type != null ? type.name() : null), keyword, pageable);
 
-    Page<ChatRoomResponse> dtoPage = chatRooms.map(
-        chatRoom -> ChatRoomMapper.toChatRoomResponse(chatRoom, memberId));
-    return PageResponse.fromPage(dtoPage);
+      summaryPage = projectionPage.map(ChatRoomSummary::fromProjection);
+    }
+
+    if (summaryPage.isEmpty()) {
+      return PageResponse.fromPage(Page.empty(pageable));
+    }
+
+    List<Long> roomIds = summaryPage.stream().map(ChatRoomSummary::id).toList();
+    Map<Long, Long> memberCounts = fetchMemberCounts(roomIds);
+    Set<Long> joinedRoomIds = fetchJoinedRoomIds(roomIds, memberId);
+
+    Page<ChatRoomResponse> responsePage = mapToResponsePage(summaryPage, memberCounts,
+        joinedRoomIds, pageable);
+    return PageResponse.fromPage(responsePage);
   }
 
 
