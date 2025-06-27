@@ -8,7 +8,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Component;
 import yuhan.pro.chatserver.domain.dto.ChatRequest;
-import yuhan.pro.chatserver.domain.service.ChatDbSaveService;
+import yuhan.pro.chatserver.domain.service.ChatService;
 
 @Slf4j
 @Component
@@ -16,7 +16,7 @@ import yuhan.pro.chatserver.domain.service.ChatDbSaveService;
 public class KafkaListeners {
 
   private final SimpMessageSendingOperations messagingTemplate;
-  private final ChatDbSaveService chatDbSaveService;
+  private final ChatService chatService;
 
   @KafkaListener(
       topics = "chat-messages",
@@ -29,11 +29,15 @@ public class KafkaListeners {
       @Header(KafkaHeaders.RECEIVED_KEY) String roomId
   ) {
     try {
-      log.info("Kafka 수신 - roomId: {}, partition: {}, message: {}", roomId, partition, message);
+
+      chatService.saveChat(message, Long.valueOf(roomId));
+      log.info("DB 저장 완료 - roomId: {}", roomId);
+
       messagingTemplate.convertAndSend("/topic/rooms/" + roomId, message);
-      chatDbSaveService.saveAsync(message, Long.valueOf(roomId));
+      log.info("WebSocket 전송 완료 - roomId: {}", roomId);
+
     } catch (Exception e) {
-      log.error("Kafka 메시지 처리 오류", e);
+      log.error("메시지 처리 실패 - roomId: {}", roomId, e);
     }
   }
 
