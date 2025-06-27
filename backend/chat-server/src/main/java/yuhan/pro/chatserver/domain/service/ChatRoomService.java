@@ -135,36 +135,28 @@ public class ChatRoomService {
       Pageable pageable
   ) {
     Long memberId = getMemberId(getAuthentication());
-    Page<ChatRoomSummary> summaryPage;
 
-    // 1) 키워드 없음
-    if (keyword == null || keyword.isBlank()) {
-      summaryPage = chatRoomRepository.findSummaryByOrgAndType(organizationId, type, pageable);
+    // ① 키워드 분기 로직 분리
+    Page<ChatRoomSummary> summaryPage = fetchSummaryPage(organizationId, type, keyword, pageable);
 
-      // 2) 짧은 키워드: prefix-search
-    } else if (keyword.length() <= 2) {
-      summaryPage = chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
-          organizationId, type, keyword, pageable);
-
-      // 3) 긴 키워드: fulltext-search
-    } else {
-      Page<ChatRoomSummaryProjection> projectionPage =
-          chatRoomRepository.findSummaryByOrgTypeAndFullText(
-              organizationId, (type != null ? type.name() : null), keyword, pageable);
-
-      summaryPage = projectionPage.map(ChatRoomSummary::fromProjection);
-    }
-
+    // ② 검색 결과가 없으면 빈 페이지 리턴
     if (summaryPage.isEmpty()) {
       return PageResponse.fromPage(Page.empty(pageable));
     }
 
-    List<Long> roomIds = summaryPage.stream().map(ChatRoomSummary::id).toList();
+    // ③ 추가 데이터 조회 및 매핑
+    List<Long> roomIds = summaryPage.stream()
+        .map(ChatRoomSummary::id)
+        .toList();
     Map<Long, Long> memberCounts = fetchMemberCounts(roomIds);
     Set<Long> joinedRoomIds = fetchJoinedRoomIds(roomIds, memberId);
 
-    Page<ChatRoomResponse> responsePage = mapToResponsePage(summaryPage, memberCounts,
-        joinedRoomIds, pageable);
+    Page<ChatRoomResponse> responsePage = mapToResponsePage(
+        summaryPage,
+        memberCounts,
+        joinedRoomIds,
+        pageable
+    );
     return PageResponse.fromPage(responsePage);
   }
 
@@ -231,6 +223,34 @@ public class ChatRoomService {
         kickedMemberId);
 
     chatRoomMemberRepository.delete(member);
+  }
+
+  private Page<ChatRoomSummary> fetchSummaryPage(
+      Long organizationId,
+      RoomType type,
+      String keyword,
+      Pageable pageable
+  ) {
+    if (keyword == null || keyword.isBlank()) {
+      return chatRoomRepository.findSummaryByOrgAndType(organizationId, type, pageable);
+    }
+
+    if (keyword.length() <= 2) {
+      return chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
+          organizationId, type, keyword, pageable
+      );
+    }
+
+    // 3) 긴 키워드: full-text 검색
+    Page<ChatRoomSummaryProjection> projPage =
+        chatRoomRepository.findSummaryByOrgTypeAndFullText(
+            organizationId,
+            type != null ? type.name() : null,
+            keyword,
+            pageable
+        );
+
+    return projPage.map(ChatRoomSummary::fromProjection);
   }
 
   private ChatRoomMember findChatMemberAndThrows(Long roomId, Long kickedMemberId) {
