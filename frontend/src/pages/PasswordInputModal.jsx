@@ -16,7 +16,7 @@ const PasswordInputModal = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // 모달이 열릴 때마다 입력 필드 초기화
+
   useEffect(() => {
     if (isOpen) {
       setPassword('');

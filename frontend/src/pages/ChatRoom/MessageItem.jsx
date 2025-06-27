@@ -7,7 +7,7 @@ import { formatKoreaTime, isToday, isYesterday, formatRelativeDate } from '../..
 import { supportedLanguages, getLanguageColor } from '../../constants/chatConstants';
 
 const MessageItem = React.memo(({ message, participants, onCopy, copiedCodeId }) => {
-  // 메시지 발신자 정보 가져오기
+
   const getSenderInfo = () => {
     return message.senderProfile || 
            participants.find(p => p.userId === message.userId) ||
@@ -18,12 +18,12 @@ const MessageItem = React.memo(({ message, participants, onCopy, copiedCodeId })
            };
   };
 
-  // 언어 표시명 가져오기
+
   const getLanguageLabel = (language) => {
     return supportedLanguages.find(l => l.value === language)?.label || language;
   };
 
-  // 아바타 렌더링
+
   const renderAvatar = (sender) => {
     if (sender?.avatarUrl) {
       return (
@@ -42,7 +42,7 @@ const MessageItem = React.memo(({ message, participants, onCopy, copiedCodeId })
     );
   };
 
-  // 메시지 헤더 렌더링 (닉네임만)
+
   const renderMessageHeader = (sender) => (
     <div className={styles.messageHeader}>
       <span className={styles.messageNickname}>
@@ -51,13 +51,13 @@ const MessageItem = React.memo(({ message, participants, onCopy, copiedCodeId })
     </div>
   );
 
-  // 메시지 시간 렌더링 (말풍선 아래) - 날짜 구분 추가
+
   const renderMessageTime = () => {
     const timeStr = formatKoreaTime(message.timestamp);
     let dateStr = '';
     
     if (isToday(message.timestamp)) {
-      dateStr = ''; // 오늘이면 날짜 표시 안함
+      dateStr = ''; 
     } else if (isYesterday(message.timestamp)) {
       dateStr = '어제 ';
     } else {
@@ -72,9 +72,9 @@ const MessageItem = React.memo(({ message, participants, onCopy, copiedCodeId })
     );
   };
 
-  // 일반 텍스트 메시지 렌더링 - 줄바꿈 처리
+
   const renderTextMessage = () => {
-    // 줄바꿈을 <br> 태그로 변환
+
     const formatTextWithLineBreaks = (text) => {
       return text.split('\n').map((line, index, array) => (
         <React.Fragment key={index}>

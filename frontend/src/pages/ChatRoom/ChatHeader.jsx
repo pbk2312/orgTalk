@@ -44,20 +44,20 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
   };
 
   const handleConfirmEdit = () => {
-    // PUBLIC -> PRIVATE 전환 시 비밀번호 입력 필수
+
     if (editForm.type === 'PRIVATE' && roomInfo.type !== 'PRIVATE' && !editForm.password.trim()) {
       alert('PRIVATE 채팅방으로 변경하려면 비밀번호를 입력해주세요.');
       return;
     }
 
-    // PATCH 요청: 변경 혹은 기존 값을 모두 포함
+
     const updateData = {
       name: editForm.name.trim() || roomInfo.name,
       description: editForm.description || roomInfo.description,
       type: editForm.type
     };
 
-    // PRIVATE인 경우 비밀번호 변경 시에만 포함
+
     if (editForm.type === 'PRIVATE' && editForm.password.trim()) {
       updateData.password = editForm.password.trim();
     }
@@ -68,11 +68,11 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
 
   const handleCancelEdit = () => setShowEditModal(false);
 
-  // 멤버 관리 모달 열기/닫기
+
   const handleMemberClick = () => setShowMemberModal(true);
   const handleCloseMemberModal = () => setShowMemberModal(false);
 
-  // 멤버 강퇴 처리
+
   const handleKickMember = async (memberId) => {
   if (!isOwner) {
     alert('방장만 멤버를 강퇴할 수 있습니다.');
@@ -99,10 +99,10 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
     setKickingMemberId(memberId);
     await kickMember(roomIdNum, memberId);
     
-    // 강퇴 성공 시 즉시 UI에서 제거
+
     onMemberKicked?.(memberId);
     
-    // 모달 닫기 (선택사항)
+
     setShowMemberModal(false);
     
     alert('멤버가 성공적으로 강퇴되었습니다.');
@@ -114,7 +114,7 @@ const ChatHeader = ({ roomInfo, participants, connected, onBack, onDeleteRoom, o
   }
 };
 
-  // 멤버 역할 표시
+
   const getMemberRole = (member) => {
     if (member.userId === roomInfo.ownerId) {
       return { icon: <Crown size={14} />, text: '방장', className: styles.ownerRole };

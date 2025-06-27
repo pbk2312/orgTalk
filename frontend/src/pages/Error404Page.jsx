@@ -7,7 +7,7 @@ import styles from '../css/Error404Page.module.css';
 const Error404Page = () => {
   const [floatingElements, setFloatingElements] = useState([]);
 
-  // 떠다니는 요소들 생성
+
   useEffect(() => {
     const elements = Array.from({ length: 6 }, (_, i) => ({
       id: i,

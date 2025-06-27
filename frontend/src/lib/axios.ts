@@ -8,16 +8,15 @@ let failedQueue: Array<{
   reject: (error: any) => void;
 }> = [];
 
-// 첫 번째 에러 알림을 이미 보였는지 여부
+
 let errorShown = false;
-// 리프레시 실패 알림 여부
+
 let refreshErrorShown = false;
 
-/** 인증 없이 호출할 엔드포인트 (Refresh, Login, Signup) */
+
 const PUBLIC_ENDPOINTS = [
   '/api/auth/refresh',
-  '/api/auth/login',
-  '/api/auth/signUp',
+  '/api/auth/login'
 ];
 
 export function setAccessToken(token: string) {
@@ -91,34 +90,34 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
 
   instance.interceptors.response.use(
     (res) => {
-      // 정상 응답 시 에러 상태 초기화
+
       errorShown = false;
       return res;
     },
     (error) => {
       const status = error.response?.status;
 
-      // 네트워크/서버 에러 시 한 번만 알림
+
       if (!errorShown && (!error.response || status >= 500 || error.code === 'ECONNABORTED')) {
         alert('서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
         errorShown = true;
       }
 
-      // 인증 오류 처리 (401)
+
       if (status === 401) {
-        // 토큰 리프레시 자체에서 이미 알림을 띄웠다면 여기선 생략
+
         if (!refreshErrorShown) {
           const msg = error.response.data?.message || '인증이 필요합니다.';
           alert(msg);
         }
         window.location.href = '/login';
       }
-      // 클라이언트 에러 (400,404)
+
       else if (status === 400 || status === 404) {
         const msg = error.response.data?.message || '요청 처리 중 오류가 발생했습니다.';
         alert(msg);
       }
-      // 기타
+
       else if (status && status < 400) {
         const msg = error.response.data?.message || '알 수 없는 오류가 발생했습니다.';
         alert(msg);

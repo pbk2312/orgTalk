@@ -33,18 +33,18 @@ const SearchFilter = ({
   const hasActiveSearch = activeSearchQuery.trim();
   const hasActiveFilter = filterType !== 'all';
   
-  // 결과 텍스트 생성 - 백엔드 필터링 결과만 사용
+
   const getResultText = () => {
-    // 검색어와 필터가 모두 있는 경우
+
     if (hasActiveSearch && hasActiveFilter) {
       const filterName = filterType === 'public' ? '공개' : '비공개';
       return `"${activeSearchQuery}" 검색 결과 (${filterName} 채팅방)`;
     }
-    // 검색어만 있는 경우
+
     else if (hasActiveSearch) {
       return `"${activeSearchQuery}" 검색 결과`;
     }
-    // 필터만 있는 경우
+  
     else if (hasActiveFilter) {
       const filterName = filterType === 'public' ? '공개' : '비공개';
       return `${filterName} 채팅방`;
@@ -54,7 +54,7 @@ const SearchFilter = ({
 
   const resultText = getResultText();
   
-  // 페이징 정보 표시 - totalElements는 이미 백엔드에서 필터링된 결과
+
   const getDetailedResultText = () => {
     if (!resultText) return null;
     

@@ -14,7 +14,7 @@ const Error500Page = () => {
     
     setTimeout(() => {
       setIsRetrying(false);
-      // 실제로는 페이지 새로고침이나 재시도 로직
+  
       window.location.reload();
     }, 2000);
   };

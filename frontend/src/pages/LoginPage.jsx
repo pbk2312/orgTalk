@@ -3,7 +3,7 @@ import { Github, Users, MessageCircle, ArrowRight, Code2, GitBranch, Sparkles, Z
 import '../css/LoginPage.css';
 import throttle from 'lodash.throttle';
 
-// 플로팅 파티클 컴포넌트
+
 const FloatingParticle = ({ delay = 0, size = 'small' }) => {
   const sizeClasses = {
     small: 'particle-small',
@@ -24,14 +24,14 @@ const FloatingParticle = ({ delay = 0, size = 'small' }) => {
   );
 };
 
-// 메인 로그인 페이지 컴포넌트
+
 const LoginPage = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [particles, setParticles] = useState([]);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  // 파티클 생성
+
   useEffect(() => {
     const generateParticles = () => {
       const newParticles = [];
@@ -48,11 +48,11 @@ const LoginPage = () => {
     generateParticles();
   }, []);
 
-  // 마우스 트래킹
+
   useEffect(() => {
   const handleMouseMove = throttle((e) => {
     setMousePosition({ x: e.clientX, y: e.clientY });
-  }, 50); // 50ms마다 (최대 초당 20번) 호출
+  }, 50); 
 
   window.addEventListener('mousemove', handleMouseMove);
   return () => window.removeEventListener('mousemove', handleMouseMove);

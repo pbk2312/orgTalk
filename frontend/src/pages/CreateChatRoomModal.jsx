@@ -1,6 +1,6 @@
 // src/components/CreateChatRoomModal.jsx
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // ← useNavigate 가져오기
+import { useParams, useNavigate } from 'react-router-dom'; 
 import { X, Edit3, Lock, Globe, Users, Hash, Sparkles } from 'lucide-react';
 import styles from '../css/CreateChatRoomModal.module.css';
 import { createChatRoom } from '../service/ChatService.jsx';
@@ -43,13 +43,13 @@ const CreateChatRoomModal = ({ isOpen, onClose /* onCreate 제거하거나 유�
     };
 
     try {
-      // 1) 백엔드에 POST 요청 → ChatRoomCreateResponse { id: ... } 만 받는다
+ 
       const { id: newRoomId } = await createChatRoom(payload);
 
-      // 2) 생성된 방 ID 를 받아 곧바로 해당 채팅룸 페이지로 이동
+ 
       navigate(`/chatroom/${newRoomId}`);
 
-      // (만약 모달을 닫으려면 onClose 호출)
+   
       onClose();
 
     } catch (err) {

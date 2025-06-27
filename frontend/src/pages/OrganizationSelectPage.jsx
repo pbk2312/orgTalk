@@ -6,7 +6,7 @@ import OrgTalkHeader from './OrgTalkHeader';
 import { useNavigate } from 'react-router-dom';
 import Pagination from './Pagination';
 
-// 플로팅 파티클 컴포넌트
+
 const FloatingParticle = ({ delay = 0, size = 'small', color = 'blue' }) => {
   const colors = {
     blue: 'rgba(59, 130, 246, 0.3)',
@@ -33,7 +33,7 @@ const FloatingParticle = ({ delay = 0, size = 'small', color = 'blue' }) => {
   );
 };
 
-// 조직 카드 컴포넌트
+
 const OrganizationCard = ({ org, isSelected, isHovered, onSelect, onMouseEnter, onMouseLeave }) => (
   <div
     onClick={() => onSelect(org)}
@@ -57,7 +57,6 @@ const OrganizationCard = ({ org, isSelected, isHovered, onSelect, onMouseEnter, 
       </div>
       <div className="org-info">
         <h3 className="org-name">{org.login}</h3>
-        <p className="org-id">Organization ID: {org.id}</p>
       </div>
       {isSelected && (
         <div className="selected-badge">
@@ -85,7 +84,7 @@ const OrganizationSelectPage = () => {
 
   const navigate = useNavigate();
 
-  // 파티클 생성
+
   useEffect(() => {
     const generateParticles = () => {
       const newParticles = [];
@@ -106,7 +105,7 @@ const OrganizationSelectPage = () => {
     generateParticles();
   }, []);
 
-  // 조직 목록 조회
+
   useEffect(() => {
     const fetchOrgData = async () => {
       setIsLoading(true);
