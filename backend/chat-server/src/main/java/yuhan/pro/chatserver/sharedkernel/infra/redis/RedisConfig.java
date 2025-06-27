@@ -1,4 +1,4 @@
-package yuhan.pro.mainserver.core;
+package yuhan.pro.chatserver.sharedkernel.infra.redis;
 
 
 import org.springframework.context.annotation.Bean;
@@ -12,11 +12,11 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 public class RedisConfig {
 
   @Bean
-  public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-    RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
-    redisTemplate.setConnectionFactory(connectionFactory);
-    redisTemplate.setKeySerializer(new StringRedisSerializer());
-    redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-    return redisTemplate;
+  public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory cf) {
+    RedisTemplate<String, Object> tpl = new RedisTemplate<>();
+    tpl.setConnectionFactory(cf);
+    tpl.setKeySerializer(new StringRedisSerializer());
+    tpl.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+    return tpl;
   }
 }

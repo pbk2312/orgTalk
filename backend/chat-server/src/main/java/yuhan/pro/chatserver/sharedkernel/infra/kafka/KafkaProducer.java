@@ -1,4 +1,4 @@
-package yuhan.pro.chatserver.core.kafka;
+package yuhan.pro.chatserver.sharedkernel.infra.kafka;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
