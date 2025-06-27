@@ -1,4 +1,4 @@
-package yuhan.pro.mainserver.domain.organization;
+package yuhan.pro.mainserver.domain.organization.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

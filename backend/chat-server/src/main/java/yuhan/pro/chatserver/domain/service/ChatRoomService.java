@@ -110,7 +110,13 @@ public class ChatRoomService {
   @Transactional(readOnly = true)
   public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, RoomType type,
       Pageable pageable) {
-    Long memberId = getMemberId(getAuthentication());
+
+    Authentication authentication = getAuthentication();
+
+    Long memberId = getMemberId(authentication);
+
+    // Todo: 주석 삭제
+    validateMemberInOrg(organizationId, authentication);
 
     Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, type, pageable);
     if (summaryPage.isEmpty()) {
