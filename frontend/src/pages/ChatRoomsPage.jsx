@@ -82,8 +82,7 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
         keyword: activeSearchQuery.trim(),
         type: filterType !== 'all' ? filterType.toUpperCase() : undefined,
         page: currentPage,
-        size,
-        sort: 'createdAt,DESC',
+        size
       };
 
       response = await searchChatRooms(params);

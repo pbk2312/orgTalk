@@ -87,9 +87,7 @@ public class ChatRoomController {
       @Parameter(description = "채팅방 타입 (PUBLIC, PRIVATE). 미지정 시 전체 검색")
       @RequestParam(value = "type", required = false) RoomType type,
       @PageableDefault(
-          size = 9,
-          sort = "createdAt",
-          direction = Sort.Direction.DESC
+          size = 9
       ) Pageable pageable
   ) {
     log.info("type={}, keyword={}", type, keyword);

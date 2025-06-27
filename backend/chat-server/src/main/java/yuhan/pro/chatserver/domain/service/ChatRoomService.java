@@ -32,6 +32,7 @@ import yuhan.pro.chatserver.domain.dto.ChatRoomCreateResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomInfoResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRoomSummary;
+import yuhan.pro.chatserver.domain.dto.ChatRoomSummaryProjection;
 import yuhan.pro.chatserver.domain.dto.ChatRoomUpdateRequest;
 import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
@@ -126,22 +127,37 @@ public class ChatRoomService {
   }
 
 
-  @Transactional
-  public PageResponse<ChatRoomResponse> searchChatRooms(Long organizationId, RoomType type,
+  @Transactional(readOnly = true)
+  public PageResponse<ChatRoomResponse> searchChatRooms(
+      Long organizationId,
+      RoomType type,
       String keyword,
-      Pageable pageable) {
+      Pageable pageable
+  ) {
+    Long memberId = getMemberId(getAuthentication());
 
-    Authentication authentication = getAuthentication();
+    // ① 키워드 분기 로직 분리
+    Page<ChatRoomSummary> summaryPage = fetchSummaryPage(organizationId, type, keyword, pageable);
 
-    Long memberId = getMemberId(authentication);
+    // ② 검색 결과가 없으면 빈 페이지 리턴
+    if (summaryPage.isEmpty()) {
+      return PageResponse.fromPage(Page.empty(pageable));
+    }
 
-    Page<ChatRoom> chatRooms = chatRoomRepository.searchByOrgAndKeyword(organizationId, type,
-        keyword,
-        pageable);
+    // ③ 추가 데이터 조회 및 매핑
+    List<Long> roomIds = summaryPage.stream()
+        .map(ChatRoomSummary::id)
+        .toList();
+    Map<Long, Long> memberCounts = fetchMemberCounts(roomIds);
+    Set<Long> joinedRoomIds = fetchJoinedRoomIds(roomIds, memberId);
 
-    Page<ChatRoomResponse> dtoPage = chatRooms.map(
-        chatRoom -> ChatRoomMapper.toChatRoomResponse(chatRoom, memberId));
-    return PageResponse.fromPage(dtoPage);
+    Page<ChatRoomResponse> responsePage = mapToResponsePage(
+        summaryPage,
+        memberCounts,
+        joinedRoomIds,
+        pageable
+    );
+    return PageResponse.fromPage(responsePage);
   }
 
 
@@ -207,6 +223,34 @@ public class ChatRoomService {
         kickedMemberId);
 
     chatRoomMemberRepository.delete(member);
+  }
+
+  private Page<ChatRoomSummary> fetchSummaryPage(
+      Long organizationId,
+      RoomType type,
+      String keyword,
+      Pageable pageable
+  ) {
+    if (keyword == null || keyword.isBlank()) {
+      return chatRoomRepository.findSummaryByOrgAndType(organizationId, type, pageable);
+    }
+
+    if (keyword.length() <= 2) {
+      return chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
+          organizationId, type, keyword, pageable
+      );
+    }
+
+    // 3) 긴 키워드: full-text 검색
+    Page<ChatRoomSummaryProjection> projPage =
+        chatRoomRepository.findSummaryByOrgTypeAndFullText(
+            organizationId,
+            type != null ? type.name() : null,
+            keyword,
+            pageable
+        );
+
+    return projPage.map(ChatRoomSummary::fromProjection);
   }
 
   private ChatRoomMember findChatMemberAndThrows(Long roomId, Long kickedMemberId) {

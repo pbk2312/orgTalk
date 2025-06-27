@@ -11,4 +11,14 @@ public record ChatRoomSummary(
     LocalDateTime createdAt
 ) {
 
+  public static ChatRoomSummary fromProjection(
+      yuhan.pro.chatserver.domain.dto.ChatRoomSummaryProjection p) {
+    return new ChatRoomSummary(
+        p.getId(),
+        p.getName(),
+        p.getDescription(),
+        RoomType.valueOf(p.getType()),
+        p.getCreatedAt()
+    );
+  }
 }
