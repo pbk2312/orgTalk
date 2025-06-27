@@ -1,4 +1,4 @@
-package yuhan.pro.chatserver.core.kafka;
+package yuhan.pro.chatserver.sharedkernel.infra.kafka;
 
 import java.util.HashMap;
 import java.util.Map;

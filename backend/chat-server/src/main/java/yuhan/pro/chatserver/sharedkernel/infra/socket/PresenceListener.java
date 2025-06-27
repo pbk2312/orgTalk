@@ -1,4 +1,4 @@
-package yuhan.pro.chatserver.core.socket;
+package yuhan.pro.chatserver.sharedkernel.infra.socket;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,8 +15,8 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 import yuhan.pro.chatserver.core.MemberClient;
-import yuhan.pro.chatserver.core.kafka.KafkaProducer;
 import yuhan.pro.chatserver.domain.dto.MemberProfileUrlResponse;
+import yuhan.pro.chatserver.sharedkernel.infra.kafka.KafkaProducer;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
 // Todo: Kafka, Redis 장애 시 대처법 고민

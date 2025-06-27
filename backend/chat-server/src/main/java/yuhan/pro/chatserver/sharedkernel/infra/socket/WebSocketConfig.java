@@ -1,4 +1,4 @@
-package yuhan.pro.chatserver.core.socket;
+package yuhan.pro.chatserver.sharedkernel.infra.socket;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;

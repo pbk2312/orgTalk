@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import yuhan.pro.chatserver.core.kafka.KafkaProducer;
 import yuhan.pro.chatserver.domain.dto.ChatPageResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRequest;
 import yuhan.pro.chatserver.domain.service.ChatService;
+import yuhan.pro.chatserver.sharedkernel.infra.kafka.KafkaProducer;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
 @Slf4j
