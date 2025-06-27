@@ -25,14 +25,14 @@ const ChatRoom = () => {
   const [messages, setMessages] = useState([]);
   const [participants, setParticipants] = useState([]);
 
-  // 초기 멤버들 정보
+
   const [initParticipants, setInitParticipants] = useState([]);
 
-  // Cursor-based pagination
+
   const [nextCursor, setNextCursor] = useState(null);
   const [hasMore, setHasMore] = useState(true);
 
-  // Input / modal state
+
   const [inputMessage, setInputMessage] = useState('');
   const [isComposing, setIsComposing] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
@@ -40,7 +40,7 @@ const ChatRoom = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [copiedCodeId, setCopiedCodeId] = useState(null);
 
-  // Scroll management
+
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -81,18 +81,18 @@ const ChatRoom = () => {
   const handleMemberKicked = useCallback((kickedUserId) => {
   console.log(`[ChatRoom] Member ${kickedUserId} was kicked`);
   
-  // initParticipants에서도 제거
+
   setInitParticipants(prev => 
     prev.filter(p => p.userId !== String(kickedUserId))
   );
   
-  // 실시간 participants에서도 제거
+
   setParticipants(prev => 
     prev.filter(p => p.userId !== String(kickedUserId))
   );
 }, []);
 
-  // 메시지 생성 공통 함수
+
   const createMessage = useCallback((messageData, isCode = false) => ({
     id: messageData.id || Date.now(),
     userId: String(auth.id),
@@ -108,7 +108,7 @@ const ChatRoom = () => {
     senderProfile: createUserProfile(auth.id, auth.login || '나', auth.avatarUrl)
   }), [auth, createUserProfile]);
 
-  // STOMP 메시지 생성 공통 함수
+
   const createStompMessage = useCallback((message, isCode = false) => ({
     roomId,
     message: isCode ? '' : message.content,
@@ -145,7 +145,7 @@ const ChatRoom = () => {
     }
   };
 
-  // Load room info
+
   useEffect(() => {
     if (authLoading) return;
     
@@ -174,7 +174,7 @@ const ChatRoom = () => {
     loadRoomInfo();
   }, [authLoading, roomId, createUserProfile]);
 
-  // Load chats (cursor-based)
+
   const loadChats = useCallback(async (cursor = null) => {
     if (!auth.authenticated || isNaN(roomId)) return;
     
@@ -223,11 +223,11 @@ const ChatRoom = () => {
     }
   };
 
-  // Real-time message handler
+
   const handleIncomingMessage = useCallback(payload => {
     if (auth.id === 0 || payload.senderId === auth.id) return;
     
-    // 현재 participants에서 발신자 정보 찾기
+
     const senderInfo = participants.find(p => p.userId === String(payload.senderId)) || 
       createUserProfile(payload.senderId, payload.senderName, payload.senderAvatarUrl);
     
@@ -248,12 +248,12 @@ const ChatRoom = () => {
     setShouldScrollToBottom(true);
   }, [auth.id, participants, createUserProfile]);
 
-  // Presence updates
+
   const handlePresenceUpdate = useCallback(presence => {
     console.log('[ChatRoom] presence update received:', presence);
     
     if (!presence.joined && !presence.left) {
-      // 전체 참가자 목록 업데이트
+
       const allParticipants = Object.entries(presence).map(([id, str]) => {
         const [login, avatarUrl] = str.split('|');
         return createUserProfile(id, login, avatarUrl);
@@ -262,7 +262,7 @@ const ChatRoom = () => {
       return;
     }
 
-    // 참가/퇴장 처리
+
     setParticipants(prev => {
       let updated = [...prev];
       
@@ -280,21 +280,21 @@ const ChatRoom = () => {
     });
   }, [createUserProfile]);
 
-  // STOMP hook
+
   const { sendChat: sendMessage, connected } = useChatStomp(
     roomId,
     handleIncomingMessage,
     handlePresenceUpdate
   );
 
-  // 메시지 전송 공통 로직
+
   const sendMessageWithUpdate = useCallback((message, stompMessage) => {
     setMessages(prev => [...prev, message]);
     setShouldScrollToBottom(true);
     sendMessage(stompMessage);
   }, [sendMessage]);
 
-  // Send text
+
   const handleSendMessage = useCallback(() => {
     if (!inputMessage.trim() || !connected || auth.id === 0) return;
     
@@ -305,7 +305,7 @@ const ChatRoom = () => {
     setInputMessage('');
   }, [inputMessage, connected, auth.id, createMessage, createStompMessage, sendMessageWithUpdate]);
 
-  // Send code
+
   const handleSendCode = useCallback(() => {
     if (!codeInput.trim() || !connected || auth.id === 0) return;
     
@@ -320,7 +320,7 @@ const ChatRoom = () => {
     setShowCodeModal(false);
   }, [codeInput, connected, auth.id, selectedLanguage, createMessage, createStompMessage, sendMessageWithUpdate]);
 
-  // Copy & key handlers
+
   const handleCopyCode = async (code, id) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -344,7 +344,7 @@ const ChatRoom = () => {
     }
   }, [handleSendCode]);
 
-  // Auto-scroll
+
   useEffect(() => {
     if (shouldScrollToBottom && !isLoadingMore) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -352,14 +352,14 @@ const ChatRoom = () => {
     }
   }, [messages, shouldScrollToBottom, isLoadingMore]);
 
-  // Modal focus
+
   useEffect(() => {
     if (showCodeModal) {
       codeTextareaRef.current?.focus();
     }
   }, [showCodeModal]);
 
-  // Initial scroll on first load
+
   useEffect(() => {
     if (!loading && messages.length > 0 && isFirstLoad.current) {
       setShouldScrollToBottom(true);
@@ -367,7 +367,7 @@ const ChatRoom = () => {
     }
   }, [loading, messages.length]);
 
-  // 배경 효과 컴포넌트
+
   const BackgroundEffects = () => (
     <div className={styles.backgroundEffects}>
       <div className={styles.bgCircle1} />
@@ -376,14 +376,14 @@ const ChatRoom = () => {
     </div>
   );
 
-  // 로딩 컴포넌트
+
   const LoadingSpinner = () => (
     <div className={styles.loading}>
       <div className={styles.spinner} />
     </div>
   );
 
-  // 에러 상태 렌더링
+
   if (error) {
     return (
       <div className={styles.chatRoom}>

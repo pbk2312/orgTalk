@@ -6,8 +6,6 @@ import { useAuth } from '../hooks/useAuth.ts';
 const OrgTalkHeader = () => {
   const { auth, loading, logout } = useAuth();
 
-  console.log('🧐 OrgTalkHeader render — auth:', auth, ' logout:', logout);
-
   if (loading) {
     return (
       <header className="orgtalk-header">

@@ -23,47 +23,46 @@ const ChatRoomsPage = () => {
   const { orgId } = useParams();
   const navigate = useNavigate();
 
-  // 1) 채팅방 생성 모달 제어
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 2) 조직 정보
+
   const [organization, setOrganization] = useState(null);
 
-  // 3) 채팅방 목록 + 페이징
+
   const [chatRooms, setChatRooms] = useState([]);
   const [page, setPage] = useState(0);
   const [size] = useState(9);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // 4) 로딩/에러 (채팅방 조회)
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 5) 검색 및 필터링
+ 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
 
-  // 6) 선택된/호버된 채팅방(UI용)
+
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [hoveredRoom, setHoveredRoom] = useState(null);
 
-  // 7) "비밀번호 입력" 모달 제어를 위한 상태
+
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomToJoin, setRoomToJoin] = useState(null);     
   const [joinLoading, setJoinLoading] = useState(false);  
   const [joinError, setJoinError] = useState('');
 
-  // 8) 검색 실행을 위한 상태 (엔터 키로만 검색)
+
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
 
-  // 9) 공개방 참여 안내 모달 제어를 위한 상태 (새로 추가)
+
   const [showPublicJoinModal, setShowPublicJoinModal] = useState(false);
   const [publicRoomToJoin, setPublicRoomToJoin] = useState(null);
   const [publicJoinLoading, setPublicJoinLoading] = useState(false);
 
-  // 채팅방 목록 로드 함수 (검색/필터 포함) - 서버 타입 필터링 지원 + 클라이언트 백업 필터링
-  // 수정된 loadChatRooms 함수 - 클라이언트 필터링 로직 제거
+
 const loadChatRooms = useCallback(async (resetPage = false) => {
   if (!orgId) return;
 
@@ -76,7 +75,7 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
 
     let response;
     if (activeSearchQuery.trim()) {
-      // 검색 시 타입 필터 포함
+
       const params = {
         organizationId: orgIdNum,
         keyword: activeSearchQuery.trim(),
@@ -87,7 +86,7 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
 
       response = await searchChatRooms(params);
     } else {
-      // 일반 목록 조회 시 타입 필터 포함
+
       const params = {
         organizationId: orgIdNum,
         type: filterType !== 'all' ? filterType.toUpperCase() : undefined,
@@ -102,7 +101,7 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
     console.log('API Response:', response);
     console.log('Filter Type:', filterType);
 
-    // 백엔드에서 필터링된 결과를 그대로 사용
+
     const roomsData = response?.chatRooms || response?.content || [];
     const totalPagesData = response?.totalPages || 0;
     const totalElementsData = response?.totalElements || 0;
@@ -126,7 +125,7 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
   }
 }, [orgId, page, size, activeSearchQuery, filterType]);
 
-  // 조직 정보 로드
+
   useEffect(() => {
     if (!orgId) return;
 
@@ -143,21 +142,21 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
     loadOrganization();
   }, [orgId]);
 
-  // 페이지 변경 시 채팅방 목록 로드
+
   useEffect(() => {
     if (orgId) {
       loadChatRooms();
     }
   }, [page]);
 
-  // 필터 타입 변경 시 즉시 검색
+
   useEffect(() => {
     if (orgId) {
       loadChatRooms(true);
     }
   }, [filterType]);
 
-  // 실제 검색어 변경 시 검색 실행
+
   useEffect(() => {
     if (orgId) {
       loadChatRooms(true);
@@ -171,7 +170,7 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
     navigate(`/chatroom/${newRoomId}`);
   };
 
-  // 비밀번호 입력 모달 관련 함수들
+
   const handleRequestJoin = (room) => {
     setRoomToJoin(room);
     setJoinError('');
@@ -211,7 +210,7 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
     setShowJoinModal(false);
   };
 
-  // 공개방 참여 안내 모달 관련 함수들 (새로 추가)
+  
   const handlePublicRoomJoinRequest = (room) => {
     setPublicRoomToJoin(room);
     setShowPublicJoinModal(true);
@@ -221,7 +220,7 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
   setPublicJoinLoading(true);
 
   try {
-    // 공개방은 password를 null로 전달
+   
     await joinChatRoom({ roomId: room.id, password: null });
 
     setChatRooms((prevRooms) =>
@@ -247,43 +246,43 @@ const loadChatRooms = useCallback(async (resetPage = false) => {
     setPublicRoomToJoin(null);
   };
   
-  // 수정된 방 선택 핸들러
+
   const handleRoomSelect = (room) => {
     if (room.joined) {
-      // 이미 참여한 방이면 바로 입장
+
       setSelectedRoom(room);
       navigate(`/chatroom/${room.id}`);
     } else if (room.type === 'PRIVATE') {
-      // 비공개방이면 비밀번호 입력 모달 표시
+      
       handleRequestJoin(room);
     } else if (room.type === 'PUBLIC') {
-      // 공개방이면 참여 안내 모달 표시
+
       handlePublicRoomJoinRequest(room);
     }
   };
 
-  // 검색어 변경 핸들러 (UI 상태만 변경)
+ 
   const handleSearchChange = (query) => {
     setSearchQuery(query);
   };
 
-  // 검색 실행 핸들러 (엔터 키 또는 검색 버튼)
+
   const handleSearchSubmit = () => {
     setActiveSearchQuery(searchQuery);
   };
 
-  // 검색 초기화 핸들러
+
   const handleSearchClear = () => {
     setSearchQuery('');
     setActiveSearchQuery('');
   };
 
-  // 필터 타입 변경 핸들러
+
   const handleFilterChange = (type) => {
     setFilterType(type);
   };
 
-  // 페이지 변경 핸들러
+
   const handlePageChange = (newPage) => {
     console.log('Page change requested:', newPage);
     if (newPage !== page && newPage >= 0 && newPage < totalPages) {

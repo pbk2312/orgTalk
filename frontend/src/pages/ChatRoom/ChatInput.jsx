@@ -7,7 +7,6 @@ const ChatInput = ({
   setInputMessage,
   handleSendMessage,
   handleKeyDown,
-  isComposing,
   setIsComposing,
   onOpenCodeModal
 }) => {

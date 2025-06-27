@@ -11,7 +11,7 @@ const ChatRoomCard = ({
   onMouseEnter,
   onMouseLeave
 }) => {
-  // 메인 아이콘을 방 타입에 따라 변경
+
   const getMainIcon = (type) => {
     switch(type) {
       case 'PRIVATE':
@@ -23,7 +23,7 @@ const ChatRoomCard = ({
     }
   };
 
-  // 작은 타입 아이콘 (기존 유지)
+
   const getTypeIcon = (type) =>
     type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />;
 
