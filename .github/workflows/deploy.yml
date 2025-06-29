@@ -57,30 +57,24 @@ jobs:
         run: |
           cd backend/main-server
           ../gradlew test
-
       - name: Run Chat Server tests
         run: |
           cd backend/chat-server
           ../gradlew test
-
       # 프론트엔드 테스트
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend dependencies
         run: |
           cd frontend
-          npm ci
-
+          npm install
       - name: Run frontend tests
         run: |
           cd frontend
           npm test -- --coverage --watchAll=false --passWithNoTests
-
   build:
     needs: test
     runs-on: ubuntu-latest
@@ -103,30 +97,24 @@ jobs:
         run: |
           cd backend/main-server
           ../gradlew build -x test
-
       - name: Build Chat Server
         run: |
           cd backend/chat-server
           ../gradlew build -x test
-
       # 프론트엔드 빌드
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         run: |
           cd frontend
-          npm ci
-
+          npm install
       - name: Build frontend
         run: |
           cd frontend
           CI=false npm run build
-
       # Docker Hub 로그인
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -142,7 +130,6 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/main-server:latest
           docker push ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/main-server:latest
-
       - name: Build and push Chat Server image
         run: |
           cd backend/chat-server
@@ -150,7 +137,6 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/chat-server:latest
           docker push ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/chat-server:latest
-
       - name: Build and push Frontend image
         run: |
           cd frontend
@@ -158,7 +144,6 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/frontend:latest
           docker push ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/frontend:latest
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
