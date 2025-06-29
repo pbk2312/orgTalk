@@ -122,6 +122,9 @@ services:
     image: ${DOCKER_USERNAME}/frontend:latest
     container_name: orgtalk-frontend
     restart: always
+    ports:
+      - "80:80"      # nginx가 frontend 이미지에 포함되어 있음
+      - "443:443"    # HTTPS용 (필요시)
     networks:
       - orgtalk-net
     depends_on:
@@ -131,22 +134,6 @@ services:
       - REACT_APP_MAIN_SERVER_URL=/api/main
       - REACT_APP_CHAT_SERVER_URL=/api/chat
       - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
-
-  nginx:
-    image: nginx:alpine
-    container_name: orgtalk-nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - orgtalk-net
-    depends_on:
-      - frontend
-      - main-server
-      - chat-server
     healthcheck:
       test:
         - "CMD"
