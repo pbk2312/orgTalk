@@ -52,6 +52,8 @@ dependencies {
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    testImplementation 'com.h2database:h2'
+
 }
 
 tasks.named('test') {
