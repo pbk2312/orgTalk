@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   redis:
     image: redis:7.0
@@ -61,7 +59,7 @@ services:
       retries: 5
 
   main-server:
-    image: main-server:latest
+    image: ${DOCKER_USERNAME}/main-server:latest
     container_name: orgtalk-main-server
     restart: always
     networks:
@@ -83,7 +81,7 @@ services:
       - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
 
   chat-server:
-    image: chat-server:latest
+    image: ${DOCKER_USERNAME}/chat-server:latest
     container_name: orgtalk-chat-server
     restart: always
     networks:
@@ -111,7 +109,7 @@ services:
       - JWT_APP_KEY=${JWT_APP_KEY}
 
   frontend:
-    image: frontend:latest
+    image: ${DOCKER_USERNAME}/frontend:latest
     container_name: orgtalk-frontend
     restart: always
     networks:
