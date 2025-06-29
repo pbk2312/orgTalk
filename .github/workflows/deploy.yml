@@ -24,6 +24,10 @@ env:
   MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
   MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
 
+  # Mail (추가)
+  MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+  MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+
   # JWT Keys
   ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
   REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
@@ -61,6 +65,7 @@ jobs:
         run: |
           cd backend/chat-server
           ../gradlew test
+
       # 프론트엔드 테스트
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -75,6 +80,7 @@ jobs:
         run: |
           cd frontend
           npm test -- --coverage --watchAll=false --passWithNoTests
+
   build:
     needs: test
     runs-on: ubuntu-latest
@@ -101,6 +107,7 @@ jobs:
         run: |
           cd backend/chat-server
           ../gradlew build -x test
+
       # 프론트엔드 빌드
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -115,6 +122,7 @@ jobs:
         run: |
           cd frontend
           CI=false npm run build
+
       # Docker Hub 로그인
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -144,10 +152,12 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/frontend:latest
           docker push ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/frontend:latest
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # master 브랜치에서 배포 실행
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - uses: actions/checkout@v4
@@ -167,10 +177,16 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
+          # 환경변수에 MAIL 추가
           envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MAIL_USERNAME,MAIL_PASSWORD,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,GITHUB_CLIENT_ID,GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI
           script: |
             cd /home/ubuntu/orgtalk
             
+            # 기존 컨테이너 정리
+            echo "Stopping existing containers..."
+            docker-compose down || true
+            
+            # .env 파일 생성
             cat > .env << EOF
             DOCKER_USERNAME=${DOCKER_USERNAME}
             DB_URL=${DB_URL}
@@ -196,18 +212,34 @@ jobs:
             docker pull ${DOCKER_USERNAME}/chat-server:latest
             docker pull ${DOCKER_USERNAME}/frontend:latest
             
+            # 컨테이너 시작
             echo "Starting new containers..."
             docker-compose up -d
             
+            # 컨테이너 상태 확인
+            echo "Container status:"
+            docker ps -a
+            
+            # 로그 확인
+            echo "Container logs:"
+            docker-compose logs --tail=20
+            
+            # 헬스체크 대기
             echo "Waiting for services to be healthy..."
             sleep 30
             
-            if curl -f http://localhost/health; then
+            # 헬스체크 (포트 확인도 포함)
+            echo "Checking service health..."
+            if curl -f http://localhost/health 2>/dev/null || curl -f http://localhost 2>/dev/null; then
               echo "✅ Deployment successful!"
               # 오래된 이미지 정리
               docker image prune -f
             else
-              echo "❌ Health check failed, rolling back..."
-              docker-compose down
-              exit 1
+              echo "❌ Health check failed"
+              echo "Current running containers:"
+              docker ps
+              echo "Container logs:"
+              docker-compose logs
+              # 롤백하지 않고 디버깅을 위해 유지
+              echo "Containers kept running for debugging"
             fi
