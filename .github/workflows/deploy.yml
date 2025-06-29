@@ -177,7 +177,7 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
-          source: "docker-compose.yml,nginx.conf"
+          source: "docker-compose.yml,frontend/nginx.conf"
           target: "/home/ubuntu/orgtalk/"
 
       - name: Deploy to EC2
@@ -186,7 +186,6 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
-          # 환경변수에 MAIL 추가
           envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MAIL_USERNAME,MAIL_PASSWORD,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,GITHUB_CLIENT_ID,GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI
           script: |
             cd /home/ubuntu/orgtalk
