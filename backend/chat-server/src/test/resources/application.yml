@@ -1,16 +1,61 @@
 spring:
+  application:
+    name: chat-server
+
+  # 테스트용 H2
   datasource:
     url: jdbc:h2:mem:testdb
     username: sa
     password:
     driver-class-name: org.h2.Driver
+
+  # 테스트용 MongoDB 설정
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: orgTalkTest
+      username: admin
+      password: admin123
+      authentication-database: admin
+
+    # 테스트용 Redis 설정
+    redis:
+      host: localhost
+      port: 6379
+
   jpa:
     hibernate:
       ddl-auto: create
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
     properties:
       hibernate:
         format_sql: true
-    database-platform: org.hibernate.dialect.H2Dialect
+
   h2:
     console:
       enabled: true
+
+  # 테스트용 Kafka 설정
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: chat-server-test-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.chat.domain
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+custom:
+  jwt:
+    duration:
+      access: 360000      # 60분 (밀리초)
+      refresh: 86400000   # 24시간 (밀리초)
+    secrets:
+      origin-key: "test-origin-key-01234567890123456789012345678901"
+      app-key: "test-app-key-01234567890123456789012345678901"
