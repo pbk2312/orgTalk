@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.0
+    container_name: orgtalk-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: [ "redis-server", "--appendonly", "yes" ]
+    networks:
+      - orgtalk-net
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:latest
+    container_name: orgtalk-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - orgtalk-net
+    healthcheck:
+      test: [ "CMD", "mongo", "--username", "${MONGODB_USERNAME}", "--password", "${MONGODB_PASSWORD}", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: orgtalk-kafka
+    restart: always
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=1
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_CREATE_TOPICS=chat-messages:5:1
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_NUM_PARTITIONS=5
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=1
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    volumes:
+      - kafka-data:/bitnami/kafka
+    networks:
+      - orgtalk-net
+    healthcheck:
+      test: [ "CMD-SHELL", "echo > /dev/tcp/localhost/9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  main-server:
+    image: main-server:latest
+    container_name: orgtalk-main-server
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - orgtalk-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - DB_URL=${DB_URL}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+
+  chat-server:
+    image: chat-server:latest
+    container_name: orgtalk-chat-server
+    restart: always
+    ports:
+      - "8081:8081"
+    networks:
+      - orgtalk-net
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DB_URL=${DB_URL}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - MONGODB_HOST=${MONGODB_HOST}
+      - MONGODB_PORT=${MONGODB_PORT}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+
+  frontend:
+    image: frontend:latest
+    container_name: orgtalk-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    networks:
+      - orgtalk-net
+    depends_on:
+      - main-server
+      - chat-server
+    environment:
+      - REACT_APP_MAIN_SERVER_URL=${REACT_APP_MAIN_SERVER_URL}
+      - REACT_APP_CHAT_SERVER_URL=${REACT_APP_CHAT_SERVER_URL}
+      - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
+
+volumes:
+  redis-data:
+    driver: local
+  mongo-data:
+    driver: local
+  kafka-data:
+    driver: local
+
+networks:
+  orgtalk-net:
+    driver: bridge

@@ -1,0 +1,71 @@
+server:
+  port: 8080
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+spring:
+  application:
+    name: main-server  # Docker Compose의 서비스명과 일치
+
+  datasource:
+    url: ${DB_URL}                        # ex: jdbc:mysql://host:3306/orgtalk?useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME}              # ex: Yuhan
+    password: ${DB_PASSWORD}              # ex: 0525
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID}          # ex: Ov23liNsm3rtIoUvuc1X
+            client-secret: ${GITHUB_CLIENT_SECRET}  # ex: d9b943fad8c7d1390636350284d8ed067bcd8411
+            scope:
+              - read:user
+              - user:email
+              - read:org
+            redirect-uri: "{baseUrl}/login/oauth2/code/github"
+            client-name: GitHub
+        provider:
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: login
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      circuitbreaker_test:
+        failure-rate-threshold: 60
+        recordExceptions:
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+        ignoreExceptions:
+          - java.lang.IllegalStateException
+
+custom:
+  jwt:
+    duration:
+      access: 3600000         # Access Token: 60분 (밀리초)
+      refresh: 86400000       # Refresh Token: 24시간 (밀리초)
+    secrets:
+      origin-key: ${JWT_ORIGIN_KEY}
+      app-key: ${JWT_APP_KEY}
+
+  app:
+    frontend-redirect-uri: ${FRONTEND_REDIRECT_URI}  # ex: https://myapp.com/organizations
