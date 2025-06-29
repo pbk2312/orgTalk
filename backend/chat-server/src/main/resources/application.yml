@@ -27,11 +27,6 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-
   jpa:
     hibernate:
       ddl-auto: validate
