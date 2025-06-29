@@ -14,6 +14,7 @@ spring:
     password: ${DB_PASSWORD}              # ex: 0525
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+
   data:
     redis:
       host: ${REDIS_HOST:redis}
@@ -26,6 +27,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
 
   security:
     oauth2:
