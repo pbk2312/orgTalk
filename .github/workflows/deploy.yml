@@ -130,6 +130,15 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
+      # GitHub Actions Runner에서 기존 이미지 정리
+      - name: Clean up existing Docker images
+        run: |
+          echo "Cleaning up existing Docker images..."
+          # 기존 프로젝트 이미지들 삭제
+          docker images | grep -E "${{ env.DOCKER_USERNAME }}/(main-server|chat-server|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
+          # dangling 이미지 정리
+          docker image prune -f || true
+
       # Docker 이미지 빌드 및 푸시
       - name: Build and push Main Server image
         run: |
@@ -184,7 +193,13 @@ jobs:
             
             # 기존 컨테이너 정리
             echo "Stopping existing containers..."
-            docker-compose down || true
+            docker compose down || true
+            
+            # 기존 이미지들 백업 (rollback용)
+            echo "Backing up current images for potential rollback..."
+            docker tag ${DOCKER_USERNAME}/main-server:latest ${DOCKER_USERNAME}/main-server:backup 2>/dev/null || true
+            docker tag ${DOCKER_USERNAME}/chat-server:latest ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true
+            docker tag ${DOCKER_USERNAME}/frontend:latest ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
             
             # .env 파일 생성
             cat > .env << EOF
@@ -214,7 +229,7 @@ jobs:
             
             # 컨테이너 시작
             echo "Starting new containers..."
-            docker-compose up -d
+            docker compose up -d
             
             # 컨테이너 상태 확인
             echo "Container status:"
@@ -222,7 +237,7 @@ jobs:
             
             # 로그 확인
             echo "Container logs:"
-            docker-compose logs --tail=20
+            docker compose logs --tail=20
             
             # 헬스체크 대기
             echo "Waiting for services to be healthy..."
@@ -232,14 +247,47 @@ jobs:
             echo "Checking service health..."
             if curl -f http://localhost/health 2>/dev/null || curl -f http://localhost 2>/dev/null; then
               echo "✅ Deployment successful!"
-              # 오래된 이미지 정리
+            
+              # 배포 성공 시 오래된 이미지들 정리
+              echo "Cleaning up old Docker images..."
+            
+              # 백업 이미지 삭제 (배포 성공했으므로)
+              docker rmi ${DOCKER_USERNAME}/main-server:backup 2>/dev/null || true
+              docker rmi ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true  
+              docker rmi ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
+            
+              # dangling 이미지 정리
               docker image prune -f
+            
+              # 사용하지 않는 이미지 정리 (현재 사용 중이 아닌 이미지들)
+              docker image prune -a -f --filter "until=24h"
+            
+              echo "✅ Image cleanup completed!"
+            
             else
               echo "❌ Health check failed"
               echo "Current running containers:"
               docker ps
               echo "Container logs:"
-              docker-compose logs
-              # 롤백하지 않고 디버깅을 위해 유지
-              echo "Containers kept running for debugging"
+              docker compose logs
+            
+              # 배포 실패 시 백업 이미지로 롤백
+              echo "🔄 Rolling back to backup images..."
+              docker compose down || true
+            
+              # 백업이 있으면 롤백
+              if docker images | grep -q "${DOCKER_USERNAME}/main-server.*backup"; then
+                docker tag ${DOCKER_USERNAME}/main-server:backup ${DOCKER_USERNAME}/main-server:latest
+                docker tag ${DOCKER_USERNAME}/chat-server:backup ${DOCKER_USERNAME}/chat-server:latest
+                docker tag ${DOCKER_USERNAME}/frontend:backup ${DOCKER_USERNAME}/frontend:latest
+            
+                echo "Restarting with backup images..."
+                docker compose up -d
+            
+                echo "Rollback completed - services restored to previous version"
+              else
+                echo "No backup images found - containers kept for debugging"
+              fi
+            
+              exit 1
             fi
