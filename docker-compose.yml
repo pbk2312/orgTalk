@@ -134,6 +134,9 @@ services:
       - REACT_APP_MAIN_SERVER_URL=/api/main
       - REACT_APP_CHAT_SERVER_URL=/api/chat
       - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
       test:
         - "CMD"
