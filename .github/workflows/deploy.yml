@@ -171,13 +171,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy deployment files to EC2
+      # docker-compose.yml 복사
+      - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
-          source: "{docker-compose.yml,frontend/nginx.conf,frontend/default.conf}"
+          source: "docker-compose.yml"
+          target: "/home/ubuntu/orgtalk/"
+
+      # nginx 설정 파일들 복사
+      - name: Copy nginx config files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "frontend/nginx.conf,frontend/default.conf"
           target: "/home/ubuntu/orgtalk/"
 
       - name: Deploy to EC2
@@ -189,6 +200,15 @@ jobs:
           envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MAIL_USERNAME,MAIL_PASSWORD,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,GITHUB_CLIENT_ID,GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI
           script: |
             cd /home/ubuntu/orgtalk
+            
+            # 파일 존재 확인
+            echo "Checking deployment files..."
+            ls -la
+            if [ ! -f "docker-compose.yml" ]; then
+              echo "❌ docker-compose.yml not found!"
+              exit 1
+            fi
+            echo "✅ docker-compose.yml found"
             
             # 기존 컨테이너 정리
             echo "Stopping existing containers..."
