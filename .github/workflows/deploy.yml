@@ -177,7 +177,9 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
-          source: "docker-compose.yml"
+          source: |
+            docker-compose.yml
+            nginx/
           target: "/home/ubuntu/orgtalk/"
 
       - name: Deploy to EC2
