@@ -1,2 +1,2 @@
-export const API_BASE_URL  = 'http://localhost:8080';
-export const CHAT_BASE_URL = 'http://localhost:8081';
+export const API_BASE_URL = process.env.REACT_APP_MAIN_SERVER_URL || '/api';
+export const CHAT_BASE_URL = process.env.REACT_APP_CHAT_SERVER_URL || '/api/chat';
