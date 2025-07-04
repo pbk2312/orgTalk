@@ -12,8 +12,8 @@ let errorShown = false;
 let refreshErrorShown = false;
 
 const PUBLIC_ENDPOINTS = [
-  '/auth/refresh',
-  '/auth/login'
+  '/api/auth/refresh',
+  '/api/auth/login'
 ];
 
 export function setAccessToken(token: string) {
@@ -119,7 +119,6 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
 
 attachInterceptors(api);
 attachInterceptors(chatApi);
-attachInterceptors(authApi); 
 
 export function resetErrorShown() {
   errorShown = false;
