@@ -133,7 +133,7 @@ services:
       - main-server
       - chat-server
     environment:
-      - REACT_APP_MAIN_SERVER_URL=/api/main
+      - REACT_APP_MAIN_SERVER_URL=/api
       - REACT_APP_CHAT_SERVER_URL=/api/chat
       - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
     healthcheck:

@@ -8,14 +8,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
 
-  @Bean
-  public WebClient webClient(WebClient.Builder builder) {
-    return builder.baseUrl("http://localhost:8080")  // 메인 서버 주소
-        .build();
-  }
+    @Bean
+    public WebClient webClient(WebClient.Builder builder) {
+        return builder.baseUrl("http://main-server:8080")  // 메인 서버 주소
+                .build();
+    }
 
-  @Bean
-  public RestTemplate restTemplate() {
-    return new RestTemplate();
-  }
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
 }
