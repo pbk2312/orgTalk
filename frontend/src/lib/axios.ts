@@ -12,8 +12,8 @@ let errorShown = false;
 let refreshErrorShown = false;
 
 const PUBLIC_ENDPOINTS = [
-  '/api/auth/refresh',
-  '/api/auth/login'
+  '/auth/refresh',
+  '/auth/login'
 ];
 
 export function setAccessToken(token: string) {
@@ -26,7 +26,7 @@ export async function getAccessToken(): Promise<string> {
   if (!isRefreshing) {
     isRefreshing = true;
     try {
-      const response = await authApi.post('/api/auth/refresh');
+      const response = await authApi.post('/auth/refresh');
       const newToken: string = response.data.accessToken;
       accessToken = newToken;
       failedQueue.forEach(({ resolve }) => resolve(newToken));

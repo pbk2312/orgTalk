@@ -22,7 +22,7 @@ export function useAuth() {
 
   const fetchAuth = useCallback(async () => {
     try {
-      const res = await api.get<MemberResponse>('/api/auth/me');
+      const res = await api.get<MemberResponse>('/auth/me');
       setAuth(res.data);
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -36,7 +36,7 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(async () => {
-    await api.post('/api/auth/logout');
+    await api.post('/auth/logout');
     setAuth({ id: 0, login: null, avatarUrl: null, authenticated: false });
     navigate('/login');
   }, [navigate]);
