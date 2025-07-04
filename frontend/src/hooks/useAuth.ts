@@ -22,7 +22,7 @@ export function useAuth() {
 
   const fetchAuth = useCallback(async () => {
     try {
-      const res = await api.get<MemberResponse>('/auth/me');
+      const res = await api.get<MemberResponse>('/api/auth/me');
       setAuth(res.data);
     } catch (err: any) {
       if (err.response?.status === 401) {
