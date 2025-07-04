@@ -26,7 +26,7 @@ export async function getAccessToken(): Promise<string> {
   if (!isRefreshing) {
     isRefreshing = true;
     try {
-      const response = await authApi.post('/auth/refresh');
+      const response = await authApi.post('/api/auth/refresh');
       const newToken: string = response.data.accessToken;
       accessToken = newToken;
       failedQueue.forEach(({ resolve }) => resolve(newToken));
