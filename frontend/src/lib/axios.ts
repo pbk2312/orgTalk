@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_BASE_URL, CHAT_BASE_URL } from './constants.ts';
+import { API_BASE_URL, CHAT_BASE_URL, CHAT_ROOM_BASE_URL} from './constants.ts';
 
 let accessToken = '';
 let isRefreshing = false;
@@ -62,11 +62,19 @@ export const chatApi = axios.create({
   timeout: 5000,
 });
 
+export const chatRoomApi = axios.create({
+  baseURL: CHAT_ROOM_BASE_URL,  // 새로운 /api/chatroom
+  withCredentials: true,
+  timeout: 5000,
+});
+
 const authApi = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 5000,
 });
+
+
 
 function attachInterceptors(instance: ReturnType<typeof axios.create>) {
   instance.interceptors.request.use(

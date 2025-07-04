@@ -1,4 +1,4 @@
-import { chatApi } from '../lib/axios.ts';
+import { chatApi, chatRoomApi } from '../lib/axios.ts';
 
 function getErrorMessage(error, defaultMsg) {
   const serverMsg = error?.response?.data?.message;
@@ -7,7 +7,7 @@ function getErrorMessage(error, defaultMsg) {
 
 export async function createChatRoom(payload) {
   try {
-    const res = await chatApi.post('/api/chatroom', payload);
+    const res = await chatRoomApi.post('', payload); // 앞의 /api/chatroom 생략
     return res.data;
   } catch (error) {
     console.error('Failed to create chat room:', error);
@@ -17,8 +17,8 @@ export async function createChatRoom(payload) {
 
 export async function getChatRooms(params) {
   try {
-    const { data } = await chatApi.get(
-      `/api/chatroom/list/${params.organizationId}`,
+    const { data } = await chatRoomApi.get(
+      `/list/${params.organizationId}`,  // 앞의 /api/chatroom 생략
       { params }
     );
     return {
@@ -42,14 +42,14 @@ export async function searchChatRooms({ organizationId, keyword, type, page, siz
     if (page != null) params.page = page;
     if (size != null) params.size = size;
     if (sort) params.sort = sort;
-    
+
     console.log('🔍 searchChatRooms params:', params);
-    
-    const { data } = await chatApi.get(
-      `/api/chatroom/search/${organizationId}`,
+
+    const { data } = await chatRoomApi.get(  // 앞의 /api/chatroom 생략
+      `/search/${organizationId}`,
       { params }
     );
-    
+
     return {
       chatRooms: data.content,
       page: data.page,
@@ -65,7 +65,7 @@ export async function searchChatRooms({ organizationId, keyword, type, page, siz
 
 export async function getChatRoomInfo(roomId) {
   try {
-    const { data } = await chatApi.get(`/api/chatroom/${roomId}`);
+    const { data } = await chatRoomApi.get(`/${roomId}`);  // 앞의 /api/chatroom 생략
     return data;
   } catch (error) {
     console.error(`Failed to fetch chat room info (roomId: ${roomId}):`, error);
@@ -75,7 +75,7 @@ export async function getChatRoomInfo(roomId) {
 
 export async function joinChatRoom({ roomId, password }) {
   try {
-    await chatApi.post(`/api/chatroom/${roomId}/join`, { roomId, password });
+    await chatRoomApi.post(`/${roomId}/join`, { roomId, password });  // 앞의 /api/chatroom 생략
   } catch (error) {
     console.error(`Failed to join chat room (roomId: ${roomId}):`, error);
     throw new Error(getErrorMessage(error, '채팅방 참가 중 오류가 발생했습니다.'));
@@ -87,7 +87,7 @@ export async function getChatsByCursor(roomId, cursor = null, size) {
     const params = {};
     if (cursor) params.cursor = cursor;
     if (size != null) params.size = size;
-    const { data } = await chatApi.get(`/api/chat/${roomId}`, { params });
+    const { data } = await chatRoomApi.get(`/${roomId}`, { params });  // 앞의 /api/chatroom 생략
     return {
       chats: data.chats,
       nextCursor: data.nextCursor,
@@ -100,7 +100,7 @@ export async function getChatsByCursor(roomId, cursor = null, size) {
 
 export async function deleteChatRoom(roomId) {
   try {
-    await chatApi.post(`/api/chatroom/${roomId}/delete`);
+    await chatRoomApi.post(`/${roomId}/delete`);  // 앞의 /api/chatroom 생략
     return { message: '채팅방이 성공적으로 삭제되었습니다.' };
   } catch (error) {
     console.error(`Failed to delete chat room (roomId: ${roomId}):`, error);
@@ -111,7 +111,7 @@ export async function deleteChatRoom(roomId) {
 
 export async function updateChatRoom({ roomId, ...payload }) {
   try {
-    await chatApi.patch(`/api/chatroom/${roomId}/update`, payload);
+    await chatRoomApi.patch(`/${roomId}/update`, payload);  // 앞의 /api/chatroom 생략
     return { message: '채팅방이 성공적으로 수정되었습니다.' };
   } catch (error) {
     console.error(`Failed to update chat room (roomId: ${roomId}):`, error);
@@ -121,8 +121,8 @@ export async function updateChatRoom({ roomId, ...payload }) {
 
 export async function kickMember(roomId, kickedMemberId) {
   try {
-    await chatApi.post(
-      `/api/chatroom/${roomId}/kickMember`,
+    await chatRoomApi.post(  // 앞의 /api/chatroom 생략
+      `/${roomId}/kickMember`,
       null,
       { params: { kickedMemberId } }
     );
