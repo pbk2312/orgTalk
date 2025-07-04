@@ -76,6 +76,7 @@ const authApi = axios.create({
 
 
 
+
 function attachInterceptors(instance: ReturnType<typeof axios.create>) {
   instance.interceptors.request.use(
     async (config) => {
@@ -127,6 +128,7 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
 
 attachInterceptors(api);
 attachInterceptors(chatApi);
+attachInterceptors(chatRoomApi); 
 
 export function resetErrorShown() {
   errorShown = false;
