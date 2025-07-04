@@ -7,7 +7,7 @@ function getErrorMessage(error, defaultMsg) {
 
 export async function createChatRoom(payload) {
   try {
-    const res = await chatRoomApi.post('', payload); // 앞의 /api/chatroom 생략
+    const res = await chatRoomApi.post('/', payload); // 앞의 /api/chatroom 생략
     return res.data;
   } catch (error) {
     console.error('Failed to create chat room:', error);
