@@ -36,7 +36,7 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(async () => {
-    await api.post('/auth/logout');
+    await api.post('/api/auth/logout');
     setAuth({ id: 0, login: null, avatarUrl: null, authenticated: false });
     navigate('/login');
   }, [navigate]);
