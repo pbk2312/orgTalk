@@ -7,7 +7,7 @@ function getErrorMessage(error, defaultMsg) {
 
 export async function createChatRoom(payload) {
   try {
-    const res = await chatApi.post('/chatroom', payload);
+    const res = await chatApi.post('/api/chatroom', payload);
     return res.data;
   } catch (error) {
     console.error('Failed to create chat room:', error);
@@ -18,7 +18,7 @@ export async function createChatRoom(payload) {
 export async function getChatRooms(params) {
   try {
     const { data } = await chatApi.get(
-      `/chatroom/list/${params.organizationId}`,
+      `/api/chatroom/list/${params.organizationId}`,
       { params }
     );
     return {
@@ -46,7 +46,7 @@ export async function searchChatRooms({ organizationId, keyword, type, page, siz
     console.log('🔍 searchChatRooms params:', params);
     
     const { data } = await chatApi.get(
-      `/chatroom/search/${organizationId}`,
+      `/api/chatroom/search/${organizationId}`,
       { params }
     );
     
@@ -65,7 +65,7 @@ export async function searchChatRooms({ organizationId, keyword, type, page, siz
 
 export async function getChatRoomInfo(roomId) {
   try {
-    const { data } = await chatApi.get(`/chatroom/${roomId}`);
+    const { data } = await chatApi.get(`/api/chatroom/${roomId}`);
     return data;
   } catch (error) {
     console.error(`Failed to fetch chat room info (roomId: ${roomId}):`, error);
@@ -75,7 +75,7 @@ export async function getChatRoomInfo(roomId) {
 
 export async function joinChatRoom({ roomId, password }) {
   try {
-    await chatApi.post(`/chatroom/${roomId}/join`, { roomId, password });
+    await chatApi.post(`/api/chatroom/${roomId}/join`, { roomId, password });
   } catch (error) {
     console.error(`Failed to join chat room (roomId: ${roomId}):`, error);
     throw new Error(getErrorMessage(error, '채팅방 참가 중 오류가 발생했습니다.'));
@@ -87,7 +87,7 @@ export async function getChatsByCursor(roomId, cursor = null, size) {
     const params = {};
     if (cursor) params.cursor = cursor;
     if (size != null) params.size = size;
-    const { data } = await chatApi.get(`/chat/${roomId}`, { params });
+    const { data } = await chatApi.get(`/api/chat/${roomId}`, { params });
     return {
       chats: data.chats,
       nextCursor: data.nextCursor,
@@ -100,7 +100,7 @@ export async function getChatsByCursor(roomId, cursor = null, size) {
 
 export async function deleteChatRoom(roomId) {
   try {
-    await chatApi.post(`/chatroom/${roomId}/delete`);
+    await chatApi.post(`/api/chatroom/${roomId}/delete`);
     return { message: '채팅방이 성공적으로 삭제되었습니다.' };
   } catch (error) {
     console.error(`Failed to delete chat room (roomId: ${roomId}):`, error);
@@ -111,7 +111,7 @@ export async function deleteChatRoom(roomId) {
 
 export async function updateChatRoom({ roomId, ...payload }) {
   try {
-    await chatApi.patch(`/chatroom/${roomId}/update`, payload);
+    await chatApi.patch(`/api/chatroom/${roomId}/update`, payload);
     return { message: '채팅방이 성공적으로 수정되었습니다.' };
   } catch (error) {
     console.error(`Failed to update chat room (roomId: ${roomId}):`, error);
@@ -122,7 +122,7 @@ export async function updateChatRoom({ roomId, ...payload }) {
 export async function kickMember(roomId, kickedMemberId) {
   try {
     await chatApi.post(
-      `/chatroom/${roomId}/kickMember`,
+      `/api/chatroom/${roomId}/kickMember`,
       null,
       { params: { kickedMemberId } }
     );
