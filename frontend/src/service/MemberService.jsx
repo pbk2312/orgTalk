@@ -1,9 +1,8 @@
 import api from '../lib/axios.ts';
 
-
 export async function getOrganizations(page = 0, size = 3) {
   try {
-    const response = await api.get('/api/member/organizations', {
+    const response = await api.get('/member/organizations', {
       params: { page, size },
     });
     return response.data;
