@@ -8,11 +8,8 @@ let failedQueue: Array<{
   reject: (error: any) => void;
 }> = [];
 
-
 let errorShown = false;
-
 let refreshErrorShown = false;
-
 
 const PUBLIC_ENDPOINTS = [
   '/auth/refresh',
@@ -90,35 +87,27 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
 
   instance.interceptors.response.use(
     (res) => {
-
       errorShown = false;
       return res;
     },
     (error) => {
       const status = error.response?.status;
 
-
       if (!errorShown && (!error.response || status >= 500 || error.code === 'ECONNABORTED')) {
         alert('서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
         errorShown = true;
       }
 
-
       if (status === 401) {
-
         if (!refreshErrorShown) {
           const msg = error.response.data?.message || '인증이 필요합니다.';
           alert(msg);
         }
         window.location.href = '/login';
-      }
-
-      else if (status === 400 || status === 404) {
+      } else if (status === 400 || status === 404) {
         const msg = error.response.data?.message || '요청 처리 중 오류가 발생했습니다.';
         alert(msg);
-      }
-
-      else if (status && status < 400) {
+      } else if (status && status < 400) {
         const msg = error.response.data?.message || '알 수 없는 오류가 발생했습니다.';
         alert(msg);
       }
@@ -130,6 +119,7 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
 
 attachInterceptors(api);
 attachInterceptors(chatApi);
+attachInterceptors(authApi); 
 
 export function resetErrorShown() {
   errorShown = false;
