@@ -1,6 +1,6 @@
 // src/components/ChatRoomsPage.jsx
 import React, {useEffect, useRef, useState} from 'react';
-import {MessageCircle, Plus, Users,} from 'lucide-react';
+import {MessageCircle} from 'lucide-react';
 import {useNavigate, useParams} from 'react-router-dom';
 import OrgTalkHeader from './OrgTalkHeader';
 import CreateChatRoomModal from './CreateChatRoomModal';
@@ -13,17 +13,14 @@ import {
   searchChatRooms
 } from '../service/ChatService';
 import Pagination from './Pagination';
-
 import ChatRoomCard from './ChatRoomCard';
 import SearchFilter from './SearchFilter';
-
 import styles from '../css/ChatRoomsPage.module.css';
 
 const ChatRoomsPage = () => {
   const {orgId} = useParams();
   const navigate = useNavigate();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [organization, setOrganization] = useState(null);
   const [chatRooms, setChatRooms] = useState([]);
   const [page, setPage] = useState(0);
@@ -34,273 +31,190 @@ const ChatRoomsPage = () => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [hoveredRoom, setHoveredRoom] = useState(null);
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
+
+  // modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomToJoin, setRoomToJoin] = useState(null);
   const [joinLoading, setJoinLoading] = useState(false);
   const [joinError, setJoinError] = useState('');
-  const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [showPublicJoinModal, setShowPublicJoinModal] = useState(false);
   const [publicRoomToJoin, setPublicRoomToJoin] = useState(null);
   const [publicJoinLoading, setPublicJoinLoading] = useState(false);
 
-  // API 호출 방지를 위한 ref
-  const loadingRef = useRef(false);
-  const initializedRef = useRef(false);
-  const lastRequestRef = useRef('');
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [hoveredRoom, setHoveredRoom] = useState(null);
 
-  // 실제 API 호출 함수 - 중복 호출 방지 강화
-  const fetchChatRooms = async (pageNum, search, filter) => {
+  // prevent duplicate calls
+  const loadingRef = useRef(false);
+
+  // fetch chat rooms
+  const fetchChatRooms = async (pageNum, search, filter, {signal} = {}) => {
     if (!orgId || loadingRef.current) {
       return;
     }
-
-    // 중복 요청 방지: 같은 요청이 이미 진행 중인지 확인
-    const requestKey = `${pageNum}-${search}-${filter}`;
-    if (lastRequestRef.current === requestKey) {
-      console.log('중복 요청 차단:', requestKey);
-      return;
-    }
-
-    console.log('API 호출:', {pageNum, search, filter, orgId});
-
-    lastRequestRef.current = requestKey;
     loadingRef.current = true;
-    setIsLoading(true);
     setError(null);
 
     try {
       const orgIdNum = Number(orgId);
-
       let response;
       if (search.trim()) {
-        const params = {
+        response = await searchChatRooms({
           organizationId: orgIdNum,
           keyword: search.trim(),
           type: filter !== 'all' ? filter.toUpperCase() : undefined,
           page: pageNum,
-          size
-        };
-        response = await searchChatRooms(params);
+          size,
+          signal,
+        });
       } else {
-        const params = {
+        response = await getChatRooms({
           organizationId: orgIdNum,
           type: filter !== 'all' ? filter.toUpperCase() : undefined,
           page: pageNum,
           size,
           sort: 'createdAt,DESC',
-        };
-        response = await getChatRooms(params);
+          signal,
+        });
       }
 
-      const roomsData = response?.chatRooms || response?.content || [];
-      const totalPagesData = response?.totalPages || 0;
-      const totalElementsData = response?.totalElements || 0;
-
-      setChatRooms(roomsData);
-      setTotalPages(totalPagesData);
-      setTotalElements(totalElementsData);
-
+      const rooms = response?.chatRooms || response?.content || [];
+      setChatRooms(rooms);
+      setTotalPages(response?.totalPages || 0);
+      setTotalElements(response?.totalElements || 0);
     } catch (err) {
-      console.error('Failed to fetch chat rooms:', err);
-      setError('채팅방 목록을 불러오는 중 오류가 발생했습니다.');
-      setChatRooms([]);
-      setTotalElements(0);
-      setTotalPages(0);
+      if (err.name !== 'AbortError') {
+        console.error(err);
+        setError('채팅방 목록을 불러오는 중 오류가 발생했습니다.');
+      }
     } finally {
-      setIsLoading(false);
       loadingRef.current = false;
-      // 완료 후 일정 시간 뒤 lastRequestRef 초기화 (새로운 요청 허용)
-      setTimeout(() => {
-        lastRequestRef.current = '';
-      }, 100);
     }
   };
 
-  // 조직 정보와 채팅방 목록을 함께 로드
+  // load organization info once
   useEffect(() => {
     if (!orgId) {
       return;
     }
-
-    // 이미 초기화된 경우 return
-    if (initializedRef.current) {
-      return;
-    }
-
-    console.log('초기 데이터 로드 시작');
-    initializedRef.current = true;
-
-    const loadInitialData = async () => {
-      try {
-        const orgIdNum = Number(orgId);
-
-        // 조직 정보와 채팅방 목록을 병렬로 로드
-        const [orgData] = await Promise.all([
-          getOrganizationInfo(orgIdNum),
-          fetchChatRooms(0, '', 'all')
-        ]);
-
-        setOrganization(orgData);
-      } catch (err) {
-        console.error('Failed to load initial data:', err);
-        setError('데이터를 불러오는 중 오류가 발생했습니다.');
-      }
-    };
-
-    loadInitialData();
+    getOrganizationInfo(Number(orgId))
+    .then(setOrganization)
+    .catch(() => setError('조직 정보를 불러오는 중 오류가 발생했습니다.'));
   }, [orgId]);
 
-  // 페이지 변경 핸들러
+  // load chat rooms when page/search/filter change
+  useEffect(() => {
+    if (!orgId) {
+      return;
+    }
+    const controller = new AbortController();
+    const load = async () => {
+      setIsLoading(true);
+      setError(null);
+      await fetchChatRooms(page, activeSearchQuery, filterType,
+          {signal: controller.signal});
+      setIsLoading(false);
+    };
+    load();
+    return () => controller.abort();
+  }, [orgId, page, activeSearchQuery, filterType]);
+
+  // handlers
   const handlePageChange = (newPage) => {
-    console.log('Page change requested:', newPage);
     if (newPage !== page && newPage >= 0 && newPage < totalPages) {
       setPage(newPage);
-      fetchChatRooms(newPage, activeSearchQuery, filterType);
     }
   };
-
-  // 필터 변경 핸들러
   const handleFilterChange = (type) => {
-    console.log('Filter change:', type);
     setFilterType(type);
     setPage(0);
-    fetchChatRooms(0, activeSearchQuery, type);
   };
-
-  // 검색 실행 핸들러
   const handleSearchSubmit = () => {
-    console.log('Search submit:', searchQuery);
     setActiveSearchQuery(searchQuery);
     setPage(0);
-    fetchChatRooms(0, searchQuery, filterType);
   };
-
-  // 검색 클리어 핸들러
   const handleSearchClear = () => {
-    console.log('Search clear');
     setSearchQuery('');
     setActiveSearchQuery('');
     setPage(0);
-    fetchChatRooms(0, '', filterType);
   };
 
+  // modal controls
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
-
-  const handleCreateRoom = ({id: newRoomId}) => {
-    navigate(`/chatroom/${newRoomId}`);
-  };
+  const handleCreateRoom = ({id}) => navigate(`/chatroom/${id}`);
 
   const handleRequestJoin = (room) => {
     setRoomToJoin(room);
     setJoinError('');
     setShowJoinModal(true);
   };
-
+  const handleJoinClose = () => {
+    setJoinError('');
+    setShowJoinModal(false);
+  };
   const handleJoinSubmit = async (password) => {
     if (!roomToJoin) {
       return;
     }
-
     setJoinLoading(true);
     setJoinError('');
-
     try {
       await joinChatRoom({roomId: roomToJoin.id, password});
-
-      setChatRooms((prevRooms) =>
-          prevRooms.map((r) =>
-              r.id === roomToJoin.id ? {...r, joined: true} : r
-          )
+      setChatRooms((prev) =>
+          prev.map((r) => (r.id === roomToJoin.id ? {...r, joined: true} : r))
       );
-
-      setSelectedRoom({...roomToJoin, joined: true});
-      setShowJoinModal(false);
-      setJoinLoading(false);
-
       navigate(`/chatroom/${roomToJoin.id}`);
     } catch (err) {
-      const msg = err.message || '알 수 없는 오류가 발생했습니다.';
-      setJoinError(msg);
+      setJoinError(err.message || '알 수 없는 오류가 발생했습니다.');
     } finally {
       setJoinLoading(false);
+      setShowJoinModal(false);
     }
-  };
-
-  const handleJoinClose = () => {
-    setJoinError('');
-    setShowJoinModal(false);
   };
 
   const handlePublicRoomJoinRequest = (room) => {
     setPublicRoomToJoin(room);
     setShowPublicJoinModal(true);
   };
-
+  const handlePublicRoomJoinClose = () => setShowPublicJoinModal(false);
   const handlePublicRoomJoinConfirm = async (room) => {
     setPublicJoinLoading(true);
-
     try {
-      await joinChatRoom({roomId: room.id, password: null});
-
-      setChatRooms((prevRooms) =>
-          prevRooms.map((r) =>
-              r.id === room.id ? {...r, joined: true} : r
-          )
+      await joinChatRoom({roomId: room.id});
+      setChatRooms((prev) =>
+          prev.map((r) => (r.id === room.id ? {...r, joined: true} : r))
       );
-
-      setSelectedRoom({...room, joined: true});
-      setShowPublicJoinModal(false);
-      setPublicJoinLoading(false);
-
       navigate(`/chatroom/${room.id}`);
-    } catch (err) {
-      console.error('Failed to join public room:', err);
     } finally {
       setPublicJoinLoading(false);
+      setShowPublicJoinModal(false);
     }
-  };
-
-  const handlePublicRoomJoinClose = () => {
-    setShowPublicJoinModal(false);
-    setPublicRoomToJoin(null);
   };
 
   const handleRoomSelect = (room) => {
     if (room.joined) {
-      setSelectedRoom(room);
       navigate(`/chatroom/${room.id}`);
     } else if (room.type === 'PRIVATE') {
       handleRequestJoin(room);
-    } else if (room.type === 'PUBLIC') {
+    } else {
       handlePublicRoomJoinRequest(room);
     }
   };
 
-  const handleSearchChange = (query) => {
-    setSearchQuery(query);
-  };
+  const handleSearchChange = (q) => setSearchQuery(q);
 
-  // 초기 로딩 조건 수정
-  if (isLoading && !organization && !initializedRef.current) {
+  // initial loading state
+  if (isLoading && !organization) {
     return (
         <>
           <OrgTalkHeader/>
           <div className={styles['chat-rooms-page']}>
-            <div className={styles['background-effects']}>
-              <div className={styles['bg-circle-1']}></div>
-              <div className={styles['bg-circle-2']}></div>
-              <div className={styles['bg-circle-3']}></div>
-            </div>
-            <div className={styles['main-content']}>
-              <div className={styles['chat-rooms-container']}>
-                <div className={styles['loading-container']}>
-                  <MessageCircle size={48} className={styles['loading-icon']}/>
-                  <p className={styles['loading-text']}>채팅방 목록을 불러오는 중...</p>
-                </div>
-              </div>
+            <div className={styles['loading-container']}>
+              <MessageCircle size={48}/>
+              <p>채팅방 목록을 불러오는 중...</p>
             </div>
           </div>
         </>
@@ -329,127 +243,69 @@ const ChatRoomsPage = () => {
         />
 
         <div className={styles['chat-rooms-page']}>
-          <div className={styles['background-effects']}>
-            <div className={styles['bg-circle-1']}></div>
-            <div className={styles['bg-circle-2']}></div>
-            <div className={styles['bg-circle-3']}></div>
-          </div>
+          {/* Header, create button, org info */}
           <div className={styles['main-content']}>
-            <div className={styles['chat-rooms-container']}>
-              <div className={styles['header-section']}>
-                <div className={styles['header-top']}>
-                  <div className={styles['org-info']}>
-                    <div className={styles['org-avatar']}>
-                      <img
-                          src={organization?.avatarUrl}
-                          alt={organization?.login}
-                          className={styles['org-avatar-img']}
+            <SearchFilter
+                searchQuery={searchQuery}
+                onSearchChange={handleSearchChange}
+                onSearchSubmit={handleSearchSubmit}
+                onSearchClear={handleSearchClear}
+                filterType={filterType}
+                onFilterChange={handleFilterChange}
+                totalElements={totalElements}
+                filteredElements={chatRooms.length}
+                activeSearchQuery={activeSearchQuery}
+                currentPage={page}
+                totalPages={totalPages}
+            />
+
+            {isLoading && (
+                <div className={styles['loading-container']}>
+                  <MessageCircle size={48}/>
+                  <p>검색 중...</p>
+                </div>
+            )}
+
+            {!isLoading && chatRooms.length > 0 && (
+                <div className={styles['rooms-grid']}>
+                  {chatRooms.map((room) => (
+                      <ChatRoomCard
+                          key={room.id}
+                          room={room}
+                          isHovered={hoveredRoom === room.id}
+                          isSelected={selectedRoom?.id === room.id}
+                          onClick={() => handleRoomSelect(room)}
+                          onMouseEnter={() => setHoveredRoom(room.id)}
+                          onMouseLeave={() => setHoveredRoom(null)}
                       />
-                    </div>
-                    <div className={styles['org-details']}>
-                      <h1 className={styles['org-name']}>{organization?.login}</h1>
-                      <p className={styles['org-member-count']}>
-                        <Users size={16}/> <span>{organization?.memberCount}명의 멤버</span>
-                      </p>
-                    </div>
-                  </div>
-                  <button className={styles['create-button']}
-                          onClick={handleOpenModal}>
-                    <Plus size={18}/>
-                    <span>새 채팅방</span>
-                  </button>
+                  ))}
                 </div>
-                <p className={styles['page-description']}>
-                  참여하고 싶은 <span
-                    className={styles['description-highlight']}>채팅방</span>을
-                  선택하세요
-                </p>
-              </div>
+            )}
 
-              <SearchFilter
-                  searchQuery={searchQuery}
-                  onSearchChange={handleSearchChange}
-                  onSearchSubmit={handleSearchSubmit}
-                  onSearchClear={handleSearchClear}
-                  filterType={filterType}
-                  onFilterChange={handleFilterChange}
-                  totalElements={totalElements}
-                  filteredElements={chatRooms.length}
-                  activeSearchQuery={activeSearchQuery}
-                  currentPage={page}
-                  totalPages={totalPages}
-              />
-
-              {isLoading && (
-                  <div className={styles['loading-container']}>
-                    <MessageCircle size={48}
-                                   className={styles['loading-icon']}/>
-                    <p className={styles['loading-text']}>검색 중...</p>
-                  </div>
-              )}
-
-              {!isLoading && (
-                  <div className={styles['rooms-grid']}>
-                    {chatRooms.map((room) => (
-                        <ChatRoomCard
-                            key={room.id}
-                            room={room}
-                            isHovered={hoveredRoom === room.id}
-                            isSelected={selectedRoom?.id === room.id}
-                            onClick={() => handleRoomSelect(room)}
-                            onMouseEnter={() => setHoveredRoom(room.id)}
-                            onMouseLeave={() => setHoveredRoom(null)}
-                        />
-                    ))}
-                  </div>
-              )}
-
-              {!isLoading && chatRooms.length === 0 && !error && (
-                  <div className={styles['empty-state']}>
-                    <MessageCircle size={48} className={styles['empty-icon']}/>
-                    <h3 className={styles['empty-title']}>
-                      {activeSearchQuery ? '검색 결과가 없습니다' : '채팅방이 없습니다'}
-                    </h3>
-                    <p className={styles['empty-description']}>
-                      {activeSearchQuery
-                          ? '다른 검색어로 시도해보거나 전체 목록을 확인해보세요'
-                          : '새로운 채팅방을 만들어보세요'}
-                    </p>
-                  </div>
-              )}
-
-              {error && (
-                  <div className={styles['error-message']}>
-                    <p>{error}</p>
-                  </div>
-              )}
-
-              {!isLoading && totalPages > 1 && (
-                  <div>
-                    <Pagination
-                        currentPage={page}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                    />
-                  </div>
-              )}
-
-              <div className={styles['status-indicator']}>
-                <div className={styles['status-badge']}>
-                  <div className={styles['status-dot-green']}></div>
-                  <span className={styles['status-text']}>실시간 연결됨</span>
+            {!isLoading && chatRooms.length === 0 && (
+                <div className={styles['empty-state']}>
+                  <MessageCircle size={48}/>
+                  <h3>{activeSearchQuery ? '검색 결과가 없습니다' : '채팅방이 없습니다'}</h3>
+                  <p>
+                    {activeSearchQuery
+                        ? '다른 검색어로 시도해보세요'
+                        : '새로운 채팅방을 만들어보세요'}
+                  </p>
                 </div>
-              </div>
-            </div>
+            )}
+
+            {error && <div className={styles['error-message']}><p>{error}</p>
+            </div>}
+
+            {!isLoading && totalPages > 1 && (
+                <Pagination currentPage={page} totalPages={totalPages}
+                            onPageChange={handlePageChange}/>
+            )}
+
+            {/* bottom decoration, create chat room modal */}
+            <CreateChatRoomModal isOpen={isModalOpen} onClose={handleCloseModal}
+                                 onCreate={handleCreateRoom}/>
           </div>
-
-          <div className={styles['bottom-decoration']}></div>
-
-          <CreateChatRoomModal
-              isOpen={isModalOpen}
-              onClose={handleCloseModal}
-              onCreate={handleCreateRoom}
-          />
         </div>
       </>
   );
