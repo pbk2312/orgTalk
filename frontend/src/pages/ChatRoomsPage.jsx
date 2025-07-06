@@ -96,10 +96,7 @@ const ChatRoomsPage = () => {
     const controller = new AbortController();
     const loadOrganization = async () => {
       try {
-        const data = await getOrganizationInfo(
-          { organizationId: Number(orgId) },
-          { signal: controller.signal }
-        );
+        const data = await getOrganizationInfo(Number(orgId));
         setOrganization(data);
       } catch (err) {
         if (err.name !== 'AbortError') console.error(err);
