@@ -18,43 +18,44 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-  private final AntPathMatcher pathMatcher = new AntPathMatcher();
-  private final JwtAuthenticationService jwtAuthService;
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+    private final JwtAuthenticationService jwtAuthService;
 
-  @Override
-  protected boolean shouldNotFilter(HttpServletRequest request) {
-    String uri = request.getRequestURI();
-    return pathMatcher.match("/ws-stomp/**", uri)
-        || pathMatcher.match("/actuator/**", uri);
-  }
-
-  @Override
-  protected void doFilterInternal(
-      @NonNull HttpServletRequest request,
-      @NonNull HttpServletResponse response,
-      @NonNull FilterChain filterChain
-  ) throws ServletException, IOException {
-    String requestId = UUID.randomUUID().toString();
-    long startTime = System.currentTimeMillis();
-    log.info("Request ID: {} - Starting JWT filter for URI: {}", requestId,
-        request.getRequestURI());
-
-    try {
-      Authentication authentication = jwtAuthService.getAuthenticationFromRequest(request);
-      if (authentication != null) {
-        log.info("Request ID: {} - Valid JWT found. User: {}", requestId,
-            ((ChatMemberDetails) authentication.getPrincipal()).getUsername());
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-      } else {
-        log.debug("Request ID: {} - No valid JWT found. Clearing SecurityContext.", requestId);
-        SecurityContextHolder.clearContext();
-      }
-
-      filterChain.doFilter(request, response);
-    } finally {
-      long duration = System.currentTimeMillis() - startTime;
-      log.info("Request ID: {} - Completed JWT filter for URI: {} in {} ms",
-          requestId, request.getRequestURI(), duration);
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return pathMatcher.match("/api/chat/ws-stomp/**", uri)
+                || pathMatcher.match("/actuator/**", uri);
     }
-  }
+
+    @Override
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
+        String requestId = UUID.randomUUID().toString();
+        long startTime = System.currentTimeMillis();
+        log.info("Request ID: {} - Starting JWT filter for URI: {}", requestId,
+                request.getRequestURI());
+
+        try {
+            Authentication authentication = jwtAuthService.getAuthenticationFromRequest(request);
+            if (authentication != null) {
+                log.info("Request ID: {} - Valid JWT found. User: {}", requestId,
+                        ((ChatMemberDetails) authentication.getPrincipal()).getUsername());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                log.debug("Request ID: {} - No valid JWT found. Clearing SecurityContext.",
+                        requestId);
+                SecurityContextHolder.clearContext();
+            }
+
+            filterChain.doFilter(request, response);
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("Request ID: {} - Completed JWT filter for URI: {} in {} ms",
+                    requestId, request.getRequestURI(), duration);
+        }
+    }
 }
