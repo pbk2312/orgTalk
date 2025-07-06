@@ -47,9 +47,9 @@ const ChatRoomsPage = () => {
 
   // API 호출 방지를 위한 ref
   const loadingRef = useRef(false);
-  const mountedRef = useRef(false);
+  const initializedRef = useRef(false);
 
-  // 통합된 채팅방 로드 함수
+  // 통합된 채팅방 로드 함수 - useCallback 의존성 최소화
   const loadChatRooms = useCallback(async (options = {}) => {
     if (!orgId || loadingRef.current) {
       return;
@@ -116,7 +116,7 @@ const ChatRoomsPage = () => {
       setIsLoading(false);
       loadingRef.current = false;
     }
-  }, [orgId, page, size, activeSearchQuery, filterType]);
+  }, [orgId, size]); // page, activeSearchQuery, filterType 제거
 
   // 조직 정보 로드
   useEffect(() => {
@@ -137,50 +137,60 @@ const ChatRoomsPage = () => {
     loadOrganization();
   }, [orgId]);
 
-  // 초기 로드 및 페이지 변경 시에만 실행
+  // 초기 로드 - 단 한 번만 실행
   useEffect(() => {
-    if (!orgId || !mountedRef.current) {
-      mountedRef.current = true;
+    if (!orgId || initializedRef.current) {
       return;
     }
 
-    loadChatRooms({pageNum: page});
-  }, [orgId, page]);
-
-  // 필터 변경 시 실행
-  useEffect(() => {
-    if (!mountedRef.current) {
-      return;
-    }
-
+    initializedRef.current = true;
     loadChatRooms({
-      resetPage: true,
-      filter: filterType,
-      search: activeSearchQuery
+      pageNum: 0,
+      search: '',
+      filter: 'all'
     });
-  }, [filterType]);
+  }, [orgId, loadChatRooms]);
 
-  // 검색 실행 시 실행
+  // 페이지 변경 시에만 실행
   useEffect(() => {
-    if (!mountedRef.current) {
+    if (!initializedRef.current) {
       return;
     }
 
     loadChatRooms({
-      resetPage: true,
+      pageNum: page,
       search: activeSearchQuery,
       filter: filterType
     });
-  }, [activeSearchQuery]);
+  }, [page]); // page만 의존성으로
 
-  // 컴포넌트 마운트 시 초기 로드
+  // 필터 변경 시 실행
   useEffect(() => {
-    if (!orgId) {
+    if (!initializedRef.current) {
       return;
     }
 
-    loadChatRooms();
-  }, [orgId]);
+    loadChatRooms({
+      resetPage: true,
+      pageNum: 0,
+      search: activeSearchQuery,
+      filter: filterType
+    });
+  }, [filterType]); // filterType만 의존성으로
+
+  // 검색 실행 시 실행
+  useEffect(() => {
+    if (!initializedRef.current) {
+      return;
+    }
+
+    loadChatRooms({
+      resetPage: true,
+      pageNum: 0,
+      search: activeSearchQuery,
+      filter: filterType
+    });
+  }, [activeSearchQuery]); // activeSearchQuery만 의존성으로
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
