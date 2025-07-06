@@ -13,23 +13,23 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-  private final StompHandler stompHandler;
+    private final StompHandler stompHandler;
 
-  @Override
-  public void configureMessageBroker(MessageBrokerRegistry registry) {
-    registry.setApplicationDestinationPrefixes("/send");
-  }
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        registry.setApplicationDestinationPrefixes("/send");
+    }
 
-  @Override
-  public void registerStompEndpoints(StompEndpointRegistry registry) {
-    registry
-        .addEndpoint("/ws-stomp")
-        .setAllowedOriginPatterns("http://localhost:3000")
-        .withSockJS();
-  }
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry
+                .addEndpoint("/api/chat/ws-stomp")
+                .setAllowedOriginPatterns("http://localhost:3000")
+                .withSockJS();
+    }
 
-  @Override
-  public void configureClientInboundChannel(ChannelRegistration registration) {
-    registration.interceptors(stompHandler);
-  }
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(stompHandler);
+    }
 }
