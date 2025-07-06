@@ -15,11 +15,17 @@ export async function createChatRoom(payload) {
   }
 }
 
-export async function getChatRooms(params) {
+export async function getChatRooms(params, options = {}) {
   try {
-    const {data} = await chatRoomApi.get(
-        `/list/${params.organizationId}`,  // 앞의 /api/chatroom 생략
-        {params}
+    // signal을 params에서 제거
+    const { signal, ...requestParams } = params;
+    
+    const { data } = await chatRoomApi.get(
+      `/list/${params.organizationId}`,
+      { 
+        params: requestParams,
+        signal: options.signal // signal을 axios 옵션으로 전달
+      }
     );
     return {
       chatRooms: data.content,
@@ -41,7 +47,7 @@ export async function searchChatRooms({
   page,
   size,
   sort
-}) {
+}, options = {}) {
   try {
     const params = {};
     if (keyword) {
@@ -62,9 +68,12 @@ export async function searchChatRooms({
 
     console.log('🔍 searchChatRooms params:', params);
 
-    const {data} = await chatRoomApi.get(  // 앞의 /api/chatroom 생략
-        `/search/${organizationId}`,
-        {params}
+    const { data } = await chatRoomApi.get(
+      `/search/${organizationId}`,
+      { 
+        params,
+        signal: options.signal // signal을 axios 옵션으로 전달
+      }
     );
 
     return {

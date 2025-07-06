@@ -50,59 +50,69 @@ const ChatRoomsPage = () => {
   const loadingRef = useRef(false);
 
   // fetch chat rooms
-  const fetchChatRooms = async (pageNum, search, filter, {signal} = {}) => {
-    if (!orgId || loadingRef.current) {
-      return;
-    }
-    loadingRef.current = true;
-    setError(null);
+  // 수정된 fetchChatRooms 함수
+const fetchChatRooms = async (pageNum, search, filter, options = {}) => {
+  if (!orgId || loadingRef.current) {
+    return;
+  }
+  loadingRef.current = true;
+  setError(null);
 
-    try {
-      const orgIdNum = Number(orgId);
-      let response;
-      if (search.trim()) {
-        response = await searchChatRooms({
-          organizationId: orgIdNum,
-          keyword: search.trim(),
-          type: filter !== 'all' ? filter.toUpperCase() : undefined,
-          page: pageNum,
-          size,
-          signal,
-        });
-      } else {
-        response = await getChatRooms({
-          organizationId: orgIdNum,
-          type: filter !== 'all' ? filter.toUpperCase() : undefined,
-          page: pageNum,
-          size,
-          sort: 'createdAt,DESC',
-          signal,
-        });
-      }
-
-      const rooms = response?.chatRooms || response?.content || [];
-      setChatRooms(rooms);
-      setTotalPages(response?.totalPages || 0);
-      setTotalElements(response?.totalElements || 0);
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error(err);
-        setError('채팅방 목록을 불러오는 중 오류가 발생했습니다.');
-      }
-    } finally {
-      loadingRef.current = false;
+  try {
+    const orgIdNum = Number(orgId);
+    let response;
+    
+    if (search.trim()) {
+      response = await searchChatRooms({
+        organizationId: orgIdNum,
+        keyword: search.trim(),
+        type: filter !== 'all' ? filter.toUpperCase() : undefined,
+        page: pageNum,
+        size,
+        // signal을 별도로 전달하지 않고 options에서 처리
+      }, options); // options를 두 번째 인자로 전달
+    } else {
+      response = await getChatRooms({
+        organizationId: orgIdNum,
+        type: filter !== 'all' ? filter.toUpperCase() : undefined,
+        page: pageNum,
+        size,
+        sort: 'createdAt,DESC',
+        // signal을 별도로 전달하지 않고 options에서 처리
+      }, options); // options를 두 번째 인자로 전달
     }
-  };
+
+    const rooms = response?.chatRooms || response?.content || [];
+    setChatRooms(rooms);
+    setTotalPages(response?.totalPages || 0);
+    setTotalElements(response?.totalElements || 0);
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.error(err);
+      setError('채팅방 목록을 불러오는 중 오류가 발생했습니다.');
+    }
+  } finally {
+    loadingRef.current = false;
+  }
+};
 
   // load organization info once
   useEffect(() => {
-    if (!orgId) {
-      return;
-    }
-    getOrganizationInfo(Number(orgId))
-    .then(setOrganization)
-    .catch(() => setError('조직 정보를 불러오는 중 오류가 발생했습니다.'));
-  }, [orgId]);
+  if (!orgId) {
+    return;
+  }
+  const controller = new AbortController();
+  const load = async () => {
+    setIsLoading(true);
+    setError(null);
+    await fetchChatRooms(page, activeSearchQuery, filterType, {
+      signal: controller.signal 
+    });
+    setIsLoading(false);
+  };
+  load();
+  return () => controller.abort();
+}, [orgId, page, activeSearchQuery, filterType]);
 
   // load chat rooms when page/search/filter change
   useEffect(() => {
