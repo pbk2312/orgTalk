@@ -236,7 +236,8 @@ const ChatRoomsPage = () => {
     />
 
     <div className={styles['chat-rooms-page']}>
-      <div className={styles['header-section']}>
+      <div className={styles['main-content']}>
+        <div className={styles['header-section']}>
         <div className={styles['org-info']}>
           {organization ? (
             <>
@@ -262,8 +263,6 @@ const ChatRoomsPage = () => {
           </button>
         </div>
       </div>
-
-      <div className={styles['main-content']}>
         <SearchFilter
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
