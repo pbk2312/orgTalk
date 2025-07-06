@@ -1,5 +1,5 @@
 // src/components/ChatRoomsPage.jsx
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {MessageCircle, Plus, Users,} from 'lucide-react';
 import {useNavigate, useParams} from 'react-router-dom';
 import OrgTalkHeader from './OrgTalkHeader';
@@ -49,18 +49,13 @@ const ChatRoomsPage = () => {
   const loadingRef = useRef(false);
   const initializedRef = useRef(false);
 
-  // 통합된 채팅방 로드 함수 - useCallback 의존성 최소화
-  const loadChatRooms = useCallback(async (options = {}) => {
+  // 실제 API 호출 함수 - useCallback 없이 직접 정의
+  const fetchChatRooms = async (pageNum, search, filter) => {
     if (!orgId || loadingRef.current) {
       return;
     }
 
-    const {
-      resetPage = false,
-      pageNum = page,
-      search = activeSearchQuery,
-      filter = filterType
-    } = options;
+    console.log('API 호출:', {pageNum, search, filter, orgId});
 
     loadingRef.current = true;
     setIsLoading(true);
@@ -68,7 +63,6 @@ const ChatRoomsPage = () => {
 
     try {
       const orgIdNum = Number(orgId);
-      const currentPage = resetPage ? 0 : pageNum;
 
       let response;
       if (search.trim()) {
@@ -76,7 +70,7 @@ const ChatRoomsPage = () => {
           organizationId: orgIdNum,
           keyword: search.trim(),
           type: filter !== 'all' ? filter.toUpperCase() : undefined,
-          page: currentPage,
+          page: pageNum,
           size
         };
         response = await searchChatRooms(params);
@@ -84,15 +78,12 @@ const ChatRoomsPage = () => {
         const params = {
           organizationId: orgIdNum,
           type: filter !== 'all' ? filter.toUpperCase() : undefined,
-          page: currentPage,
+          page: pageNum,
           size,
           sort: 'createdAt,DESC',
         };
         response = await getChatRooms(params);
       }
-
-      console.log('API Response:', response);
-      console.log('Filter Type:', filter);
 
       const roomsData = response?.chatRooms || response?.content || [];
       const totalPagesData = response?.totalPages || 0;
@@ -101,10 +92,6 @@ const ChatRoomsPage = () => {
       setChatRooms(roomsData);
       setTotalPages(totalPagesData);
       setTotalElements(totalElementsData);
-
-      if (resetPage && page !== 0) {
-        setPage(0);
-      }
 
     } catch (err) {
       console.error('Failed to fetch chat rooms:', err);
@@ -116,7 +103,7 @@ const ChatRoomsPage = () => {
       setIsLoading(false);
       loadingRef.current = false;
     }
-  }, [orgId, size]); // page, activeSearchQuery, filterType 제거
+  };
 
   // 조직 정보 로드
   useEffect(() => {
@@ -137,60 +124,50 @@ const ChatRoomsPage = () => {
     loadOrganization();
   }, [orgId]);
 
-  // 초기 로드 - 단 한 번만 실행
+  // 초기 로드만 - 단 한 번만 실행
   useEffect(() => {
     if (!orgId || initializedRef.current) {
       return;
     }
 
+    console.log('초기 로드 실행');
     initializedRef.current = true;
-    loadChatRooms({
-      pageNum: 0,
-      search: '',
-      filter: 'all'
-    });
-  }, [orgId, loadChatRooms]);
+    fetchChatRooms(0, '', 'all');
+  }, [orgId]);
 
-  // 페이지 변경 시에만 실행
-  useEffect(() => {
-    if (!initializedRef.current) {
-      return;
+  // 페이지 변경 핸들러
+  const handlePageChange = (newPage) => {
+    console.log('Page change requested:', newPage);
+    if (newPage !== page && newPage >= 0 && newPage < totalPages) {
+      setPage(newPage);
+      fetchChatRooms(newPage, activeSearchQuery, filterType);
     }
+  };
 
-    loadChatRooms({
-      pageNum: page,
-      search: activeSearchQuery,
-      filter: filterType
-    });
-  }, [page]); // page만 의존성으로
+  // 필터 변경 핸들러
+  const handleFilterChange = (type) => {
+    console.log('Filter change:', type);
+    setFilterType(type);
+    setPage(0);
+    fetchChatRooms(0, activeSearchQuery, type);
+  };
 
-  // 필터 변경 시 실행
-  useEffect(() => {
-    if (!initializedRef.current) {
-      return;
-    }
+  // 검색 실행 핸들러
+  const handleSearchSubmit = () => {
+    console.log('Search submit:', searchQuery);
+    setActiveSearchQuery(searchQuery);
+    setPage(0);
+    fetchChatRooms(0, searchQuery, filterType);
+  };
 
-    loadChatRooms({
-      resetPage: true,
-      pageNum: 0,
-      search: activeSearchQuery,
-      filter: filterType
-    });
-  }, [filterType]); // filterType만 의존성으로
-
-  // 검색 실행 시 실행
-  useEffect(() => {
-    if (!initializedRef.current) {
-      return;
-    }
-
-    loadChatRooms({
-      resetPage: true,
-      pageNum: 0,
-      search: activeSearchQuery,
-      filter: filterType
-    });
-  }, [activeSearchQuery]); // activeSearchQuery만 의존성으로
+  // 검색 클리어 핸들러
+  const handleSearchClear = () => {
+    console.log('Search clear');
+    setSearchQuery('');
+    setActiveSearchQuery('');
+    setPage(0);
+    fetchChatRooms(0, '', filterType);
+  };
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
@@ -287,26 +264,6 @@ const ChatRoomsPage = () => {
 
   const handleSearchChange = (query) => {
     setSearchQuery(query);
-  };
-
-  const handleSearchSubmit = () => {
-    setActiveSearchQuery(searchQuery);
-  };
-
-  const handleSearchClear = () => {
-    setSearchQuery('');
-    setActiveSearchQuery('');
-  };
-
-  const handleFilterChange = (type) => {
-    setFilterType(type);
-  };
-
-  const handlePageChange = (newPage) => {
-    console.log('Page change requested:', newPage);
-    if (newPage !== page && newPage >= 0 && newPage < totalPages) {
-      setPage(newPage);
-    }
   };
 
   if (isLoading && !organization) {
