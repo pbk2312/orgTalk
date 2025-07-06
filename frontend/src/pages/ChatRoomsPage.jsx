@@ -215,116 +215,142 @@ const ChatRoomsPage = () => {
     );
   }
 
-  return (
-    <><OrgTalkHeader />
+    return (
+    <>
+      <OrgTalkHeader />
 
-    <PasswordInputModal
-      isOpen={showJoinModal}
-      onClose={handleJoinClose}
-      onSubmit={handleJoinSubmit}
-      roomName={roomToJoin?.name || ''}
-      isLoading={joinLoading}
-      errorMessage={joinError}
-    />
+      {/* 비밀번호 입력 모달 (비공개방용) */}
+      <PasswordInputModal
+        isOpen={showJoinModal}
+        onClose={handleJoinClose}
+        onSubmit={handleJoinSubmit}
+        roomName={roomToJoin?.name || ''}
+        isLoading={joinLoading}
+        errorMessage={joinError}
+      />
 
-    <PublicRoomJoinModal
-      isOpen={showPublicJoinModal}
-      onClose={handlePublicRoomJoinClose}
-      onConfirm={handlePublicRoomJoinConfirm}
-      room={publicRoomToJoin}
-      isLoading={publicJoinLoading}
-    />
+      {/* 공개방 참여 안내 모달 (새로 추가) */}
+      <PublicRoomJoinModal
+        isOpen={showPublicJoinModal}
+        onClose={handlePublicRoomJoinClose}
+        onConfirm={handlePublicRoomJoinConfirm}
+        room={publicRoomToJoin}
+        isLoading={publicJoinLoading}
+      />
 
-    <div className={styles['chat-rooms-page']}>
-      <div className={styles['main-content']}>
-        <div className={styles['header-section']}>
-        <div className={styles['org-info']}>
-          {organization ? (
-            <>
-              <div className={styles['org-avatar']}>
-                <img
-                  src={organization.avatarUrl}
-                  alt={organization.login}
-                  className={styles['org-avatar-img']}
-                />
+      <div className={styles['chat-rooms-page']}>
+        <div className={styles['background-effects']}>
+          <div className={styles['bg-circle-1']}></div>
+          <div className={styles['bg-circle-2']}></div>
+          <div className={styles['bg-circle-3']}></div>
+        </div>
+        <div className={styles['main-content']}>
+          <div className={styles['chat-rooms-container']}>
+            <div className={styles['header-section']}>
+              <div className={styles['header-top']}>
+                <div className={styles['org-info']}>
+                  <div className={styles['org-avatar']}>
+                    <img
+                      src={organization?.avatarUrl}
+                      alt={organization?.login}
+                      className={styles['org-avatar-img']}
+                    />
+                  </div>
+                  <div className={styles['org-details']}>
+                    <h1 className={styles['org-name']}>{organization?.login}</h1>
+                    <p className={styles['org-member-count']}>
+                      <Users size={16} /> <span>{organization?.memberCount}명의 멤버</span>
+                    </p>
+                  </div>
+                </div>
+                <button className={styles['create-button']} onClick={handleOpenModal}>
+                  <Plus size={18} />
+                  <span>새 채팅방</span>
+                </button>
               </div>
-              <div className={styles['org-details']}>
-                <h2 className={styles['org-name']}>{organization.login}</h2>
-                <p className={styles['org-member-count']}>
-                  <Users size={16} /> {organization.memberCount}명
+              <p className={styles['page-description']}>
+                참여하고 싶은 <span className={styles['description-highlight']}>채팅방</span>을 선택하세요
+              </p>
+            </div>
+
+            <SearchFilter
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              onSearchSubmit={handleSearchSubmit}
+              onSearchClear={handleSearchClear}
+              filterType={filterType}
+              onFilterChange={handleFilterChange}
+              totalElements={totalElements}
+              filteredElements={chatRooms.length} 
+              activeSearchQuery={activeSearchQuery}
+              currentPage={page}
+              totalPages={totalPages}
+            />
+
+            {isLoading && (
+              <div className={styles['loading-container']}>
+                <MessageCircle size={48} className={styles['loading-icon']} />
+                <p className={styles['loading-text']}>검색 중...</p>
+              </div>
+            )}
+
+            {!isLoading && (
+              <div className={styles['rooms-grid']}>
+                {chatRooms.map((room) => (
+                  <ChatRoomCard
+                    key={room.id}
+                    room={room}
+                    isHovered={hoveredRoom === room.id}
+                    isSelected={selectedRoom?.id === room.id}
+                    onClick={() => handleRoomSelect(room)}
+                    onMouseEnter={() => setHoveredRoom(room.id)}
+                    onMouseLeave={() => setHoveredRoom(null)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!isLoading && chatRooms.length === 0 && !error && (
+              <div className={styles['empty-state']}>
+                <MessageCircle size={48} className={styles['empty-icon']} />
+                <h3 className={styles['empty-title']}>
+                  {activeSearchQuery ? '검색 결과가 없습니다' : '채팅방이 없습니다'}
+                </h3>
+                <p className={styles['empty-description']}>
+                  {activeSearchQuery
+                    ? '다른 검색어로 시도해보거나 전체 목록을 확인해보세요'
+                    : '새로운 채팅방을 만들어보세요'}
                 </p>
               </div>
-            </>
-          ) : (
-            <p>조직 정보를 불러오는 중…</p>
-          )}
-          <button className={styles['create-button']} onClick={handleOpenModal}>
-            <Plus size={18} /> 새 채팅방
-          </button>
+            )}
+
+            {error && (
+              <div className={styles['error-message']}>
+                <p>{error}</p>
+              </div>
+            )}
+
+            {!isLoading && totalPages > 1 && (
+              <div>
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
+
+            {/* 실시간 연결 상태 */}
+            <div className={styles['status-indicator']}>
+              <div className={styles['status-badge']}>
+                <div className={styles['status-dot-green']}></div>
+                <span className={styles['status-text']}>실시간 연결됨</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-        <SearchFilter
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
-          onSearchSubmit={handleSearchSubmit}
-          onSearchClear={handleSearchClear}
-          filterType={filterType}
-          onFilterChange={handleFilterChange}
-          totalElements={totalElements}
-          filteredElements={chatRooms.length}
-          activeSearchQuery={activeSearchQuery}
-          currentPage={page}
-          totalPages={totalPages}
-        />
 
-        {isLoading && (
-          <div className={styles['loading-container']}>
-            <MessageCircle size={48} />
-            <p>검색 중...</p>
-          </div>
-        )}
-
-        {!isLoading && chatRooms.length > 0 && (
-          <div className={styles['rooms-grid']}>
-            {chatRooms.map((room) => (
-              <ChatRoomCard
-                key={room.id}
-                room={room}
-                isHovered={hoveredRoom === room.id}
-                isSelected={selectedRoom?.id === room.id}
-                onClick={() => handleRoomSelect(room)}
-                onMouseEnter={() => setHoveredRoom(room.id)}
-                onMouseLeave={() => setHoveredRoom(null)}
-              />
-            ))}
-          </div>
-        )}
-
-        {!isLoading && chatRooms.length === 0 && (
-          <div className={styles['empty-state']}>
-            <MessageCircle size={48} />
-            <h3>{activeSearchQuery ? '검색 결과가 없습니다' : '채팅방이 없습니다'}</h3>
-            <p>
-              {activeSearchQuery
-                ? '다른 검색어로 시도해보세요'
-                : '새로운 채팅방을 만들어보세요'}
-            </p>
-          </div>
-        )}
-
-        {error && (
-          <div className={styles['error-message']}>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {!isLoading && totalPages > 1 && (
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        )}
+        <div className={styles['bottom-decoration']}></div>
 
         <CreateChatRoomModal
           isOpen={isModalOpen}
@@ -332,7 +358,7 @@ const ChatRoomsPage = () => {
           onCreate={handleCreateRoom}
         />
       </div>
-    </div></>
+    </>
   );
 };
 
