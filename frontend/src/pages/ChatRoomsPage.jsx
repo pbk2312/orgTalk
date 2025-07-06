@@ -48,15 +48,24 @@ const ChatRoomsPage = () => {
   // API 호출 방지를 위한 ref
   const loadingRef = useRef(false);
   const initializedRef = useRef(false);
+  const lastRequestRef = useRef('');
 
-  // 실제 API 호출 함수 - useCallback 없이 직접 정의
+  // 실제 API 호출 함수 - 중복 호출 방지 강화
   const fetchChatRooms = async (pageNum, search, filter) => {
     if (!orgId || loadingRef.current) {
       return;
     }
 
+    // 중복 요청 방지: 같은 요청이 이미 진행 중인지 확인
+    const requestKey = `${pageNum}-${search}-${filter}`;
+    if (lastRequestRef.current === requestKey) {
+      console.log('중복 요청 차단:', requestKey);
+      return;
+    }
+
     console.log('API 호출:', {pageNum, search, filter, orgId});
 
+    lastRequestRef.current = requestKey;
     loadingRef.current = true;
     setIsLoading(true);
     setError(null);
@@ -102,37 +111,45 @@ const ChatRoomsPage = () => {
     } finally {
       setIsLoading(false);
       loadingRef.current = false;
+      // 완료 후 일정 시간 뒤 lastRequestRef 초기화 (새로운 요청 허용)
+      setTimeout(() => {
+        lastRequestRef.current = '';
+      }, 100);
     }
   };
 
-  // 조직 정보 로드
+  // 조직 정보와 채팅방 목록을 함께 로드
   useEffect(() => {
     if (!orgId) {
       return;
     }
 
-    const loadOrganization = async () => {
-      try {
-        const orgIdNum = Number(orgId);
-        const data = await getOrganizationInfo(orgIdNum);
-        setOrganization(data);
-      } catch (err) {
-        console.error('Failed to fetch organization info:', err);
-      }
-    };
-
-    loadOrganization();
-  }, [orgId]);
-
-  // 초기 로드만 - 단 한 번만 실행
-  useEffect(() => {
-    if (!orgId || initializedRef.current) {
+    // 이미 초기화된 경우 return
+    if (initializedRef.current) {
       return;
     }
 
-    console.log('초기 로드 실행');
+    console.log('초기 데이터 로드 시작');
     initializedRef.current = true;
-    fetchChatRooms(0, '', 'all');
+
+    const loadInitialData = async () => {
+      try {
+        const orgIdNum = Number(orgId);
+
+        // 조직 정보와 채팅방 목록을 병렬로 로드
+        const [orgData] = await Promise.all([
+          getOrganizationInfo(orgIdNum),
+          fetchChatRooms(0, '', 'all')
+        ]);
+
+        setOrganization(orgData);
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+        setError('데이터를 불러오는 중 오류가 발생했습니다.');
+      }
+    };
+
+    loadInitialData();
   }, [orgId]);
 
   // 페이지 변경 핸들러
@@ -266,7 +283,8 @@ const ChatRoomsPage = () => {
     setSearchQuery(query);
   };
 
-  if (isLoading && !organization) {
+  // 초기 로딩 조건 수정
+  if (isLoading && !organization && !initializedRef.current) {
     return (
         <>
           <OrgTalkHeader/>
