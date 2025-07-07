@@ -68,10 +68,12 @@ const LoginPage = () => {
   const handleGitHubLogin = () => {
     setIsLoading(true);
     setTimeout(() => {
-      // OAUTH_BASE_URL이 환경변수로 설정되어 있다면 사용, 아니면 ''
-      window.location.href = `${OAUTH_BASE_URL || ''}/oauth2/authorization/github`;
+      // OAUTH_BASE_URL이 환경변수로 설정되어 있다면 사용, 아니면 로컬 환경에서는 localhost:8080 사용
+      const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:8080' : OAUTH_BASE_URL || '';
+      window.location.href = `${baseUrl}/oauth2/authorization/github`;
     }, 500);
   };
+
 
   const features = [
     { icon: Users, title: "Organization 기반", desc: "같은 Org 멤버들과 소통", colorClass: "feature-blue", delay: "0.1s" },
