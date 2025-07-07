@@ -17,7 +17,7 @@ export function useChatStomp(
   } catch {
   }
 
-  // 여기서 기본 brokerUrl이 API_BASE_URL + /ws-stomp 가 되도록 변경
+
   const effectiveBrokerUrl =
       brokerUrl || `${CHAT_BASE_URL.replace(/\/$/, '')}/ws-stomp`;
 
