@@ -39,7 +39,10 @@ env:
 
 jobs:
   test:
-    if: github.ref == 'refs/heads/dev' # dev 브랜치에서만 진행
+    # PR에서는 github.head_ref, push에서는 github.ref_name 사용
+    if: |
+      (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
+      (github.event_name == 'push' && github.ref_name == 'dev')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +84,9 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev'
+    if: |
+      (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
+      (github.event_name == 'push' && github.ref_name == 'dev')
 
     steps:
       - uses: actions/checkout@v4
@@ -161,8 +166,8 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # master 브랜치에서 배포 실행
     if: github.ref == 'refs/heads/master' || github.event.pull_request.merged == true
+
 
     steps:
       - uses: actions/checkout@v4
