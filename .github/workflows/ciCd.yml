@@ -166,8 +166,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' || github.event.pull_request.merged == true
-
+    # master 브랜치에서 배포 실행 (PR merge 후 push만)
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') || 
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'master')
 
     steps:
       - uses: actions/checkout@v4
