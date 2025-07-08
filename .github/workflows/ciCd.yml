@@ -39,10 +39,11 @@ env:
 
 jobs:
   test:
-    # PR에서는 github.head_ref, push에서는 github.ref_name 사용
+    # dev 브랜치 관련 이벤트 또는 master 브랜치 push에서 실행
     if: |
       (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
-      (github.event_name == 'push' && github.ref_name == 'dev')
+      (github.event_name == 'push' && github.ref_name == 'dev') ||
+      (github.event_name == 'push' && github.ref_name == 'master')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -86,7 +87,8 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
-      (github.event_name == 'push' && github.ref_name == 'dev')
+      (github.event_name == 'push' && github.ref_name == 'dev') ||
+      (github.event_name == 'push' && github.ref_name == 'master')
 
     steps:
       - uses: actions/checkout@v4
@@ -166,10 +168,8 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # master 브랜치에서 배포 실행 (PR merge 후 push만)
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/master') || 
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'master')
+    # master 브랜치에 push될 때만 배포 실행
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     steps:
       - uses: actions/checkout@v4
