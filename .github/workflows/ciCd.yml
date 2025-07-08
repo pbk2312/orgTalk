@@ -167,7 +167,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     # master 브랜치에서 배포 실행 (PR merge 후 push만)
-    if: github.event_name == 'push' && github.ref_name == 'master'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') || 
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'master')
 
     steps:
       - uses: actions/checkout@v4
