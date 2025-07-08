@@ -1,11 +1,11 @@
-# .github/workflows/deploy.yml
+# .github/workflows/ciCd.yml
 name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, dev ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, dev ]
 
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -24,10 +24,6 @@ env:
   MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
   MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
 
-  # Mail (추가)
-  MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-  MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-
   # JWT Keys
   ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
   REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
@@ -43,6 +39,7 @@ env:
 
 jobs:
   test:
+    if: github.ref == 'refs/heads/dev' # dev 브랜치에서만 진행
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +81,7 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/dev'
 
     steps:
       - uses: actions/checkout@v4
@@ -136,7 +133,6 @@ jobs:
           echo "Cleaning up existing Docker images..."
           # 기존 프로젝트 이미지들 삭제
           docker images | grep -E "${{ env.DOCKER_USERNAME }}/(main-server|chat-server|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
-          # dangling 이미지 정리
           docker image prune -f || true
 
       # Docker 이미지 빌드 및 푸시
@@ -275,13 +271,11 @@ jobs:
               docker rmi ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true  
               docker rmi ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
             
-              # dangling 이미지 정리
               docker image prune -f
             
-              # 사용하지 않는 이미지 정리 (현재 사용 중이 아닌 이미지들)
               docker image prune -a -f --filter "until=24h"
             
-              echo "✅ Image cleanup completed!"
+              echo "Image cleanup completed!"
             
             else
               echo "❌ Health check failed"
@@ -291,7 +285,7 @@ jobs:
               docker compose logs
             
               # 배포 실패 시 백업 이미지로 롤백
-              echo "🔄 Rolling back to backup images..."
+              echo "Rolling back to backup images..."
               docker compose down || true
             
               # 백업이 있으면 롤백
