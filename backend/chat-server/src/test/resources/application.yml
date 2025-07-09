@@ -37,20 +37,6 @@ spring:
     console:
       enabled: true
 
-  # 테스트용 Kafka 설정
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: chat-server-test-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: com.example.chat.domain
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
 custom:
   jwt:
     duration:
