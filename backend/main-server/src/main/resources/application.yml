@@ -1,0 +1,78 @@
+server:
+  port: 8080
+  tomcat:
+    mbeanregistry:
+      enabled: true
+  application:
+    name: chat-server
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/orgtalk
+    username: Yuhan
+    password: '${DB_PASSWORD}'  # 환경 변수로 관리
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: '${GITHUB_CLIENT_ID}'  # 환경 변수로 관리
+            client-secret: '${GITHUB_CLIENT_SECRET}'  # 환경 변수로 관리
+            scope:
+              - read:user
+              - user:email
+              - read:org
+            redirect-uri: "{baseUrl}/login/oauth2/code/github"
+            client-name: GitHub
+        provider:
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: login
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      circuitbreaker_test:
+        failure-rate-threshold: 60
+        recordExceptions:
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+        ignoreExceptions:
+          - java.lang.IllegalStateException
+
+custom:
+  jwt:
+    duration:
+      access: 3600000         # Access Token: 60분 (밀리초 기준)
+      refresh: 86400000      # Refresh Token: 24시간 (밀리초 기준)
+    secrets:
+      origin-key: '${JWT_ORIGIN_KEY}'  # 환경 변수로 관리
+      app-key: '${JWT_APP_KEY}'  # 환경 변수로 관리
+  app:
+    frontend-redirect-uri: http://localhost:3000/organizations  # 로그인 성공 후 리디렉션 URI
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    prometheus:
+      enabled: true
