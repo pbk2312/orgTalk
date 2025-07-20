@@ -33,6 +33,9 @@ env:
   # GitHub OAuth
   OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
   OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
+  RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+  RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+  RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
 
   # Frontend
   FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
@@ -62,11 +65,29 @@ jobs:
         run: |
           cd backend/main-server
           ../gradlew test
+        env:
+          ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+          REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
+          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
+          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
+          OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
+          OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
+          FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
       - name: Run Chat Server tests
         run: |
           cd backend/chat-server
           ../gradlew test
+        env:
+          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
+          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
+          MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
+          MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+          MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
+          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
 
+      
       # 프론트엔드 테스트
       - name: Set up Node.js
         uses: actions/setup-node@v4
