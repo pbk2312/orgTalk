@@ -6,12 +6,14 @@ server:
 
 spring:
   application:
-    name: chat-server
+    name: main-server
+
   datasource:
     url: jdbc:h2:mem:testdb
     username: sa
-    password: ''
+    password:
     driver-class-name: org.h2.Driver
+
   data:
     redis:
       host: localhost
@@ -19,7 +21,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create
     show-sql: true
     properties:
       hibernate:
@@ -30,8 +32,8 @@ spring:
       client:
         registration:
           github:
-            client-id: '${GITHUB_CLIENT_ID}'  # 환경 변수로 관리
-            client-secret: '${GITHUB_CLIENT_SECRET}'  # 환경 변수로 관리
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
             scope:
               - read:user
               - user:email
@@ -59,19 +61,17 @@ resilience4j:
 custom:
   jwt:
     duration:
-      access: 3600000         # Access Token: 60분 (밀리초 기준)
-      refresh: 86400000      # Refresh Token: 24시간 (밀리초 기준)
+      access: 3600000         # Access Token: 60분 (밀리초)
+      refresh: 86400000       # Refresh Token: 24시간 (밀리초)
     secrets:
-      origin-key: '${JWT_ORIGIN_KEY}'  # 환경 변수로 관리
-      app-key: '${JWT_APP_KEY}'  # 환경 변수로 관리
+      origin-key: ${JWT_ORIGIN_KEY}
+      app-key: ${JWT_APP_KEY}
   app:
-    frontend-redirect-uri: http://localhost:3000/organizations  # 로그인 성공 후 리디렉션 URI
+    frontend-redirect-uri: ${APP_FRONTEND_REDIRECT_URI}
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health, info, prometheus
-  endpoint:
-    prometheus:
-      enabled: true
+logging:
+  level:
+    org.springframework.web.socket.messaging.StompSubProtocolHandler: DEBUG
+    org.springframework.web.socket.server: DEBUG
+    org.springframework.web.socket.sockjs: DEBUG
+    org.springframework.messaging: DEBUG

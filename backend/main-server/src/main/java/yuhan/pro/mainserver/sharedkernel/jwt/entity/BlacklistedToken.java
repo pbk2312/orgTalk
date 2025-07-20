@@ -13,7 +13,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// Redis 장애시 대응책
+
 @Getter
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -21,19 +21,19 @@ import lombok.NoArgsConstructor;
 public class BlacklistedToken {
 
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(nullable = false, unique = true, length = 512)
-  private String token;
+    @Column(nullable = false, unique = true, length = 512)
+    private String token;
 
-  @Column(nullable = false)
-  private Instant expiry;
+    @Column(nullable = false)
+    private Instant expiry;
 
-  @Builder
-  public BlacklistedToken(String token, Instant expiry) {
-    this.token = token;
-    this.expiry = expiry;
-  }
+    @Builder
+    public BlacklistedToken(String token, Instant expiry) {
+        this.token = token;
+        this.expiry = expiry;
+    }
 }

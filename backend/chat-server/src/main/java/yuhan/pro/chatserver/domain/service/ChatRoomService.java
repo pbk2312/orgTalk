@@ -51,327 +51,325 @@ import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 @RequiredArgsConstructor
 public class ChatRoomService {
 
-  private final ChatRoomRepository chatRoomRepository;
-  private final ChatRoomMemberRepository chatRoomMemberRepository;
-  private final PasswordEncoder passwordEncoder;
-  private final MemberClient memberClient;
-  private final ChatRepository chatRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomMemberRepository chatRoomMemberRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final MemberClient memberClient;
+    private final ChatRepository chatRepository;
 
-  @Transactional
-  public ChatRoomCreateResponse saveChatRoom(ChatRoomCreateRequest request) {
+    @Transactional
+    public ChatRoomCreateResponse saveChatRoom(ChatRoomCreateRequest request) {
 
-    Authentication authentication = getAuthentication();
+        Authentication authentication = getAuthentication();
 
-    Long memberId = getMemberId(authentication);
+        Long memberId = getMemberId(authentication);
 
-    valiadteChatRoomNameDuplicated(request);
+        valiadteChatRoomNameDuplicated(request);
 
-    validateMemberInOrg(request.organizationId(), authentication);
+        validateMemberInOrg(request.organizationId(), authentication);
 
-    RoomType type = request.type();
+        RoomType type = request.type();
 
-    String encodedPassword = null;
-    if (requestRoomTypeIsPrivate(type)) {
-      String rawPassword = request.password();
+        String encodedPassword = null;
+        if (requestRoomTypeIsPrivate(type)) {
+            String rawPassword = request.password();
 
-      rawPasswordIsEmpty(rawPassword);
-      encodedPassword = passwordEncoder.encode(rawPassword);
+            rawPasswordIsEmpty(rawPassword);
+            encodedPassword = passwordEncoder.encode(rawPassword);
+        }
+
+        ChatRoom chatRoom = ChatRoomMapper.fromChatRoomCreateRequest(request, memberId,
+                encodedPassword);
+
+        chatRoomRepository.save(chatRoom);
+
+        ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
+        chatRoomMemberRepository.save(chatRoomMember);
+        return ChatRoomMapper.toChatRoomCreateResponse(chatRoom);
     }
 
-    ChatRoom chatRoom = ChatRoomMapper.fromChatRoomCreateRequest(request, memberId,
-        encodedPassword);
+    @Transactional
+    public void joinChatRoom(Long roomId, JoinChatRoomRequest request) {
+        String password = request.password();
+        ChatRoom chatRoom = findChatRoomOrThrow(roomId);
 
-    // 방 저장
-    chatRoomRepository.save(chatRoom);
+        if (chatRoom.isPrivate() && !chatRoom.matchesPassword(password, passwordEncoder)) {
+            throw new CustomException(PRIVATE_ROOM_PASSWORD_NOT_MATCH);
+        }
 
-    // 멤버 저장
-    ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
-    chatRoomMemberRepository.save(chatRoomMember);
-    return ChatRoomMapper.toChatRoomCreateResponse(chatRoom);
-  }
+        Authentication authentication = getAuthentication();
 
-  @Transactional
-  public void joinChatRoom(Long roomId, JoinChatRoomRequest request) {
-    String password = request.password();
-    ChatRoom chatRoom = findChatRoomOrThrow(roomId);
-
-    if (chatRoom.isPrivate() && !chatRoom.matchesPassword(password, passwordEncoder)) {
-      throw new CustomException(PRIVATE_ROOM_PASSWORD_NOT_MATCH);
+        Long memberId = getMemberId(authentication);
+        ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
+        chatRoomMemberRepository.save(chatRoomMember);
     }
 
-    Authentication authentication = getAuthentication();
 
-    Long memberId = getMemberId(authentication);
-    ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
-    chatRoomMemberRepository.save(chatRoomMember);
-  }
+    @Transactional(readOnly = true)
+    public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, RoomType type,
+            Pageable pageable) {
 
+        Authentication authentication = getAuthentication();
 
-  @Transactional(readOnly = true)
-  public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, RoomType type,
-      Pageable pageable) {
+        Long memberId = getMemberId(authentication);
 
-    Authentication authentication = getAuthentication();
+        validateMemberInOrg(organizationId, authentication);
 
-    Long memberId = getMemberId(authentication);
+        Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, type, pageable);
+        if (summaryPage.isEmpty()) {
+            return PageResponse.fromPage(Page.empty(pageable));
+        }
 
-    // Todo: 주석 삭제
-    validateMemberInOrg(organizationId, authentication);
+        List<Long> chatRoomIds = extractRoomIds(summaryPage);
+        Map<Long, Long> memberCounts = fetchMemberCounts(chatRoomIds);
+        Set<Long> joinedRoomIds = fetchJoinedRoomIds(chatRoomIds, memberId);
 
-    Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, type, pageable);
-    if (summaryPage.isEmpty()) {
-      return PageResponse.fromPage(Page.empty(pageable));
+        Page<ChatRoomResponse> responsePage = mapToResponsePage(summaryPage, memberCounts,
+                joinedRoomIds, pageable);
+        return PageResponse.fromPage(responsePage);
     }
 
-    List<Long> chatRoomIds = extractRoomIds(summaryPage);
-    Map<Long, Long> memberCounts = fetchMemberCounts(chatRoomIds);
-    Set<Long> joinedRoomIds = fetchJoinedRoomIds(chatRoomIds, memberId);
 
-    Page<ChatRoomResponse> responsePage = mapToResponsePage(summaryPage, memberCounts,
-        joinedRoomIds, pageable);
-    return PageResponse.fromPage(responsePage);
-  }
+    @Transactional(readOnly = true)
+    public PageResponse<ChatRoomResponse> searchChatRooms(
+            Long organizationId,
+            RoomType type,
+            String keyword,
+            Pageable pageable
+    ) {
+        Long memberId = getMemberId(getAuthentication());
 
+        // ① 키워드 분기 로직 분리
+        Page<ChatRoomSummary> summaryPage = fetchSummaryPage(organizationId, type, keyword,
+                pageable);
 
-  @Transactional(readOnly = true)
-  public PageResponse<ChatRoomResponse> searchChatRooms(
-      Long organizationId,
-      RoomType type,
-      String keyword,
-      Pageable pageable
-  ) {
-    Long memberId = getMemberId(getAuthentication());
+        // ② 검색 결과가 없으면 빈 페이지 리턴
+        if (summaryPage.isEmpty()) {
+            return PageResponse.fromPage(Page.empty(pageable));
+        }
 
-    // ① 키워드 분기 로직 분리
-    Page<ChatRoomSummary> summaryPage = fetchSummaryPage(organizationId, type, keyword, pageable);
+        // ③ 추가 데이터 조회 및 매핑
+        List<Long> roomIds = summaryPage.stream()
+                .map(ChatRoomSummary::id)
+                .toList();
+        Map<Long, Long> memberCounts = fetchMemberCounts(roomIds);
+        Set<Long> joinedRoomIds = fetchJoinedRoomIds(roomIds, memberId);
 
-    // ② 검색 결과가 없으면 빈 페이지 리턴
-    if (summaryPage.isEmpty()) {
-      return PageResponse.fromPage(Page.empty(pageable));
-    }
-
-    // ③ 추가 데이터 조회 및 매핑
-    List<Long> roomIds = summaryPage.stream()
-        .map(ChatRoomSummary::id)
-        .toList();
-    Map<Long, Long> memberCounts = fetchMemberCounts(roomIds);
-    Set<Long> joinedRoomIds = fetchJoinedRoomIds(roomIds, memberId);
-
-    Page<ChatRoomResponse> responsePage = mapToResponsePage(
-        summaryPage,
-        memberCounts,
-        joinedRoomIds,
-        pageable
-    );
-    return PageResponse.fromPage(responsePage);
-  }
-
-
-  @Transactional(readOnly = true)
-  public ChatRoomInfoResponse getChatRoomInfo(Long roomId, String jwtToken) {
-    ChatRoom chatRoom = findChatRoomOrThrow(roomId);
-
-    // 메인 서버에서 참여중인 멤버 정보 가져오기
-    Set<Long> memberIds = chatRoom.getMembers().stream()
-        .map(ChatRoomMember::getMemberId)
-        .collect(Collectors.toSet());
-
-    Authentication auth = getAuthentication();
-    Long memberId = getMemberId(auth);
-
-    validateMemberRoomIn(chatRoom, memberId);
-
-    Set<ChatMemberResponse> chatMembers = memberClient.getChatMembers(memberIds, jwtToken);
-
-    return ChatRoomMapper.toChatRoomInfoResponse(chatRoom, chatMembers);
-  }
-
-  @Transactional
-  public void deleteChatRoom(Long roomId) {
-    Authentication authentication = getAuthentication();
-
-    Long memberId = getMemberId(authentication);
-
-    ChatRoom chatRoom = findChatRoomOrThrow(roomId);
-    validateOwner(memberId, chatRoom);
-    chatRepository.deleteByRoomId(roomId);
-    chatRoomRepository.delete(chatRoom);
-  }
-
-  @Transactional
-  public void updateChatRoom(Long roomId, ChatRoomUpdateRequest req) {
-    Authentication auth = getAuthentication();
-    Long memberId = getMemberId(auth);
-
-    ChatRoom room = findChatRoomOrThrow(roomId);
-    validateOwner(memberId, room);
-
-    room.updateRoom(
-        req.name(),
-        req.description(),
-        req.type(),
-        req.password(),
-        passwordEncoder
-    );
-  }
-
-
-  @Transactional
-  public void kickOutMember(Long roomId, Long kickedMemberId) {
-    Authentication auth = getAuthentication();
-    Long memberId = getMemberId(auth);
-    ChatRoom room = findChatRoomOrThrow(roomId);
-    validateOwner(memberId, room);
-
-    validateKickOwnerId(kickedMemberId, memberId);
-
-    ChatRoomMember member = findChatMemberAndThrows(roomId,
-        kickedMemberId);
-
-    chatRoomMemberRepository.delete(member);
-  }
-
-  private Page<ChatRoomSummary> fetchSummaryPage(
-      Long organizationId,
-      RoomType type,
-      String keyword,
-      Pageable pageable
-  ) {
-    if (keyword == null || keyword.isBlank()) {
-      return chatRoomRepository.findSummaryByOrgAndType(organizationId, type, pageable);
-    }
-
-    if (keyword.length() <= 2) {
-      return chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
-          organizationId, type, keyword, pageable
-      );
-    }
-
-    // 3) 긴 키워드: full-text 검색
-    Page<ChatRoomSummaryProjection> projPage =
-        chatRoomRepository.findSummaryByOrgTypeAndFullText(
-            organizationId,
-            type != null ? type.name() : null,
-            keyword,
-            pageable
+        Page<ChatRoomResponse> responsePage = mapToResponsePage(
+                summaryPage,
+                memberCounts,
+                joinedRoomIds,
+                pageable
         );
-
-    return projPage.map(ChatRoomSummary::fromProjection);
-  }
-
-  private ChatRoomMember findChatMemberAndThrows(Long roomId, Long kickedMemberId) {
-    return chatRoomMemberRepository
-        .findByChatRoom_IdAndMemberId(roomId, kickedMemberId)
-        .orElseThrow(() -> new CustomException(CHAT_ROOM_MEMBER_NOT_FOUND));
-  }
-
-  private static void validateKickOwnerId(Long kickedMemberId, Long memberId) {
-    if (memberId.equals(kickedMemberId)) {
-      throw new CustomException(OWNER_CANNOT_BE_KICKED);
+        return PageResponse.fromPage(responsePage);
     }
-  }
 
 
-  private void validateOwner(Long memberId, ChatRoom chatRoom) {
-    if (!chatRoom.getOwnerId().equals(memberId)) {
-      throw new CustomException(ROOM_OWNER_MISMATCH);
+    @Transactional(readOnly = true)
+    public ChatRoomInfoResponse getChatRoomInfo(Long roomId, String jwtToken) {
+        ChatRoom chatRoom = findChatRoomOrThrow(roomId);
+
+        // 메인 서버에서 참여중인 멤버 정보 가져오기
+        Set<Long> memberIds = chatRoom.getMembers().stream()
+                .map(ChatRoomMember::getMemberId)
+                .collect(Collectors.toSet());
+
+        Authentication auth = getAuthentication();
+        Long memberId = getMemberId(auth);
+
+        validateMemberRoomIn(chatRoom, memberId);
+
+        Set<ChatMemberResponse> chatMembers = memberClient.getChatMembers(memberIds, jwtToken);
+
+        return ChatRoomMapper.toChatRoomInfoResponse(chatRoom, chatMembers);
     }
-  }
 
-  private void validateMemberRoomIn(ChatRoom chatRoom, Long memberId) {
-    boolean inRoom = chatRoom.getMembers().stream()
-        .map(ChatRoomMember::getMemberId)
-        .anyMatch(id -> id.equals(memberId));
-    if (!inRoom) {
-      throw new CustomException(MEMBER_NOT_ACCEPTED);
+    @Transactional
+    public void deleteChatRoom(Long roomId) {
+        Authentication authentication = getAuthentication();
+
+        Long memberId = getMemberId(authentication);
+
+        ChatRoom chatRoom = findChatRoomOrThrow(roomId);
+        validateOwner(memberId, chatRoom);
+        chatRepository.deleteByRoomId(roomId);
+        chatRoomRepository.delete(chatRoom);
     }
-  }
 
-  private ChatRoom findChatRoomOrThrow(Long roomId) {
-    return chatRoomRepository.findById(roomId)
-        .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
-  }
+    @Transactional
+    public void updateChatRoom(Long roomId, ChatRoomUpdateRequest req) {
+        Authentication auth = getAuthentication();
+        Long memberId = getMemberId(auth);
 
-  private void rawPasswordIsEmpty(String rawPassword) {
-    if (rawPassword == null || rawPassword.isEmpty()) {
-      throw new CustomException(PRIVATE_ROOM_PASSWORD_IS_EMPTY);
+        ChatRoom room = findChatRoomOrThrow(roomId);
+        validateOwner(memberId, room);
+
+        room.updateRoom(
+                req.name(),
+                req.description(),
+                req.type(),
+                req.password(),
+                passwordEncoder
+        );
     }
-  }
 
-  private boolean requestRoomTypeIsPrivate(RoomType type) {
-    return type == RoomType.PRIVATE;
-  }
 
-  private Authentication getAuthentication() {
-    return SecurityContextHolder.getContext().getAuthentication();
-  }
+    @Transactional
+    public void kickOutMember(Long roomId, Long kickedMemberId) {
+        Authentication auth = getAuthentication();
+        Long memberId = getMemberId(auth);
+        ChatRoom room = findChatRoomOrThrow(roomId);
+        validateOwner(memberId, room);
 
-  private Long getMemberId(Authentication authentication) {
-    if (authentication != null
-        && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
-      return chatMemberDetails.getMemberId();
+        validateKickOwnerId(kickedMemberId, memberId);
+
+        ChatRoomMember member = findChatMemberAndThrows(roomId,
+                kickedMemberId);
+
+        chatRoomMemberRepository.delete(member);
     }
-    return null;
-  }
 
-  private void validateMemberInOrg(Long orgId, Authentication authentication) {
-    if (authentication != null
-        && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
-      Set<Long> orgIds = chatMemberDetails.getOrganizationIds();
-      if (orgIds == null || !orgIds.contains(orgId)) {
-        throw new CustomException(ORGANIZATION_NOT_FOUND);
-      }
+    private Page<ChatRoomSummary> fetchSummaryPage(
+            Long organizationId,
+            RoomType type,
+            String keyword,
+            Pageable pageable
+    ) {
+        if (keyword == null || keyword.isBlank()) {
+            return chatRoomRepository.findSummaryByOrgAndType(organizationId, type, pageable);
+        }
+
+        if (keyword.length() <= 2) {
+            return chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
+                    organizationId, type, keyword, pageable
+            );
+        }
+
+        // 3) 긴 키워드: full-text 검색
+        Page<ChatRoomSummaryProjection> projPage =
+                chatRoomRepository.findSummaryByOrgTypeAndFullText(
+                        organizationId,
+                        type != null ? type.name() : null,
+                        keyword,
+                        pageable
+                );
+
+        return projPage.map(ChatRoomSummary::fromProjection);
     }
-  }
 
-  private Page<ChatRoomSummary> fetchSummaries(Long orgId, RoomType type, Pageable pageable) {
-    return chatRoomRepository.findChatRoomsByOrgAndType(orgId, type, pageable);
-  }
-
-  private List<Long> extractRoomIds(Page<ChatRoomSummary> summaryPage) {
-    return summaryPage.getContent().stream()
-        .map(ChatRoomSummary::id)
-        .toList();
-  }
-
-  private Map<Long, Long> fetchMemberCounts(List<Long> roomIds) {
-    return chatRoomMemberRepository.findMemberCountsByChatRoomIds(roomIds).stream()
-        .collect(Collectors.toMap(
-            arr -> (Long) arr[0],
-            arr -> (Long) arr[1],
-            (existing, replacement) -> existing
-        ));
-  }
-
-  private Set<Long> fetchJoinedRoomIds(List<Long> roomIds, Long memberId) {
-    return chatRoomMemberRepository.findJoinedChatRoomIds(roomIds, memberId);
-  }
-
-  private Page<ChatRoomResponse> mapToResponsePage(
-      Page<ChatRoomSummary> summaryPage,
-      Map<Long, Long> memberCounts,
-      Set<Long> joinedRoomIds,
-      Pageable pageable
-  ) {
-    List<ChatRoomResponse> responses = summaryPage.getContent().stream()
-        .map(summary -> ChatRoomMapper.toChatRoomResponse(
-            summary,
-            memberCounts.getOrDefault(summary.id(), 0L),
-            joinedRoomIds.contains(summary.id())
-        ))
-        .toList();
-
-    return new PageImpl<>(
-        responses,
-        pageable,
-        summaryPage.getTotalElements()
-    );
-  }
-
-  private void valiadteChatRoomNameDuplicated(ChatRoomCreateRequest request) {
-    if (chatRoomRepository.existsByOrganizationIdAndName(
-        request.organizationId(), request.name())) {
-      throw new CustomException(CHAT_ROOM_NAME_DUPLICATE);
+    private ChatRoomMember findChatMemberAndThrows(Long roomId, Long kickedMemberId) {
+        return chatRoomMemberRepository
+                .findByChatRoom_IdAndMemberId(roomId, kickedMemberId)
+                .orElseThrow(() -> new CustomException(CHAT_ROOM_MEMBER_NOT_FOUND));
     }
-  }
+
+    private static void validateKickOwnerId(Long kickedMemberId, Long memberId) {
+        if (memberId.equals(kickedMemberId)) {
+            throw new CustomException(OWNER_CANNOT_BE_KICKED);
+        }
+    }
+
+
+    private void validateOwner(Long memberId, ChatRoom chatRoom) {
+        if (!chatRoom.getOwnerId().equals(memberId)) {
+            throw new CustomException(ROOM_OWNER_MISMATCH);
+        }
+    }
+
+    private void validateMemberRoomIn(ChatRoom chatRoom, Long memberId) {
+        boolean inRoom = chatRoom.getMembers().stream()
+                .map(ChatRoomMember::getMemberId)
+                .anyMatch(id -> id.equals(memberId));
+        if (!inRoom) {
+            throw new CustomException(MEMBER_NOT_ACCEPTED);
+        }
+    }
+
+    private ChatRoom findChatRoomOrThrow(Long roomId) {
+        return chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
+    }
+
+    private void rawPasswordIsEmpty(String rawPassword) {
+        if (rawPassword == null || rawPassword.isEmpty()) {
+            throw new CustomException(PRIVATE_ROOM_PASSWORD_IS_EMPTY);
+        }
+    }
+
+    private boolean requestRoomTypeIsPrivate(RoomType type) {
+        return type == RoomType.PRIVATE;
+    }
+
+    private Authentication getAuthentication() {
+        return SecurityContextHolder.getContext().getAuthentication();
+    }
+
+    private Long getMemberId(Authentication authentication) {
+        if (authentication != null
+                && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
+            return chatMemberDetails.getMemberId();
+        }
+        return null;
+    }
+
+    private void validateMemberInOrg(Long orgId, Authentication authentication) {
+        if (authentication != null
+                && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
+            Set<Long> orgIds = chatMemberDetails.getOrganizationIds();
+            if (orgIds == null || !orgIds.contains(orgId)) {
+                throw new CustomException(ORGANIZATION_NOT_FOUND);
+            }
+        }
+    }
+
+    private Page<ChatRoomSummary> fetchSummaries(Long orgId, RoomType type, Pageable pageable) {
+        return chatRoomRepository.findChatRoomsByOrgAndType(orgId, type, pageable);
+    }
+
+    private List<Long> extractRoomIds(Page<ChatRoomSummary> summaryPage) {
+        return summaryPage.getContent().stream()
+                .map(ChatRoomSummary::id)
+                .toList();
+    }
+
+    private Map<Long, Long> fetchMemberCounts(List<Long> roomIds) {
+        return chatRoomMemberRepository.findMemberCountsByChatRoomIds(roomIds).stream()
+                .collect(Collectors.toMap(
+                        arr -> (Long) arr[0],
+                        arr -> (Long) arr[1],
+                        (existing, replacement) -> existing
+                ));
+    }
+
+    private Set<Long> fetchJoinedRoomIds(List<Long> roomIds, Long memberId) {
+        return chatRoomMemberRepository.findJoinedChatRoomIds(roomIds, memberId);
+    }
+
+    private Page<ChatRoomResponse> mapToResponsePage(
+            Page<ChatRoomSummary> summaryPage,
+            Map<Long, Long> memberCounts,
+            Set<Long> joinedRoomIds,
+            Pageable pageable
+    ) {
+        List<ChatRoomResponse> responses = summaryPage.getContent().stream()
+                .map(summary -> ChatRoomMapper.toChatRoomResponse(
+                        summary,
+                        memberCounts.getOrDefault(summary.id(), 0L),
+                        joinedRoomIds.contains(summary.id())
+                ))
+                .toList();
+
+        return new PageImpl<>(
+                responses,
+                pageable,
+                summaryPage.getTotalElements()
+        );
+    }
+
+    private void valiadteChatRoomNameDuplicated(ChatRoomCreateRequest request) {
+        if (chatRoomRepository.existsByOrganizationIdAndName(
+                request.organizationId(), request.name())) {
+            throw new CustomException(CHAT_ROOM_NAME_DUPLICATE);
+        }
+    }
 }

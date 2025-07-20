@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,19 +31,27 @@ import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 public class ChatController {
 
     private final ChatService chatService;
+    private final SimpMessageSendingOperations messagingTemplate;
 
-    @MessageMapping("/chat/{roomId}")
+    @MessageMapping("/chat.{roomId}")
     public void sendChat(
             ChatRequest incoming,
             @DestinationVariable("roomId") Long roomId,
             Principal principal
     ) {
+
         ChatMemberDetails userDetails = getUserDetails(
                 (UsernamePasswordAuthenticationToken) principal);
         Long memberId = userDetails.getMemberId();
         String userName = userDetails.getNickName();
 
         ChatRequest enriched = createChatRequest(incoming, memberId, userName);
+
+        chatService.saveChat(enriched, roomId);
+
+        String destination = "/topic/chat." + roomId;
+
+        messagingTemplate.convertAndSend(destination, enriched);
     }
 
     @Operation(summary = "채팅 히스토리 조회 (커서 페이징)")

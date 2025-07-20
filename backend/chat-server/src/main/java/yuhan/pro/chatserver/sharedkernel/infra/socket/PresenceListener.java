@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -23,10 +24,19 @@ import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 @RequiredArgsConstructor
 public class PresenceListener {
 
+    private static final String STOMP_TOPIC_PREFIX = "/topic/";
+    private static final String PRESENCE_DOT_PREFIX = STOMP_TOPIC_PREFIX + "presence.";
+    private static final String ROOMS_DOT_PREFIX = STOMP_TOPIC_PREFIX + "rooms.";
+    private static final String PRESENCE_SLASH_PREFIX = STOMP_TOPIC_PREFIX + "presence/";
+    private static final String ROOMS_SLASH_PREFIX = STOMP_TOPIC_PREFIX + "rooms/";
+    private static final String PRESENCE_SEND_PREFIX = STOMP_TOPIC_PREFIX + "presence.";
+    private static final String PRESENCE_KEY_PREFIX = "chatroom:presence:";
+
     private final Map<String, String> sessionRooms = new ConcurrentHashMap<>();
     private final RedisTemplate<String, String> redisTemplate;
     private final MemberClient memberClient;
     private final ObjectMapper objectMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @EventListener
     public void onSubscribe(SessionSubscribeEvent event) {
@@ -84,14 +94,14 @@ public class PresenceListener {
         }
         Object principal = auth.getPrincipal();
         if (!(principal instanceof ChatMemberDetails)) {
-            log.warn("세션 {}의 Principal 타입이 다릅니다: {}", sessionId, principal);
+            log.warn("세션 {}의 Principal 타입이 다릅니다: {}", sessionId, principal.getClass());
             return null;
         }
         return (ChatMemberDetails) principal;
     }
 
     private void updateRedis(String roomId, ChatMemberDetails user, boolean join) {
-        String key = getRoomKey(roomId);
+        String key = PRESENCE_KEY_PREFIX + roomId;
         String field = user.getMemberId().toString();
         if (join) {
             MemberProfileUrlResponse profile = memberClient.getMemberProfileUrl(user.getMemberId());
@@ -104,8 +114,13 @@ public class PresenceListener {
 
     private void publishPresence(String roomId) {
         try {
-            Map<Object, Object> entries = redisTemplate.opsForHash().entries(getRoomKey(roomId));
+            Map<Object, Object> entries = redisTemplate.opsForHash()
+                    .entries(PRESENCE_KEY_PREFIX + roomId);
             String payload = objectMapper.writeValueAsString(entries);
+
+            messagingTemplate.convertAndSend(PRESENCE_SEND_PREFIX + roomId, payload);
+
+            log.debug("방 {}의 접속자 정보를 전파했습니다: {}", roomId, payload);
         } catch (JsonProcessingException e) {
             log.error("Presence JSON 변환 실패 for room {}", roomId, e);
         }
@@ -115,18 +130,18 @@ public class PresenceListener {
         if (destination == null) {
             return null;
         }
-        final String roomsPrefix = "/topic/rooms/";
-        final String presencePrefix = "/topic/presence/";
-        if (destination.startsWith(roomsPrefix)) {
-            return destination.substring(roomsPrefix.length());
+        if (destination.startsWith(PRESENCE_DOT_PREFIX)) {
+            return destination.substring(PRESENCE_DOT_PREFIX.length());
         }
-        if (destination.startsWith(presencePrefix)) {
-            return destination.substring(presencePrefix.length());
+        if (destination.startsWith(ROOMS_DOT_PREFIX)) {
+            return destination.substring(ROOMS_DOT_PREFIX.length());
+        }
+        if (destination.startsWith(PRESENCE_SLASH_PREFIX)) {
+            return destination.substring(PRESENCE_SLASH_PREFIX.length());
+        }
+        if (destination.startsWith(ROOMS_SLASH_PREFIX)) {
+            return destination.substring(ROOMS_SLASH_PREFIX.length());
         }
         return null;
-    }
-
-    private String getRoomKey(String roomId) {
-        return "chatroom:presence:" + roomId;
     }
 }
