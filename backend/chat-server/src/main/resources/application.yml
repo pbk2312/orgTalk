@@ -11,7 +11,7 @@ spring:
   datasource:
     url: jdbc:h2:mem:testdb
     username: sa
-    password: ''
+    password:
     driver-class-name: org.h2.Driver
 
   data:
@@ -19,65 +19,43 @@ spring:
       host: localhost
       port: 27017
       database: orgTalk
-      username: admin
-      password: '****'
-      authentication-database: admin
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      authentication-database: ${MONGODB_AUTH_DB}
 
     redis:
       host: localhost
       port: 6379
 
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: ${spring.application.name}-${random.uuid}
-      auto-offset-reset: latest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: com.example.chat.domain
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  rabbitmq:
+    host: localhost
+    port: 5672
+    stomp:
+      port: 61613
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST}
 
 custom:
   jwt:
     duration:
-      access: 360000         # Access Token: 60분 (밀리초 기준)
-      refresh: 86400000      # Refresh Token: 24시간 (밀리초 기준)
+      access: 360000
+      refresh: 86400000
     secrets:
-      origin-key: ****
-      app-key: ****
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health, info, prometheus
-  endpoint:
-    prometheus:
-      enabled: true
+      origin-key: ${JWT_ORIGIN_KEY}
+      app-key: ${JWT_APP_KEY}
 
 logging:
   level:
-    # STOMP 프로토콜 처리 로그
     org.springframework.web.socket.messaging.StompSubProtocolHandler: DEBUG
-    # WebSocket 핸드셰이크 및 서버 측 처리
     org.springframework.web.socket.server: DEBUG
-    # SockJS 관련 로그 (클라이언트 fall-back 경로)
     org.springframework.web.socket.sockjs: DEBUG
-    # Optional: Spring 메시징 전체 로그
     org.springframework.messaging: DEBUG

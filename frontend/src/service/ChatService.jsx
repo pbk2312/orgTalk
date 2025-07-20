@@ -15,16 +15,15 @@ export async function createChatRoom(payload) {
   }
 }
 
-export async function getChatRooms(params, options = {}) {
+export async function getChatRooms(params) {
   try {
-    // signal을 params에서 제거
+    // signal을 params에서 아예 제거
     const { signal, ...requestParams } = params;
     
     const { data } = await chatRoomApi.get(
       `/list/${params.organizationId}`,
       { 
-        params: requestParams,
-        signal: options.signal // signal을 axios 옵션으로 전달
+        params: requestParams
       }
     );
     return {
@@ -39,6 +38,7 @@ export async function getChatRooms(params, options = {}) {
     throw new Error(getErrorMessage(error, '채팅방 목록을 가져오는 중 오류가 발생했습니다.'));
   }
 }
+
 
 export async function searchChatRooms({
   organizationId,
