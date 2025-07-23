@@ -9,9 +9,9 @@ spring:
     name: chat-server
 
   datasource:
-    url: jdbc:h2:mem:testdb
-    username: sa
-    password:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.h2.Driver
 
   data:
