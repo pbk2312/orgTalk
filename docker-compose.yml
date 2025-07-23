@@ -41,6 +41,33 @@ services:
       timeout: 10s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: orgtalk-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"     # AMQP port
+      - "15672:15672"   # Management UI
+      - "61613:61613"   # STOMP port
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - orgtalk-net
+    command: >
+      bash -c "
+        rabbitmq-plugins enable rabbitmq_management rabbitmq_stomp rabbitmq_web_stomp;
+        rabbitmq-server
+      "
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   main-server:
     image: ${DOCKER_USERNAME}/main-server:latest
     container_name: orgtalk-main-server
@@ -49,6 +76,8 @@ services:
       - orgtalk-net
     depends_on:
       redis:
+        condition: service_started
+      rabbitmq:
         condition: service_started
     environment:
       - DB_URL=${DB_URL}
@@ -61,6 +90,8 @@ services:
       - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
       - JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
       - JWT_APP_KEY=${JWT_APP_KEY}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
 
   chat-server:
     image: ${DOCKER_USERNAME}/chat-server:latest
@@ -72,6 +103,8 @@ services:
       mongodb:
         condition: service_started
       redis:
+        condition: service_started
+      rabbitmq:
         condition: service_started
     environment:
       - DB_URL=${DB_URL}
@@ -86,6 +119,8 @@ services:
       - REDIS_PORT=6379
       - JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
       - JWT_APP_KEY=${JWT_APP_KEY}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
 
   frontend:
     image: ${DOCKER_USERNAME}/frontend:latest
@@ -119,6 +154,8 @@ volumes:
   redis-data:
     driver: local
   mongo-data:
+    driver: local
+  rabbitmq-data:
     driver: local
 
 networks:
