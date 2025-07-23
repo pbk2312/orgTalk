@@ -12,7 +12,7 @@ services:
       - orgtalk-net
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s       # 느슨하게
+      interval: 30s
       timeout: 10s
       retries: 10
 
@@ -41,33 +41,6 @@ services:
       timeout: 10s
       retries: 10
 
-  kafka:
-    image: bitnami/kafka:latest
-    container_name: orgtalk-kafka
-    restart: always
-    environment:
-      - KAFKA_PROCESS_ROLES=broker,controller
-      - KAFKA_NODE_ID=1
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CREATE_TOPICS=chat-messages:5:1
-      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
-      - KAFKA_CFG_NUM_PARTITIONS=5
-      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=1
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
-    volumes:
-      - kafka-data:/bitnami/kafka
-    networks:
-      - orgtalk-net
-    healthcheck:
-      test: [ "CMD-SHELL", "echo > /dev/tcp/localhost/9092" ]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-
   main-server:
     image: ${DOCKER_USERNAME}/main-server:latest
     container_name: orgtalk-main-server
@@ -77,15 +50,12 @@ services:
     depends_on:
       redis:
         condition: service_started
-      kafka:
-        condition: service_started
     environment:
       - DB_URL=${DB_URL}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - KAFKA_BROKERS=kafka:9092
       - OAUTH_GITHUB_CLIENT_ID=${OAUTH_GITHUB_CLIENT_ID}
       - OAUTH_GITHUB_CLIENT_SECRET=${OAUTH_GITHUB_CLIENT_SECRET}
       - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
@@ -101,8 +71,6 @@ services:
     depends_on:
       mongodb:
         condition: service_started
-      kafka:
-        condition: service_started
       redis:
         condition: service_started
     environment:
@@ -116,7 +84,6 @@ services:
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - KAFKA_BROKERS=kafka:9092
       - JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
       - JWT_APP_KEY=${JWT_APP_KEY}
 
@@ -125,8 +92,8 @@ services:
     container_name: orgtalk-frontend
     restart: always
     ports:
-      - "80:80"      # nginx가 frontend 이미지에 포함되어 있음
-      - "443:443"    # HTTPS용 (필요시)
+      - "80:80"
+      - "443:443"
     networks:
       - orgtalk-net
     depends_on:
@@ -152,8 +119,6 @@ volumes:
   redis-data:
     driver: local
   mongo-data:
-    driver: local
-  kafka-data:
     driver: local
 
 networks:
