@@ -49,11 +49,13 @@ dependencies {
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    implementation 'com.h2database:h2'
     testImplementation 'com.h2database:h2'
 
+    implementation "org.springframework.boot:spring-boot-starter-reactor-netty"
+    implementation 'org.springframework.amqp:spring-rabbit-stream'
 }
 
 tasks.named('test') {

@@ -10,7 +10,7 @@ public class WebClientConfig {
 
     @Bean
     public WebClient webClient(WebClient.Builder builder) {
-        return builder.baseUrl("http://main-server:8080")  // 메인 서버 주소
+        return builder.baseUrl("http://localhost:8080")
                 .build();
     }
 

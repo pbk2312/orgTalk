@@ -1,0 +1,61 @@
+server:
+  port: 8081
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+spring:
+  application:
+    name: chat-server
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: orgTalk
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      authentication-database: ${MONGODB_AUTH_DB}
+
+    redis:
+      host: localhost
+      port: 6379
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    stomp:
+      port: 61613
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST}
+
+custom:
+  jwt:
+    duration:
+      access: 360000
+      refresh: 86400000
+    secrets:
+      origin-key: ${JWT_ORIGIN_KEY}
+      app-key: ${JWT_APP_KEY}
+
+logging:
+  level:
+    org.springframework.web.socket.messaging.StompSubProtocolHandler: DEBUG
+    org.springframework.web.socket.server: DEBUG
+    org.springframework.web.socket.sockjs: DEBUG
+    org.springframework.messaging: DEBUG

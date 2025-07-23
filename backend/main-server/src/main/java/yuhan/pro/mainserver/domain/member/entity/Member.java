@@ -28,55 +28,50 @@ import yuhan.pro.mainserver.sharedkernel.entity.BaseEntity;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Member extends BaseEntity {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  private String name;
+    private String name;
 
-  @Column(unique = true)
-  private Long githubId;
+    @Column(unique = true)
+    private Long githubId;
 
-  @Column(unique = true)
-  private String login;
+    @Column(unique = true)
+    private String login;
 
-  @Column(unique = true)
-  private String email;
+    @Column(unique = true)
+    private String email;
 
-  private String avatarUrl;
+    private String avatarUrl;
 
-  @Enumerated(EnumType.STRING)
-  private MemberRole memberRole;
+    @Enumerated(EnumType.STRING)
+    private MemberRole memberRole;
 
-  @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-  @JoinTable(
-      name = "member_organizations",
-      joinColumns = @JoinColumn(name = "member_id"),
-      inverseJoinColumns = @JoinColumn(name = "organizations_id")
-  )
-  private Set<Organization> organizations = new HashSet<>();
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "member_organizations",
+            joinColumns = @JoinColumn(name = "member_id"),
+            inverseJoinColumns = @JoinColumn(name = "organizations_id")
+    )
+    private Set<Organization> organizations = new HashSet<>();
 
-  @Builder
-  public Member(String login, String name, String email, String avatarUrl, MemberRole memberRole,
-      Long githubId) {
-    this.login = login;
-    this.name = name;
-    this.email = email;
-    this.avatarUrl = avatarUrl;
-    this.memberRole = memberRole;
-    this.githubId = githubId;
-  }
+    @Builder
+    public Member(String login, String name, String email, String avatarUrl, MemberRole memberRole,
+            Long githubId) {
+        this.login = login;
+        this.name = name;
+        this.email = email;
+        this.avatarUrl = avatarUrl;
+        this.memberRole = memberRole;
+        this.githubId = githubId;
+    }
 
-  public void setOrganizations(Set<Organization> organizations) {
-    this.organizations.clear();
-    this.organizations.addAll(organizations);
-  }
+    public void clearOrganizations() {
+        this.organizations.clear();
+    }
 
-  public void clearOrganizations() {
-    this.organizations.clear();
-  }
-
-  public void addOrganization(Organization organization) {
-    this.organizations.add(organization);
-  }
+    public void addOrganization(Organization organization) {
+        this.organizations.add(organization);
+    }
 }
