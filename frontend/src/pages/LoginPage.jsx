@@ -66,11 +66,11 @@ const LoginPage = () => {
   }, []);
 
   const handleGitHubLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      window.location.href = `${OAUTH_BASE_URL || ''}/oauth2/authorization/github`;
-    }, 500);
-  };
+  setIsLoading(true);
+  setTimeout(() => {
+    window.location.href = `${OAUTH_BASE_URL}/oauth2/authorization/github`;
+  }, 500);
+};
 
 
   const features = [
