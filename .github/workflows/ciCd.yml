@@ -186,6 +186,7 @@ jobs:
         run: |
           cd backend/main-server
           ../gradlew build -x test
+
       - name: Build Chat Server
         run: |
           cd backend/chat-server
@@ -201,6 +202,7 @@ jobs:
         run: |
           cd frontend
           npm install
+
       - name: Build frontend
         run: |
           cd frontend
@@ -229,6 +231,7 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/main-server:latest
           docker push ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/main-server:latest
+
       - name: Build and push Chat Server image
         run: |
           cd backend/chat-server
@@ -236,6 +239,7 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/chat-server:latest
           docker push ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/chat-server:latest
+
       - name: Build and push Frontend image
         run: |
           cd frontend
@@ -247,13 +251,11 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # master 브랜치에 push될 때만 배포 실행
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     steps:
       - uses: actions/checkout@v4
 
-      # docker-compose.yml 복사
       - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -263,7 +265,6 @@ jobs:
           source: "docker-compose.yml"
           target: "/home/ubuntu/orgtalk/"
 
-      # nginx 설정 파일들 복사
       - name: Copy nginx config files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -282,22 +283,21 @@ jobs:
           envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MAIL_USERNAME,MAIL_PASSWORD,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI
           script: |
             cd /home/ubuntu/orgtalk
-            
-            # 기존 모든 것 정리 (빠른 정리)
-            echo "Cleaning up everything..."
-            docker compose down --volumes --remove-orphans 2>/dev/null || true
-            docker system prune -af --volumes
-            
-            # 작업 디렉토리 완전 정리
-            sudo rm -rf /home/ubuntu/orgtalk/*
-            sudo rm -rf /home/ubuntu/orgtalk/.*
-            
-            # 필요한 파일들이 복사되었는지 확인
-            echo "Checking copied files..."
+
+            # 파일 존재 확인
+            echo "Checking deployment files..."
             ls -la
+            if [ ! -f "docker-compose.yml" ]; then
+              echo "❌ docker-compose.yml not found!"
+              exit 1
+            fi
+            echo "✅ docker-compose.yml found"
             
+            # 기존 컨테이너 정리
+            echo "Stopping existing containers..."
+            docker compose down || true
+
             # .env 파일 생성
-            echo "Creating environment file..."
             cat > .env << EOF
             DOCKER_USERNAME=${DOCKER_USERNAME}
             DB_URL=${DB_URL}
@@ -315,18 +315,30 @@ jobs:
             OAUTH_GITHUB_CLIENT_ID=${OAUTH_GITHUB_CLIENT_ID}
             OAUTH_GITHUB_CLIENT_SECRET=${OAUTH_GITHUB_CLIENT_SECRET}
             FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
-            RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
-            RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-            RABBITMQ_VHOST=${RABBITMQ_VHOST}
             EOF
-            
-            # 최신 이미지 풀 및 컨테이너 시작
-            echo "🚀 Deploying new version..."
-            docker compose pull
+
+            # 최신 이미지 풀
+            echo "Pulling latest Docker images..."
+            docker pull ${DOCKER_USERNAME}/main-server:latest
+            docker pull ${DOCKER_USERNAME}/chat-server:latest
+            docker pull ${DOCKER_USERNAME}/frontend:latest
+
+            # 컨테이너 시작
+            echo "Starting new containers..."
             docker compose up -d
+
+            # 컨테이너 상태 확인
+            echo "Container status:"
+            docker ps -a
+
+            # 로그 확인
+            echo "Container logs:"
+            docker compose logs --tail=20
+
+            # 불필요한 이미지 삭제
+            echo "Cleaning up old Docker images..."
+            docker image prune -f
+            docker image prune -a -f --filter "until=24h"
+            echo "Image cleanup completed!"
             
-            # 간단한 상태 확인
-            echo "📊 Container status:"
-            docker compose ps
-            
-            echo "Deployment completed!"
+            echo "✅ Deployment successful!"
