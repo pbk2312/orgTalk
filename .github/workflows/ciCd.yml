@@ -99,7 +99,7 @@ jobs:
       - name: Run Backend tests in parallel
         if: matrix.component == 'backend'
         run: |
-          # 병렬로 테스트 실행 (절대경로 사용)
+          # 병렬로 테스트 실행
           (cd backend/main-server && ../gradlew test --parallel --build-cache) &
           MAIN_PID=$!
           
@@ -206,7 +206,7 @@ jobs:
 
       - name: Build Backend services in parallel
         run: |
-          # 병렬로 빌드 실행 (절대경로 사용)
+          # 병렬로 빌드 실행
           (cd backend/main-server && ../gradlew build -x test --parallel --build-cache) &
           MAIN_PID=$!
           
@@ -245,15 +245,24 @@ jobs:
           fi
           CI=false npm run build
 
-      # Docker 빌드 최적화
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
+      # Docker Hub 로그인
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
+
+      # Docker 빌드 최적화
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # GitHub Actions Runner에서 기존 이미지 정리
+      - name: Clean up existing Docker images
+        run: |
+          echo "Cleaning up existing Docker images..."
+          # 기존 프로젝트 이미지들 삭제
+          docker images | grep -E "${{ env.DOCKER_USERNAME }}/(main-server|chat-server|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
+          docker image prune -f || true
 
       # Docker 빌드 병렬 처리
       - name: Build and push Docker images in parallel
@@ -310,19 +319,30 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # master 브랜치에 push될 때만 배포 실행
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     steps:
       - uses: actions/checkout@v4
 
-      # 파일 복사
-      - name: Copy deployment files to EC2
+      # docker-compose.yml 복사
+      - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
-          source: "docker-compose.yml,frontend/nginx.conf,frontend/default.conf"
+          source: "docker-compose.yml"
+          target: "/home/ubuntu/orgtalk/"
+
+      # nginx 설정 파일들 복사
+      - name: Copy nginx config files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "frontend/nginx.conf,frontend/default.conf"
           target: "/home/ubuntu/orgtalk/"
 
       - name: Deploy to EC2
@@ -331,11 +351,28 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
-          envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MAIL_USERNAME,MAIL_PASSWORD,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI,RABBITMQ_USERNAME,RABBITMQ_PASSWORD,RABBITMQ_VHOST
+          envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MAIL_USERNAME,MAIL_PASSWORD,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI
           script: |
             cd /home/ubuntu/orgtalk
             
-            echo "🚀 Starting deployment process..."
+            # 파일 존재 확인
+            echo "Checking deployment files..."
+            ls -la
+            if [ ! -f "docker-compose.yml" ]; then
+              echo "❌ docker-compose.yml not found!"
+              exit 1
+            fi
+            echo "✅ docker-compose.yml found"
+            
+            # 기존 컨테이너 정리
+            echo "Stopping existing containers..."
+            docker compose down || true
+            
+            # 기존 이미지들 백업 (rollback용)
+            echo "Backing up current images for potential rollback..."
+            docker tag ${DOCKER_USERNAME}/main-server:latest ${DOCKER_USERNAME}/main-server:backup 2>/dev/null || true
+            docker tag ${DOCKER_USERNAME}/chat-server:latest ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true
+            docker tag ${DOCKER_USERNAME}/frontend:latest ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
             
             # .env 파일 생성
             cat > .env << EOF
@@ -360,46 +397,71 @@ jobs:
             RABBITMQ_VHOST=${RABBITMQ_VHOST}
             EOF
             
-            # 기존 컨테이너 백업 (빠른 롤백용)
-            echo "📦 Creating backup for quick rollback..."
-            docker compose ps -q | xargs -r docker commit -p 2>/dev/null || true
+            # 최신 이미지 풀
+            echo "Pulling latest Docker images..."
+            docker pull ${DOCKER_USERNAME}/main-server:latest
+            docker pull ${DOCKER_USERNAME}/chat-server:latest
+            docker pull ${DOCKER_USERNAME}/frontend:latest
             
-            # 무중단 배포 (Blue-Green 방식)
-            echo "🔄 Performing rolling update..."
-            
-            # 최신 이미지 병렬 pull
-            docker pull ${DOCKER_USERNAME}/main-server:latest &
-            docker pull ${DOCKER_USERNAME}/chat-server:latest &
-            docker pull ${DOCKER_USERNAME}/frontend:latest &
-            wait
-            
-            # 롤링 업데이트
-            docker compose up -d --no-deps main-server
-            sleep 10
-            docker compose up -d --no-deps chat-server  
-            sleep 10
-            docker compose up -d --no-deps frontend
-            
-            # 헬스체크 (더 빠르게)
-            echo "🔍 Health checking..."
-            for i in {1..6}; do
-              if curl -f http://localhost/health 2>/dev/null || curl -f http://localhost 2>/dev/null; then
-                echo "✅ Deployment successful!"
-            
-                # 정리 작업 (백그라운드)
-                (
-                  sleep 60
-                  docker image prune -f
-                  docker system prune -f --filter "until=24h"
-                ) &
-            
-                exit 0
-              fi
-              echo "Attempt $i/6 failed, retrying in 5s..."
-              sleep 5
-            done
-            
-            echo "❌ Health check failed - Rolling back"
-            docker compose down
+            # 컨테이너 시작
+            echo "Starting new containers..."
             docker compose up -d
-            exit 1
+            
+            # 컨테이너 상태 확인
+            echo "Container status:"
+            docker ps -a
+            
+            # 로그 확인
+            echo "Container logs:"
+            docker compose logs --tail=20
+            
+            # 헬스체크 대기
+            echo "Waiting for services to be healthy..."
+            sleep 30
+            
+            # 헬스체크 (포트 확인도 포함)
+            echo "Checking service health..."
+            if curl -f http://localhost/health 2>/dev/null || curl -f http://localhost 2>/dev/null; then
+              echo "✅ Deployment successful!"
+            
+              # 배포 성공 시 오래된 이미지들 정리
+              echo "Cleaning up old Docker images..."
+            
+              # 백업 이미지 삭제 (배포 성공했으므로)
+              docker rmi ${DOCKER_USERNAME}/main-server:backup 2>/dev/null || true
+              docker rmi ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true  
+              docker rmi ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
+            
+              docker image prune -f
+            
+              docker image prune -a -f --filter "until=24h"
+            
+              echo "Image cleanup completed!"
+            
+            else
+              echo "❌ Health check failed"
+              echo "Current running containers:"
+              docker ps
+              echo "Container logs:"
+              docker compose logs
+            
+              # 배포 실패 시 백업 이미지로 롤백
+              echo "Rolling back to backup images..."
+              docker compose down || true
+            
+              # 백업이 있으면 롤백
+              if docker images | grep -q "${DOCKER_USERNAME}/main-server.*backup"; then
+                docker tag ${DOCKER_USERNAME}/main-server:backup ${DOCKER_USERNAME}/main-server:latest
+                docker tag ${DOCKER_USERNAME}/chat-server:backup ${DOCKER_USERNAME}/chat-server:latest
+                docker tag ${DOCKER_USERNAME}/frontend:backup ${DOCKER_USERNAME}/frontend:latest
+            
+                echo "Restarting with backup images..."
+                docker compose up -d
+            
+                echo "Rollback completed - services restored to previous version"
+              else
+                echo "No backup images found - containers kept for debugging"
+              fi
+            
+              exit 1
+            fi
