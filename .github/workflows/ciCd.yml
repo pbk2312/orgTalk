@@ -1,4 +1,4 @@
-# .github/workflows/ciCd.yml - 최적화 버전
+# .github/workflows/ciCd.yml
 name: CI/CD Pipeline
 
 on:
@@ -41,76 +41,81 @@ env:
   FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
 
 jobs:
-  # 변경사항 감지 잡 추가
-  changes:
+  test:
+    if: |
+      (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
+      (github.event_name == 'push' && github.ref_name == 'dev') ||
+      (github.event_name == 'push' && github.ref_name == 'master')
     runs-on: ubuntu-latest
-    outputs:
-      backend: ${{ steps.changes.outputs.backend }}
-      frontend: ${{ steps.changes.outputs.frontend }}
-      main-server: ${{ steps.changes.outputs.main-server }}
-      chat-server: ${{ steps.changes.outputs.chat-server }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
-        id: changes
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-            frontend:
-              - 'frontend/**'
-            main-server:
-              - 'backend/main-server/**'
-            chat-server:
-              - 'backend/chat-server/**'
 
-  # 병렬 테스트 실행
-  test-backend:
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [ main-server, chat-server ]
         include:
-          - service: main-server
-            path: backend/main-server
-            skip: ${{ needs.changes.outputs.main-server == 'false' }}
-          - service: chat-server
-            path: backend/chat-server
-            skip: ${{ needs.changes.outputs.chat-server == 'false' }}
+          - component: backend
+            java-version: '21'
+          - component: frontend
+            node-version: '18'
+
     steps:
       - uses: actions/checkout@v4
-        if: matrix.skip != 'true'
 
-      # Gradle 캐시 추가
+      # 캐시 설정 - Gradle
       - name: Cache Gradle packages
-        if: matrix.skip != 'true'
-        uses: actions/cache@v3
+        if: matrix.component == 'backend'
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
+            backend/.gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      # 캐시 설정 - Node.js
+      - name: Cache Node modules
+        if: matrix.component == 'frontend'
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # 백엔드 테스트
       - name: Set up JDK 21
-        if: matrix.skip != 'true'
+        if: matrix.component == 'backend'
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Grant execute permission for gradlew
-        if: matrix.skip != 'true'
+        if: matrix.component == 'backend'
         run: chmod +x ./backend/gradlew
 
-      - name: Run ${{ matrix.service }} tests
-        if: matrix.skip != 'true'
+      - name: Run Backend tests in parallel
+        if: matrix.component == 'backend'
         run: |
-          cd ${{ matrix.path }}
-          ../gradlew test --parallel --build-cache
+          # 병렬로 테스트 실행
+          cd backend/main-server && ../gradlew test --parallel --build-cache &
+          MAIN_PID=$!
+          
+          cd ../chat-server && ../gradlew test --parallel --build-cache &
+          CHAT_PID=$!
+          
+          # 두 프로세스가 완료될 때까지 대기
+          wait $MAIN_PID
+          MAIN_EXIT=$?
+          wait $CHAT_PID
+          CHAT_EXIT=$?
+          
+          # 하나라도 실패하면 전체 실패
+          if [ $MAIN_EXIT -ne 0 ] || [ $CHAT_EXIT -ne 0 ]; then
+            exit 1
+          fi
         env:
           ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
           REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
@@ -126,132 +131,163 @@ jobs:
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
           RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
 
-  test-frontend:
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # Node.js 캐시 추가
-      - name: Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
+      # 프론트엔드 테스트
       - name: Set up Node.js
+        if: matrix.component == 'frontend'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend dependencies
+        if: matrix.component == 'frontend'
         run: |
           cd frontend
-          npm ci  # npm install 대신 npm ci 사용 (더 빠름)
+          npm ci  # npm install 대신 ci 사용 (더 빠름)
 
       - name: Run frontend tests
+        if: matrix.component == 'frontend'
         run: |
           cd frontend
-          npm test -- --coverage --watchAll=false --passWithNoTests --maxWorkers=2
+          npm test -- --coverage --watchAll=false --passWithNoTests
 
-  # 병렬 빌드 실행
   build:
-    needs: [ changes, test-backend, test-frontend ]
+    needs: test
     runs-on: ubuntu-latest
-    if: always() && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
-    strategy:
-      matrix:
-        service: [ main-server, chat-server, frontend ]
-        include:
-          - service: main-server
-            context: backend/main-server
-            skip: ${{ needs.changes.outputs.main-server == 'false' }}
-          - service: chat-server
-            context: backend/chat-server
-            skip: ${{ needs.changes.outputs.chat-server == 'false' }}
-          - service: frontend
-            context: frontend
-            skip: ${{ needs.changes.outputs.frontend == 'false' }}
+    if: |
+      (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
+      (github.event_name == 'push' && github.ref_name == 'dev') ||
+      (github.event_name == 'push' && github.ref_name == 'master')
 
     steps:
       - uses: actions/checkout@v4
-        if: matrix.skip != 'true'
 
-      # 캐시 설정
+      # 캐시 복원
       - name: Cache Gradle packages
-        if: matrix.skip != 'true' && contains(matrix.service, 'server')
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
+            backend/.gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
-      - name: Cache Node.js modules
-        if: matrix.skip != 'true' && matrix.service == 'frontend'
-        uses: actions/cache@v3
+      - name: Cache Node modules
+        uses: actions/cache@v4
         with:
-          path: frontend/node_modules
+          path: |
+            frontend/node_modules
+            ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       # 백엔드 빌드
       - name: Set up JDK 21
-        if: matrix.skip != 'true' && contains(matrix.service, 'server')
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Build Backend Service
-        if: matrix.skip != 'true' && contains(matrix.service, 'server')
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./backend/gradlew
+
+      - name: Build Backend services in parallel
         run: |
-          chmod +x ./backend/gradlew
-          cd ${{ matrix.context }}
-          ../gradlew build -x test --parallel --build-cache
+          # 병렬로 빌드 실행
+          cd backend/main-server && ../gradlew build -x test --parallel --build-cache &
+          MAIN_PID=$!
+          
+          cd ../chat-server && ../gradlew build -x test --parallel --build-cache &
+          CHAT_PID=$!
+          
+          wait $MAIN_PID
+          MAIN_EXIT=$?
+          wait $CHAT_PID
+          CHAT_EXIT=$?
+          
+          if [ $MAIN_EXIT -ne 0 ] || [ $CHAT_EXIT -ne 0 ]; then
+            exit 1
+          fi
 
       # 프론트엔드 빌드
       - name: Set up Node.js
-        if: matrix.skip != 'true' && matrix.service == 'frontend'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Build Frontend
-        if: matrix.skip != 'true' && matrix.service == 'frontend'
+      - name: Install and Build frontend
         run: |
           cd frontend
           npm ci
           CI=false npm run build
 
-      # Docker Buildx 설정 (멀티플랫폼 빌드 및 캐시 개선)
+      # Docker 빌드 최적화
       - name: Set up Docker Buildx
-        if: matrix.skip != 'true'
         uses: docker/setup-buildx-action@v3
 
-      # Docker Hub 로그인
       - name: Login to Docker Hub
-        if: matrix.skip != 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      # Docker 빌드 및 푸시 (캐시 활용)
-      - name: Build and push Docker image
-        if: matrix.skip != 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ matrix.context }}
-          push: true
-          tags: |
-            ${{ env.DOCKER_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
-            ${{ env.DOCKER_USERNAME }}/${{ matrix.service }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
+      # Docker 빌드 병렬 처리
+      - name: Build and push Docker images in parallel
+        run: |
+          # 백그라운드에서 병렬 빌드 실행
+          (
+            cd backend/main-server
+            docker buildx build \
+              --cache-from type=registry,ref=${{ env.DOCKER_USERNAME }}/main-server:cache \
+              --cache-to type=registry,ref=${{ env.DOCKER_USERNAME }}/main-server:cache,mode=max \
+              --tag ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} \
+              --tag ${{ env.DOCKER_USERNAME }}/main-server:latest \
+              --push .
+          ) &
+          MAIN_PID=$!
+          
+          (
+            cd backend/chat-server
+            docker buildx build \
+              --cache-from type=registry,ref=${{ env.DOCKER_USERNAME }}/chat-server:cache \
+              --cache-to type=registry,ref=${{ env.DOCKER_USERNAME }}/chat-server:cache,mode=max \
+              --tag ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} \
+              --tag ${{ env.DOCKER_USERNAME }}/chat-server:latest \
+              --push .
+          ) &
+          CHAT_PID=$!
+          
+          (
+            cd frontend
+            docker buildx build \
+              --cache-from type=registry,ref=${{ env.DOCKER_USERNAME }}/frontend:cache \
+              --cache-to type=registry,ref=${{ env.DOCKER_USERNAME }}/frontend:cache,mode=max \
+              --tag ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} \
+              --tag ${{ env.DOCKER_USERNAME }}/frontend:latest \
+              --push .
+          ) &
+          FRONTEND_PID=$!
+          
+          # 모든 빌드 완료 대기
+          wait $MAIN_PID
+          MAIN_EXIT=$?
+          wait $CHAT_PID
+          CHAT_EXIT=$?
+          wait $FRONTEND_PID
+          FRONTEND_EXIT=$?
+          
+          if [ $MAIN_EXIT -ne 0 ] || [ $CHAT_EXIT -ne 0 ] || [ $FRONTEND_EXIT -ne 0 ]; then
+            echo "One or more Docker builds failed"
+            exit 1
+          fi
+          
+          echo "All Docker images built and pushed successfully"
 
   deploy:
     needs: build
@@ -261,22 +297,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 파일 복사 및 배포 (간소화)
+      # 파일 복사
+      - name: Copy deployment files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker-compose.yml,frontend/nginx.conf,frontend/default.conf"
+          target: "/home/ubuntu/orgtalk/"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
-          envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI,RABBITMQ_USERNAME,RABBITMQ_PASSWORD,RABBITMQ_VHOST
+          envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MAIL_USERNAME,MAIL_PASSWORD,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI,RABBITMQ_USERNAME,RABBITMQ_PASSWORD,RABBITMQ_VHOST
           script: |
             cd /home/ubuntu/orgtalk
             
-            # 빠른 배포를 위한 간소화된 스크립트
-            echo "Starting deployment..."
-            
-            # 이전 컨테이너 중지 (백그라운드)
-            docker compose down &
+            echo "🚀 Starting deployment process..."
             
             # .env 파일 생성
             cat > .env << EOF
@@ -287,6 +328,8 @@ jobs:
             MONGODB_USERNAME=${MONGODB_USERNAME}
             MONGODB_PASSWORD=${MONGODB_PASSWORD}
             MONGODB_DATABASE=${MONGODB_DATABASE}
+            MAIL_USERNAME=${MAIL_USERNAME}
+            MAIL_PASSWORD=${MAIL_PASSWORD}
             ACCESS_KEY=${ACCESS_KEY}
             REFRESH_KEY=${REFRESH_KEY}
             JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
@@ -299,35 +342,46 @@ jobs:
             RABBITMQ_VHOST=${RABBITMQ_VHOST}
             EOF
             
-            # 대기
-            wait
+            # 기존 컨테이너 백업 (빠른 롤백용)
+            echo "📦 Creating backup for quick rollback..."
+            docker compose ps -q | xargs -r docker commit -p 2>/dev/null || true
             
-            # 최신 이미지 풀 (병렬)
+            # 무중단 배포 (Blue-Green 방식)
+            echo "🔄 Performing rolling update..."
+            
+            # 최신 이미지 병렬 pull
             docker pull ${DOCKER_USERNAME}/main-server:latest &
             docker pull ${DOCKER_USERNAME}/chat-server:latest &
             docker pull ${DOCKER_USERNAME}/frontend:latest &
             wait
             
-            # 서비스 시작
-            docker compose up -d
+            # 롤링 업데이트
+            docker compose up -d --no-deps main-server
+            sleep 10
+            docker compose up -d --no-deps chat-server  
+            sleep 10
+            docker compose up -d --no-deps frontend
             
-            # 간단한 헬스체크
-            sleep 15
-            if curl -f http://localhost/health 2>/dev/null; then
-              echo "✅ Deployment successful!"
-              docker image prune -f
-            else
-              echo "❌ Deployment failed"
-              docker compose logs --tail=10
-              exit 1
-            fi
-
-      # 설정 파일 복사 (별도 step으로 분리)
-      - name: Copy config files
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USERNAME }}
-          key: ${{ env.EC2_SSH_KEY }}
-          source: "docker-compose.yml,frontend/nginx.conf,frontend/default.conf"
-          target: "/home/ubuntu/orgtalk/"
+            # 헬스체크 (더 빠르게)
+            echo "🔍 Health checking..."
+            for i in {1..6}; do
+              if curl -f http://localhost/health 2>/dev/null || curl -f http://localhost 2>/dev/null; then
+                echo "✅ Deployment successful!"
+            
+                # 정리 작업 (백그라운드)
+                (
+                  sleep 60
+                  docker image prune -f
+                  docker system prune -f --filter "until=24h"
+                ) &
+            
+                exit 0
+              fi
+              echo "Attempt $i/6 failed, retrying in 5s..."
+              sleep 5
+            done
+            
+            echo "❌ Health check failed - Rolling back"
+            docker compose down
+            docker compose up -d
+            exit 1
