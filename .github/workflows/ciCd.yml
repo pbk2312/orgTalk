@@ -99,11 +99,11 @@ jobs:
       - name: Run Backend tests in parallel
         if: matrix.component == 'backend'
         run: |
-          # 병렬로 테스트 실행
-          cd backend/main-server && ../gradlew test --parallel --build-cache &
+          # 병렬로 테스트 실행 (절대경로 사용)
+          (cd backend/main-server && ../gradlew test --parallel --build-cache) &
           MAIN_PID=$!
           
-          cd ../chat-server && ../gradlew test --parallel --build-cache &
+          (cd backend/chat-server && ../gradlew test --parallel --build-cache) &
           CHAT_PID=$!
           
           # 두 프로세스가 완료될 때까지 대기
@@ -114,8 +114,11 @@ jobs:
           
           # 하나라도 실패하면 전체 실패
           if [ $MAIN_EXIT -ne 0 ] || [ $CHAT_EXIT -ne 0 ]; then
+            echo "Backend tests failed: main-server=$MAIN_EXIT, chat-server=$CHAT_EXIT"
             exit 1
           fi
+          
+          echo "All backend tests passed successfully"
         env:
           ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
           REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
@@ -203,11 +206,11 @@ jobs:
 
       - name: Build Backend services in parallel
         run: |
-          # 병렬로 빌드 실행
-          cd backend/main-server && ../gradlew build -x test --parallel --build-cache &
+          # 병렬로 빌드 실행 (절대경로 사용)
+          (cd backend/main-server && ../gradlew build -x test --parallel --build-cache) &
           MAIN_PID=$!
           
-          cd ../chat-server && ../gradlew build -x test --parallel --build-cache &
+          (cd backend/chat-server && ../gradlew build -x test --parallel --build-cache) &
           CHAT_PID=$!
           
           wait $MAIN_PID
@@ -216,8 +219,11 @@ jobs:
           CHAT_EXIT=$?
           
           if [ $MAIN_EXIT -ne 0 ] || [ $CHAT_EXIT -ne 0 ]; then
+            echo "Backend build failed: main-server=$MAIN_EXIT, chat-server=$CHAT_EXIT"
             exit 1
           fi
+          
+          echo "All backend builds completed successfully"
 
       # 프론트엔드 빌드
       - name: Set up Node.js
