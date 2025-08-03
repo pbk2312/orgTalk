@@ -72,6 +72,8 @@ services:
     image: ${DOCKER_USERNAME}/main-server:latest
     container_name: orgtalk-main-server
     restart: always
+    ports:
+      - "8080:8080"
     networks:
       - orgtalk-net
     depends_on:
@@ -97,6 +99,8 @@ services:
     image: ${DOCKER_USERNAME}/chat-server:latest
     container_name: orgtalk-chat-server
     restart: always
+    ports:
+      - "8081:8081"
     networks:
       - orgtalk-net
     depends_on:
