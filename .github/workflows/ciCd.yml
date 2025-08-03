@@ -1,4 +1,4 @@
-# .github/workflows/ciCd.yml
+# .github/workflows/ciCd.yml - 최적화 버전
 name: CI/CD Pipeline
 
 on:
@@ -41,30 +41,76 @@ env:
   FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
 
 jobs:
-  test:
-    # dev 브랜치 관련 이벤트 또는 master 브랜치 push에서 실행
-    if: |
-      (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
-      (github.event_name == 'push' && github.ref_name == 'dev') ||
-      (github.event_name == 'push' && github.ref_name == 'master')
+  # 변경사항 감지 잡 추가
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      main-server: ${{ steps.changes.outputs.main-server }}
+      chat-server: ${{ steps.changes.outputs.chat-server }}
     steps:
       - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            main-server:
+              - 'backend/main-server/**'
+            chat-server:
+              - 'backend/chat-server/**'
 
-      # 백엔드 테스트
+  # 병렬 테스트 실행
+  test-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ main-server, chat-server ]
+        include:
+          - service: main-server
+            path: backend/main-server
+            skip: ${{ needs.changes.outputs.main-server == 'false' }}
+          - service: chat-server
+            path: backend/chat-server
+            skip: ${{ needs.changes.outputs.chat-server == 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+        if: matrix.skip != 'true'
+
+      # Gradle 캐시 추가
+      - name: Cache Gradle packages
+        if: matrix.skip != 'true'
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Set up JDK 21
+        if: matrix.skip != 'true'
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Grant execute permission for gradlew
+        if: matrix.skip != 'true'
         run: chmod +x ./backend/gradlew
 
-      - name: Run Main Server tests
+      - name: Run ${{ matrix.service }} tests
+        if: matrix.skip != 'true'
         run: |
-          cd backend/main-server
-          ../gradlew test
+          cd ${{ matrix.path }}
+          ../gradlew test --parallel --build-cache
         env:
           ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
           REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
@@ -73,13 +119,6 @@ jobs:
           OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
           OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
           FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
-      - name: Run Chat Server tests
-        run: |
-          cd backend/chat-server
-          ../gradlew test
-        env:
-          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
-          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
           MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
           MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
           MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
@@ -87,8 +126,22 @@ jobs:
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
           RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
 
-      
-      # 프론트엔드 테스트
+  test-frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node.js 캐시 추가
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -97,152 +150,133 @@ jobs:
       - name: Install Frontend dependencies
         run: |
           cd frontend
-          npm install
+          npm ci  # npm install 대신 npm ci 사용 (더 빠름)
+
       - name: Run frontend tests
         run: |
           cd frontend
-          npm test -- --coverage --watchAll=false --passWithNoTests
+          npm test -- --coverage --watchAll=false --passWithNoTests --maxWorkers=2
 
+  # 병렬 빌드 실행
   build:
-    needs: test
+    needs: [ changes, test-backend, test-frontend ]
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
-      (github.event_name == 'push' && github.ref_name == 'dev') ||
-      (github.event_name == 'push' && github.ref_name == 'master')
+    if: always() && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
+    strategy:
+      matrix:
+        service: [ main-server, chat-server, frontend ]
+        include:
+          - service: main-server
+            context: backend/main-server
+            skip: ${{ needs.changes.outputs.main-server == 'false' }}
+          - service: chat-server
+            context: backend/chat-server
+            skip: ${{ needs.changes.outputs.chat-server == 'false' }}
+          - service: frontend
+            context: frontend
+            skip: ${{ needs.changes.outputs.frontend == 'false' }}
 
     steps:
       - uses: actions/checkout@v4
+        if: matrix.skip != 'true'
+
+      # 캐시 설정
+      - name: Cache Gradle packages
+        if: matrix.skip != 'true' && contains(matrix.service, 'server')
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Cache Node.js modules
+        if: matrix.skip != 'true' && matrix.service == 'frontend'
+        uses: actions/cache@v3
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
 
       # 백엔드 빌드
       - name: Set up JDK 21
+        if: matrix.skip != 'true' && contains(matrix.service, 'server')
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./backend/gradlew
-
-      - name: Build Main Server
+      - name: Build Backend Service
+        if: matrix.skip != 'true' && contains(matrix.service, 'server')
         run: |
-          cd backend/main-server
-          ../gradlew build -x test
-      - name: Build Chat Server
-        run: |
-          cd backend/chat-server
-          ../gradlew build -x test
+          chmod +x ./backend/gradlew
+          cd ${{ matrix.context }}
+          ../gradlew build -x test --parallel --build-cache
 
       # 프론트엔드 빌드
       - name: Set up Node.js
+        if: matrix.skip != 'true' && matrix.service == 'frontend'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Install frontend dependencies
+      - name: Build Frontend
+        if: matrix.skip != 'true' && matrix.service == 'frontend'
         run: |
           cd frontend
-          npm install
-      - name: Build frontend
-        run: |
-          cd frontend
+          npm ci
           CI=false npm run build
+
+      # Docker Buildx 설정 (멀티플랫폼 빌드 및 캐시 개선)
+      - name: Set up Docker Buildx
+        if: matrix.skip != 'true'
+        uses: docker/setup-buildx-action@v3
 
       # Docker Hub 로그인
       - name: Login to Docker Hub
+        if: matrix.skip != 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      # GitHub Actions Runner에서 기존 이미지 정리
-      - name: Clean up existing Docker images
-        run: |
-          echo "Cleaning up existing Docker images..."
-          # 기존 프로젝트 이미지들 삭제
-          docker images | grep -E "${{ env.DOCKER_USERNAME }}/(main-server|chat-server|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
-          docker image prune -f || true
-
-      # Docker 이미지 빌드 및 푸시
-      - name: Build and push Main Server image
-        run: |
-          cd backend/main-server
-          docker build -t ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} .
-          docker tag ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/main-server:latest
-          docker push ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }}
-          docker push ${{ env.DOCKER_USERNAME }}/main-server:latest
-      - name: Build and push Chat Server image
-        run: |
-          cd backend/chat-server
-          docker build -t ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} .
-          docker tag ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/chat-server:latest
-          docker push ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }}
-          docker push ${{ env.DOCKER_USERNAME }}/chat-server:latest
-      - name: Build and push Frontend image
-        run: |
-          cd frontend
-          docker build -t ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} .
-          docker tag ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/frontend:latest
-          docker push ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
-          docker push ${{ env.DOCKER_USERNAME }}/frontend:latest
+      # Docker 빌드 및 푸시 (캐시 활용)
+      - name: Build and push Docker image
+        if: matrix.skip != 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: |
+            ${{ env.DOCKER_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ env.DOCKER_USERNAME }}/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # master 브랜치에 push될 때만 배포 실행
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     steps:
       - uses: actions/checkout@v4
 
-      # docker-compose.yml 복사
-      - name: Copy docker-compose.yml to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USERNAME }}
-          key: ${{ env.EC2_SSH_KEY }}
-          source: "docker-compose.yml"
-          target: "/home/ubuntu/orgtalk/"
-
-      # nginx 설정 파일들 복사
-      - name: Copy nginx config files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USERNAME }}
-          key: ${{ env.EC2_SSH_KEY }}
-          source: "frontend/nginx.conf,frontend/default.conf"
-          target: "/home/ubuntu/orgtalk/"
-
+      # 파일 복사 및 배포 (간소화)
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USERNAME }}
           key: ${{ env.EC2_SSH_KEY }}
-          envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MAIL_USERNAME,MAIL_PASSWORD,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI
+          envs: DOCKER_USERNAME,DB_URL,DB_USERNAME,DB_PASSWORD,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI,RABBITMQ_USERNAME,RABBITMQ_PASSWORD,RABBITMQ_VHOST
           script: |
             cd /home/ubuntu/orgtalk
             
-            # 파일 존재 확인
-            echo "Checking deployment files..."
-            ls -la
-            if [ ! -f "docker-compose.yml" ]; then
-              echo "❌ docker-compose.yml not found!"
-              exit 1
-            fi
-            echo "✅ docker-compose.yml found"
+            # 빠른 배포를 위한 간소화된 스크립트
+            echo "Starting deployment..."
             
-            # 기존 컨테이너 정리
-            echo "Stopping existing containers..."
-            docker compose down || true
-            
-            # 기존 이미지들 백업 (rollback용)
-            echo "Backing up current images for potential rollback..."
-            docker tag ${DOCKER_USERNAME}/main-server:latest ${DOCKER_USERNAME}/main-server:backup 2>/dev/null || true
-            docker tag ${DOCKER_USERNAME}/chat-server:latest ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true
-            docker tag ${DOCKER_USERNAME}/frontend:latest ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
+            # 이전 컨테이너 중지 (백그라운드)
+            docker compose down &
             
             # .env 파일 생성
             cat > .env << EOF
@@ -253,8 +287,6 @@ jobs:
             MONGODB_USERNAME=${MONGODB_USERNAME}
             MONGODB_PASSWORD=${MONGODB_PASSWORD}
             MONGODB_DATABASE=${MONGODB_DATABASE}
-            MAIL_USERNAME=${MAIL_USERNAME}
-            MAIL_PASSWORD=${MAIL_PASSWORD}
             ACCESS_KEY=${ACCESS_KEY}
             REFRESH_KEY=${REFRESH_KEY}
             JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
@@ -267,71 +299,35 @@ jobs:
             RABBITMQ_VHOST=${RABBITMQ_VHOST}
             EOF
             
-            # 최신 이미지 풀
-            echo "Pulling latest Docker images..."
-            docker pull ${DOCKER_USERNAME}/main-server:latest
-            docker pull ${DOCKER_USERNAME}/chat-server:latest
-            docker pull ${DOCKER_USERNAME}/frontend:latest
+            # 대기
+            wait
             
-            # 컨테이너 시작
-            echo "Starting new containers..."
+            # 최신 이미지 풀 (병렬)
+            docker pull ${DOCKER_USERNAME}/main-server:latest &
+            docker pull ${DOCKER_USERNAME}/chat-server:latest &
+            docker pull ${DOCKER_USERNAME}/frontend:latest &
+            wait
+            
+            # 서비스 시작
             docker compose up -d
             
-            # 컨테이너 상태 확인
-            echo "Container status:"
-            docker ps -a
-            
-            # 로그 확인
-            echo "Container logs:"
-            docker compose logs --tail=20
-            
-            # 헬스체크 대기
-            echo "Waiting for services to be healthy..."
-            sleep 30
-            
-            # 헬스체크 (포트 확인도 포함)
-            echo "Checking service health..."
-            if curl -f http://localhost/health 2>/dev/null || curl -f http://localhost 2>/dev/null; then
+            # 간단한 헬스체크
+            sleep 15
+            if curl -f http://localhost/health 2>/dev/null; then
               echo "✅ Deployment successful!"
-            
-              # 배포 성공 시 오래된 이미지들 정리
-              echo "Cleaning up old Docker images..."
-            
-              # 백업 이미지 삭제 (배포 성공했으므로)
-              docker rmi ${DOCKER_USERNAME}/main-server:backup 2>/dev/null || true
-              docker rmi ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true  
-              docker rmi ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
-            
               docker image prune -f
-            
-              docker image prune -a -f --filter "until=24h"
-            
-              echo "Image cleanup completed!"
-            
             else
-              echo "❌ Health check failed"
-              echo "Current running containers:"
-              docker ps
-              echo "Container logs:"
-              docker compose logs
-            
-              # 배포 실패 시 백업 이미지로 롤백
-              echo "Rolling back to backup images..."
-              docker compose down || true
-            
-              # 백업이 있으면 롤백
-              if docker images | grep -q "${DOCKER_USERNAME}/main-server.*backup"; then
-                docker tag ${DOCKER_USERNAME}/main-server:backup ${DOCKER_USERNAME}/main-server:latest
-                docker tag ${DOCKER_USERNAME}/chat-server:backup ${DOCKER_USERNAME}/chat-server:latest
-                docker tag ${DOCKER_USERNAME}/frontend:backup ${DOCKER_USERNAME}/frontend:latest
-            
-                echo "Restarting with backup images..."
-                docker compose up -d
-            
-                echo "Rollback completed - services restored to previous version"
-              else
-                echo "No backup images found - containers kept for debugging"
-              fi
-            
+              echo "❌ Deployment failed"
+              docker compose logs --tail=10
               exit 1
             fi
+
+      # 설정 파일 복사 (별도 step으로 분리)
+      - name: Copy config files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker-compose.yml,frontend/nginx.conf,frontend/default.conf"
+          target: "/home/ubuntu/orgtalk/"
