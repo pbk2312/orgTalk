@@ -68,7 +68,7 @@ const LoginPage = () => {
   const handleGitHubLogin = () => {
     setIsLoading(true);
     setTimeout(() => {
-     window.location.href = '/login/oauth2/authorization/github';
+     window.location.href = '/organizations';
     }, 500);
   };
 
