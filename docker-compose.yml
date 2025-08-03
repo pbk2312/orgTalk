@@ -12,9 +12,9 @@ services:
       - orgtalk-net
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s
-      timeout: 10s
-      retries: 10
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mongodb:
     image: mongo:latest
@@ -28,18 +28,10 @@ services:
     networks:
       - orgtalk-net
     healthcheck:
-      test:
-        - "CMD"
-        - "mongo"
-        - "--username"
-        - "${MONGODB_USERNAME}"
-        - "--password"
-        - "${MONGODB_PASSWORD}"
-        - "--eval"
-        - "db.adminCommand('ping')"
-      interval: 30s
-      timeout: 10s
-      retries: 10
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -64,8 +56,8 @@ services:
       "
     healthcheck:
       test: [ "CMD", "rabbitmqctl", "status" ]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 5
 
   main-server:
@@ -78,14 +70,14 @@ services:
       - orgtalk-net
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     environment:
       - DB_URL=${DB_URL}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=redis
+      - REDIS_HOST=redis  # orgtalk-redis가 아닌 redis
       - REDIS_PORT=6379
       - OAUTH_GITHUB_CLIENT_ID=${OAUTH_GITHUB_CLIENT_ID}
       - OAUTH_GITHUB_CLIENT_SECRET=${OAUTH_GITHUB_CLIENT_SECRET}
@@ -94,6 +86,12 @@ services:
       - JWT_APP_KEY=${JWT_APP_KEY}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   chat-server:
     image: ${DOCKER_USERNAME}/chat-server:latest
@@ -105,11 +103,11 @@ services:
       - orgtalk-net
     depends_on:
       mongodb:
-        condition: service_started
+        condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     environment:
       - DB_URL=${DB_URL}
       - DB_USERNAME=${DB_USERNAME}
@@ -119,7 +117,7 @@ services:
       - MONGODB_DATABASE=${MONGODB_DATABASE}
       - MONGODB_USERNAME=${MONGODB_USERNAME}
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
-      - REDIS_HOST=redis
+      - REDIS_HOST=redis  # orgtalk-redis가 아닌 redis
       - REDIS_PORT=6379
       - JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
       - JWT_APP_KEY=${JWT_APP_KEY}
@@ -136,20 +134,16 @@ services:
     networks:
       - orgtalk-net
     depends_on:
-      - main-server
-      - chat-server
+      main-server:
+        condition: service_healthy
+      chat-server:
+        condition: service_started
     environment:
       - REACT_APP_MAIN_SERVER_URL=/api
       - REACT_APP_CHAT_SERVER_URL=/api/chat
       - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
     healthcheck:
-      test:
-        - "CMD"
-        - "wget"
-        - "--quiet"
-        - "--tries=1"
-        - "--spider"
-        - "http://localhost/health"
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
