@@ -283,26 +283,21 @@ jobs:
           script: |
             cd /home/ubuntu/orgtalk
             
-            # 파일 존재 확인
-            echo "Checking deployment files..."
+            # 기존 모든 것 정리 (빠른 정리)
+            echo "Cleaning up everything..."
+            docker compose down --volumes --remove-orphans 2>/dev/null || true
+            docker system prune -af --volumes
+            
+            # 작업 디렉토리 완전 정리
+            sudo rm -rf /home/ubuntu/orgtalk/*
+            sudo rm -rf /home/ubuntu/orgtalk/.*
+            
+            # 필요한 파일들이 복사되었는지 확인
+            echo "Checking copied files..."
             ls -la
-            if [ ! -f "docker-compose.yml" ]; then
-              echo "❌ docker-compose.yml not found!"
-              exit 1
-            fi
-            echo "✅ docker-compose.yml found"
-            
-            # 기존 컨테이너 정리
-            echo "Stopping existing containers..."
-            docker compose down || true
-            
-            # 기존 이미지들 백업 (rollback용)
-            echo "Backing up current images for potential rollback..."
-            docker tag ${DOCKER_USERNAME}/main-server:latest ${DOCKER_USERNAME}/main-server:backup 2>/dev/null || true
-            docker tag ${DOCKER_USERNAME}/chat-server:latest ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true
-            docker tag ${DOCKER_USERNAME}/frontend:latest ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
             
             # .env 파일 생성
+            echo "Creating environment file..."
             cat > .env << EOF
             DOCKER_USERNAME=${DOCKER_USERNAME}
             DB_URL=${DB_URL}
@@ -325,71 +320,13 @@ jobs:
             RABBITMQ_VHOST=${RABBITMQ_VHOST}
             EOF
             
-            # 최신 이미지 풀
-            echo "Pulling latest Docker images..."
-            docker pull ${DOCKER_USERNAME}/main-server:latest
-            docker pull ${DOCKER_USERNAME}/chat-server:latest
-            docker pull ${DOCKER_USERNAME}/frontend:latest
-            
-            # 컨테이너 시작
-            echo "Starting new containers..."
+            # 최신 이미지 풀 및 컨테이너 시작
+            echo "🚀 Deploying new version..."
+            docker compose pull
             docker compose up -d
             
-            # 컨테이너 상태 확인
-            echo "Container status:"
-            docker ps -a
+            # 간단한 상태 확인
+            echo "📊 Container status:"
+            docker compose ps
             
-            # 로그 확인
-            echo "Container logs:"
-            docker compose logs --tail=20
-            
-            # 헬스체크 대기
-            echo "Waiting for services to be healthy..."
-            sleep 30
-            
-            # 헬스체크 (포트 확인도 포함)
-            echo "Checking service health..."
-            if curl -f http://localhost/health 2>/dev/null || curl -f http://localhost 2>/dev/null; then
-              echo "✅ Deployment successful!"
-            
-              # 배포 성공 시 오래된 이미지들 정리
-              echo "Cleaning up old Docker images..."
-            
-              # 백업 이미지 삭제 (배포 성공했으므로)
-              docker rmi ${DOCKER_USERNAME}/main-server:backup 2>/dev/null || true
-              docker rmi ${DOCKER_USERNAME}/chat-server:backup 2>/dev/null || true  
-              docker rmi ${DOCKER_USERNAME}/frontend:backup 2>/dev/null || true
-            
-              docker image prune -f
-            
-              docker image prune -a -f --filter "until=24h"
-            
-              echo "Image cleanup completed!"
-            
-            else
-              echo "❌ Health check failed"
-              echo "Current running containers:"
-              docker ps
-              echo "Container logs:"
-              docker compose logs
-            
-              # 배포 실패 시 백업 이미지로 롤백
-              echo "Rolling back to backup images..."
-              docker compose down || true
-            
-              # 백업이 있으면 롤백
-              if docker images | grep -q "${DOCKER_USERNAME}/main-server.*backup"; then
-                docker tag ${DOCKER_USERNAME}/main-server:backup ${DOCKER_USERNAME}/main-server:latest
-                docker tag ${DOCKER_USERNAME}/chat-server:backup ${DOCKER_USERNAME}/chat-server:latest
-                docker tag ${DOCKER_USERNAME}/frontend:backup ${DOCKER_USERNAME}/frontend:latest
-            
-                echo "Restarting with backup images..."
-                docker compose up -d
-            
-                echo "Rollback completed - services restored to previous version"
-              else
-                echo "No backup images found - containers kept for debugging"
-              fi
-            
-              exit 1
-            fi
+            echo "Deployment completed!"
