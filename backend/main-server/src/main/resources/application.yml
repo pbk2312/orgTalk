@@ -16,7 +16,7 @@ spring:
 
   data:
     redis:
-      host: localhost
+      host: orgtalk-redis
       port: 6379
 
   jpa:
