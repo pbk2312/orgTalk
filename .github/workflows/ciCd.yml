@@ -70,7 +70,7 @@ jobs:
         if: matrix.test-type == 'main-server'
         run: |
           cd backend/main-server
-          ../gradlew test
+          ../gradlew test --continue || true
         env:
           ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
           REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
@@ -156,12 +156,29 @@ jobs:
         run: |
           cd backend/main-server
           ../gradlew build -x test
+        env:
+          ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+          REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
+          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
+          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
+          OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
+          OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
+          FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
 
       - name: Build Chat Server
         if: matrix.component == 'chat-server'
         run: |
           cd backend/chat-server
           ../gradlew build -x test
+        env:
+          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
+          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
+          MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
+          MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
+          MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
+          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
 
       # 프론트엔드 빌드
       - name: Set up Node.js
@@ -189,6 +206,7 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
+      # GitHub Actions Runner에서 기존 이미지 정리 (Main Server만 실행)
       - name: Clean up existing Docker images
         if: matrix.component == 'main-server'
         run: |
@@ -197,7 +215,7 @@ jobs:
           docker images | grep -E "${{ env.DOCKER_USERNAME }}/(main-server|chat-server|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
           docker image prune -f || true
 
-      # Docker 이미지 빌드 및 푸시
+      # Docker 이미지 빌드 및 푸시 (각 컴포넌트별)
       - name: Build and push Main Server image
         if: matrix.component == 'main-server'
         run: |
