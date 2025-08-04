@@ -16,16 +16,16 @@ spring:
 
   data:
     mongodb:
-      host: localhost
-      port: 27017
-      database: orgTalk
+      host: ${MONGODB_HOST}  # localhost → 환경변수로 변경
+      port: ${MONGODB_PORT}  # 환경변수로 변경
+      database: ${MONGODB_DATABASE}  # orgTalk → 환경변수로 변경
       username: ${MONGODB_USERNAME}
       password: ${MONGODB_PASSWORD}
       authentication-database: ${MONGODB_AUTH_DB}
 
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST}  # localhost → 환경변수로 변경
+      port: ${REDIS_PORT}  # 환경변수로 변경
 
   jpa:
     hibernate:
@@ -37,8 +37,8 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
 
   rabbitmq:
-    host: localhost
-    port: 5672
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     stomp:
       port: 61613
     username: ${RABBITMQ_USERNAME}
