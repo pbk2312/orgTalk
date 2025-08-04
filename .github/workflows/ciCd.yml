@@ -121,40 +121,72 @@ jobs:
       (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
       (github.event_name == 'push' && github.ref_name == 'dev') ||
       (github.event_name == 'push' && github.ref_name == 'master')
+    strategy:
+      matrix:
+        component: [ main-server, chat-server, frontend ]
 
     steps:
       - uses: actions/checkout@v4
 
-      # 백엔드 빌드
-      - name: Set up JDK 21
+      # 백엔드 빌드 (Main Server, Chat Server)
+      - name: Set up JDK 21 for Backend
+        if: matrix.component == 'main-server' || matrix.component == 'chat-server'
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Cache Gradle packages
+        if: matrix.component == 'main-server' || matrix.component == 'chat-server'
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Grant execute permission for gradlew
+        if: matrix.component == 'main-server' || matrix.component == 'chat-server'
         run: chmod +x ./backend/gradlew
 
       - name: Build Main Server
+        if: matrix.component == 'main-server'
         run: |
           cd backend/main-server
           ../gradlew build -x test
+
       - name: Build Chat Server
+        if: matrix.component == 'chat-server'
         run: |
           cd backend/chat-server
           ../gradlew build -x test
 
       # 프론트엔드 빌드
       - name: Set up Node.js
+        if: matrix.component == 'frontend'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
+      - name: Cache Node modules
+        if: matrix.component == 'frontend'
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install frontend dependencies
+        if: matrix.component == 'frontend'
         run: |
           cd frontend
-          npm install
+          npm ci
+
       - name: Build frontend
+        if: matrix.component == 'frontend'
         run: |
           cd frontend
           CI=false npm run build
@@ -166,33 +198,52 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      # GitHub Actions Runner에서 기존 이미지 정리
+      # Docker Buildx 설정 (멀티플랫폼 및 캐시 지원)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # GitHub Actions Runner에서 기존 이미지 정리 (Main Server만 실행)
       - name: Clean up existing Docker images
+        if: matrix.component == 'main-server'
         run: |
           echo "Cleaning up existing Docker images..."
           # 기존 프로젝트 이미지들 삭제
           docker images | grep -E "${{ env.DOCKER_USERNAME }}/(main-server|chat-server|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
           docker image prune -f || true
 
-      # Docker 이미지 빌드 및 푸시
+      # Docker 이미지 빌드 및 푸시 (각 컴포넌트별)
       - name: Build and push Main Server image
-        run: |
-          cd backend/main-server
-          docker build -t ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} .
-          docker tag ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/main-server:latest
-          docker push ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }}
-          docker push ${{ env.DOCKER_USERNAME }}/main-server:latest
+        if: matrix.component == 'main-server'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/main-server
+          push: true
+          tags: |
+            ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }}
+            ${{ env.DOCKER_USERNAME }}/main-server:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build and push Chat Server image
-        run: |
-          cd backend/chat-server
-          docker build -t ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} .
-          docker tag ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/chat-server:latest
-          docker push ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }}
-          docker push ${{ env.DOCKER_USERNAME }}/chat-server:latest
+        if: matrix.component == 'chat-server'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/chat-server
+          push: true
+          tags: |
+            ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }}
+            ${{ env.DOCKER_USERNAME }}/chat-server:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build and push Frontend image
-        run: |
-          cd frontend
-          docker build -t ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} .
-          docker tag ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/frontend:latest
-          docker push ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
-          docker push ${{ env.DOCKER_USERNAME }}/frontend:latest
+        if: matrix.component == 'frontend'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
+            ${{ env.DOCKER_USERNAME }}/frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
