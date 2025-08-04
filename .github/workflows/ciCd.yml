@@ -98,11 +98,16 @@ jobs:
 
 
       # Chat-server
+      - name: Print Environment Variables
+        if: matrix.test-type == 'chat-server'
+        run: |
+          echo "Printing environment variables..."
+          printenv
+
       - name: Run Chat Server tests
         if: matrix.test-type == 'chat-server'
         run: |
           cd backend/chat-server
-          SPRING_PROFILES_ACTIVE=ci ../gradlew test
           ../gradlew test
         env:
           DB_URL: ${{ secrets.DB_URL }}
@@ -127,6 +132,7 @@ jobs:
 
           JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
           JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
+
 
 
 
