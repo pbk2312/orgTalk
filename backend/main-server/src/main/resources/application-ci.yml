@@ -1,0 +1,84 @@
+server:
+  port: 8080
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+spring:
+  application:
+    name: main-server
+
+  # 테스트용 H2 데이터베이스 설정
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: password
+    driver-class-name: org.h2.Driver
+
+  # Redis는 테스트용으로 로컬 Redis나 Mock으로 설정
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  # JPA Hibernate 설정 (H2에 맞는 설정)
+  jpa:
+    hibernate:
+      ddl-auto: update  # 테이블 자동 생성 및 업데이트
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # OAuth2 GitHub 클라이언트 설정 (테스트 환경에 맞게 필요시 Mock 처리)
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope:
+              - read:user
+              - user:email
+              - read:org
+            redirect-uri: "{baseUrl}/login/oauth2/code/github"
+            client-name: GitHub
+        provider:
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: login
+
+  # Resilience4j Circuit Breaker 설정
+  resilience4j:
+    circuitbreaker:
+      instances:
+        circuitbreaker_test:
+          failure-rate-threshold: 60
+          recordExceptions:
+            - java.net.SocketTimeoutException
+            - java.net.ConnectException
+          ignoreExceptions:
+            - java.lang.IllegalStateException
+
+  # JWT 설정 (테스트용 키)
+  custom:
+    jwt:
+      duration:
+        access: 3600000         # Access Token: 60분 (밀리초)
+        refresh: 86400000       # Refresh Token: 24시간 (밀리초)
+      secrets:
+        origin-key: test-origin-key
+        app-key: test-app-key
+    app:
+      frontend-redirect-uri: test-frontend-redirect-uri
+
+logging:
+  level:
+    org.springframework.web.socket.messaging.StompSubProtocolHandler: DEBUG
+    org.springframework.web.socket.server: DEBUG
+    org.springframework.web.socket.sockjs: DEBUG
+    org.springframework.messaging: DEBUG
