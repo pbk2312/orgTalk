@@ -102,6 +102,7 @@ jobs:
         if: matrix.test-type == 'chat-server'
         run: |
           cd backend/chat-server
+          SPRING_PROFILES_ACTIVE=ci ../gradlew test
           ../gradlew test
         env:
           DB_URL: ${{ secrets.DB_URL }}

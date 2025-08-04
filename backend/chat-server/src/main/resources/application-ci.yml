@@ -1,0 +1,76 @@
+server:
+  port: 0
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+spring:
+  application:
+    name: chat-server-test
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+    hikari:
+      auto-commit: false
+
+  h2:
+    console:
+      enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+    defer-datasource-initialization: true
+
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: test
+
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+
+custom:
+  jwt:
+    duration:
+      access: 360000
+      refresh: 86400000
+    secrets:
+      origin-key: test-origin-key-for-testing-purposes-only
+      app-key: test-app-key-for-testing-purposes-only
+
+logging:
+  level:
+    org.springframework.web.socket.messaging.StompSubProtocolHandler: WARN
+    org.springframework.web.socket.server: WARN
+    org.springframework.web.socket.sockjs: WARN
+    org.springframework.messaging: WARN
+    org.springframework.boot.autoconfigure: WARN
+    com.zaxxer.hikari: WARN
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
