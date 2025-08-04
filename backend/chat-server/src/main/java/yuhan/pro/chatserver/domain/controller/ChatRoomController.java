@@ -36,7 +36,7 @@ import yuhan.pro.chatserver.sharedkernel.dto.PageResponse;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/chat")
+@RequestMapping("/api/chatRoom")
 @RequiredArgsConstructor
 @Tag(name = "ChatRoom", description = "채팅방 API")
 public class ChatRoomController {
