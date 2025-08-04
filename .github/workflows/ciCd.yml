@@ -318,6 +318,9 @@ jobs:
             
             # .env 파일 생성
             cat > .env << EOF
+            DOCKER_USERNAME=${DOCKER_USERNAME}
+            DOCKER_PASSWOR=${DOCKER_PASSWORD}
+            
             DB_URL=${DB_URL}
             DB_USERNAME=${DB_USERNAME}
             DB_PASSWORD=${DB_PASSWORD}
