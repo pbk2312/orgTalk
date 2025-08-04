@@ -52,7 +52,8 @@ custom:
       refresh: 86400000
     secrets:
       origin-key: ${JWT_ORIGIN_KEY}
-      app-key: ${JWT_APP_KEY}
+      app-key: ${JWT_APP_KEY}]
+  api: ${API_MAIN_SERVER}
 
 logging:
   level:
