@@ -81,8 +81,11 @@ jobs:
         if: matrix.test-type == 'main-server'
         run: |
           cd backend/main-server
-          ../gradlew test --args='--spring.profiles.active=ci'
+          ../gradlew test
         env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
           REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
           JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
@@ -93,12 +96,17 @@ jobs:
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}
 
+
+      # Chat-server
       - name: Run Chat Server tests
         if: matrix.test-type == 'chat-server'
         run: |
           cd backend/chat-server
-          ../gradlew test --args='--spring.profiles.active=ci'
+          ../gradlew test
         env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
           JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
           MONGODB_HOST: ${{ secrets.MONGODB_HOST }}
@@ -114,6 +122,7 @@ jobs:
           RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}
+
 
       # 프론트엔드 테스트
       - name: Set up Node.js
