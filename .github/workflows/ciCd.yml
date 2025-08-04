@@ -256,3 +256,106 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/frontend:latest
           docker push ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/frontend:latest
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    steps:
+      - uses: actions/checkout@v4
+
+        # EC2 정리 작업
+      - name: Clean up EC2 (containers, images, files)
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            # 실행 중인 컨테이너 중지 및 삭제
+            docker stop $(docker ps -aq) 2>/dev/null || true
+            docker rm $(docker ps -aq) 2>/dev/null || true
+            
+            # 모든 이미지 삭제
+            docker rmi $(docker images -q) 2>/dev/null || true
+            
+            # 시스템 정리 (네트워크, 볼륨, 빌드 캐시 등)
+            docker system prune -af
+            
+            # 기존 프로젝트 파일들 삭제
+            rm -rf /home/ubuntu/orgtalk/*
+            
+            # 디렉토리 재생성
+            mkdir -p /home/ubuntu/orgtalk
+
+      - name: Copy docker-compose.yml to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/home/ubuntu/orgtalk/"
+
+      # nginx 설정 파일들 복사
+      - name: Copy nginx config files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "frontend/nginx.conf,frontend/default.conf"
+          target: "/home/ubuntu/orgtalk/"
+
+      # 배포 시작
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          envs: DOCKER_USERNAME,DOCKER_PASSWORD,EC2_HOST,EC2_USERNAME,EC2_SSH_KEY,DB_URL,DB_USERNAME,DB_PASSWORD,REDIS_HOST,REDIS_PORT,MONGODB_HOST,MONGODB_PORT,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MONGODB_AUTH_DB,RABBITMQ_HOST,RABBITMQ_PORT,RABBITMQ_USERNAME,RABBITMQ_PASSWORD,RABBITMQ_VHOST,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI
+          script: |
+            cd /home/ubuntu/orgtalk
+            
+            
+            # .env 파일 생성
+            cat > .env << EOF
+            DB_URL=${DB_URL}
+            DB_USERNAME=${DB_USERNAME}
+            DB_PASSWORD=${DB_PASSWORD}
+            
+            REDIS_HOST=${REDIS_HOST}
+            REDIS_PORT=${REDIS_PORT}
+            
+            OAUTH_GITHUB_CLIENT_ID=${OAUTH_GITHUB_CLIENT_ID}
+            OAUTH_GITHUB_CLIENT_SECRET=${OAUTH_GITHUB_CLIENT_SECRET}
+            
+            JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
+            JWT_APP_KEY=${JWT_APP_KEY}
+            
+            FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
+            
+            MONGODB_HOST=${MONGODB_HOST}
+            MONGODB_PORT=${MONGODB_PORT}
+            MONGODB_USERNAME=${MONGODB_USERNAME}
+            MONGODB_PASSWORD=${MONGODB_PASSWORD}
+            MONGODB_DATABASE=${MONGODB_DATABASE}
+            MONGODB_AUTH_DB=${MONGODB_AUTH_DB}
+            
+            RABBITMQ_HOST=${RABBITMQ_HOST}
+            RABBITMQ_PORT=${RABBITMQ_PORT}
+            RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
+            RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+            RABBITMQ_VHOST=${RABBITMQ_VHOST}
+            EOF
+            
+            # 최신 이미지 풀
+            echo "도커 이미지 풀"
+            docker pull ${DOCKER_USERNAME}/main-server:latest
+            docker pull ${DOCKER_USERNAME}/chat-server:latest
+            docker pull ${DOCKER_USERNAME}/frontend:latest
+            
+            # 컨테이너 시작
+            echo "컨테이너 시작"
+            docker compose up -d
