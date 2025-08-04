@@ -42,83 +42,29 @@ env:
 
 jobs:
   test:
+    # dev 브랜치 관련 이벤트 또는 master 브랜치 push에서 실행
     if: |
       (github.event_name == 'pull_request' && github.head_ref == 'dev') ||
       (github.event_name == 'push' && github.ref_name == 'dev') ||
       (github.event_name == 'push' && github.ref_name == 'master')
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        include:
-          - component: backend
-            java-version: '21'
-          - component: frontend
-            node-version: '18'
-
     steps:
       - uses: actions/checkout@v4
 
-      # 캐시 설정 - Gradle
-      - name: Cache Gradle packages
-        if: matrix.component == 'backend'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            backend/.gradle
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      # 캐시 설정 - Node.js
-      - name: Cache Node modules
-        if: matrix.component == 'frontend'
-        uses: actions/cache@v4
-        with:
-          path: |
-            frontend/node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       # 백엔드 테스트
       - name: Set up JDK 21
-        if: matrix.component == 'backend'
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Grant execute permission for gradlew
-        if: matrix.component == 'backend'
         run: chmod +x ./backend/gradlew
 
-      - name: Run Backend tests in parallel
-        if: matrix.component == 'backend'
+      - name: Run Main Server tests
         run: |
-          # 병렬로 테스트 실행
-          (cd backend/main-server && ../gradlew test --parallel --build-cache) &
-          MAIN_PID=$!
-          
-          (cd backend/chat-server && ../gradlew test --parallel --build-cache) &
-          CHAT_PID=$!
-          
-          # 두 프로세스가 완료될 때까지 대기
-          wait $MAIN_PID
-          MAIN_EXIT=$?
-          wait $CHAT_PID
-          CHAT_EXIT=$?
-          
-          # 하나라도 실패하면 전체 실패
-          if [ $MAIN_EXIT -ne 0 ] || [ $CHAT_EXIT -ne 0 ]; then
-            echo "Backend tests failed: main-server=$MAIN_EXIT, chat-server=$CHAT_EXIT"
-            exit 1
-          fi
-          
-          echo "All backend tests passed successfully"
+          cd backend/main-server
+          ../gradlew test
         env:
           ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
           REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
@@ -127,6 +73,13 @@ jobs:
           OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
           OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
           FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
+      - name: Run Chat Server tests
+        run: |
+          cd backend/chat-server
+          ../gradlew test
+        env:
+          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
+          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
           MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
           MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
           MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
@@ -134,29 +87,18 @@ jobs:
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
           RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
 
+
       # 프론트엔드 테스트
       - name: Set up Node.js
-        if: matrix.component == 'frontend'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend dependencies
-        if: matrix.component == 'frontend'
         run: |
           cd frontend
-          # 락 파일 문제 해결을 위해 조건부로 처리
-          if npm ci --dry-run > /dev/null 2>&1; then
-            npm ci
-          else
-            echo "Lock file out of sync, using npm install"
-            npm install --prefer-offline --no-audit
-          fi
-
+          npm install
       - name: Run frontend tests
-        if: matrix.component == 'frontend'
         run: |
           cd frontend
           npm test -- --coverage --watchAll=false --passWithNoTests
@@ -342,6 +284,10 @@ jobs:
             # 로그 확인
             echo "Container logs:"
             docker compose logs --tail=20
+            
+            # 헬스체크 대기
+            echo "Waiting for services to be healthy..."
+            sleep 30
             
             # 헬스체크 (포트 확인도 포함)
             echo "Checking service health..."
