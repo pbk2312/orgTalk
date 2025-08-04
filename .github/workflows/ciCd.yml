@@ -170,20 +170,11 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Cache Node modules
-        if: matrix.component == 'frontend'
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install frontend dependencies
         if: matrix.component == 'frontend'
         run: |
           cd frontend
-          npm ci
+          npm install
 
       - name: Build frontend
         if: matrix.component == 'frontend'
@@ -198,10 +189,6 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      # Docker Buildx 설정 (멀티플랫폼 및 캐시 지원)
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       # GitHub Actions Runner에서 기존 이미지 정리 (Main Server만 실행)
       - name: Clean up existing Docker images
         if: matrix.component == 'main-server'
@@ -214,36 +201,27 @@ jobs:
       # Docker 이미지 빌드 및 푸시 (각 컴포넌트별)
       - name: Build and push Main Server image
         if: matrix.component == 'main-server'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend/main-server
-          push: true
-          tags: |
-            ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }}
-            ${{ env.DOCKER_USERNAME }}/main-server:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          cd backend/main-server
+          docker build -t ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} .
+          docker tag ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/main-server:latest
+          docker push ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }}
+          docker push ${{ env.DOCKER_USERNAME }}/main-server:latest
 
       - name: Build and push Chat Server image
         if: matrix.component == 'chat-server'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend/chat-server
-          push: true
-          tags: |
-            ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }}
-            ${{ env.DOCKER_USERNAME }}/chat-server:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          cd backend/chat-server
+          docker build -t ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} .
+          docker tag ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/chat-server:latest
+          docker push ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }}
+          docker push ${{ env.DOCKER_USERNAME }}/chat-server:latest
 
       - name: Build and push Frontend image
         if: matrix.component == 'frontend'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
-            ${{ env.DOCKER_USERNAME }}/frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          cd frontend
+          docker build -t ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} .
+          docker tag ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/frontend:latest
+          docker push ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
+          docker push ${{ env.DOCKER_USERNAME }}/frontend:latest
