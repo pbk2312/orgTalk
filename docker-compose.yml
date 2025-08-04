@@ -61,7 +61,7 @@ services:
       retries: 5
 
   main-server:
-    image: ${DOCKER_USERNAME}/main-server:latest
+    image: main-server:latest
     container_name: orgtalk-main-server
     restart: always
     ports:
@@ -94,7 +94,7 @@ services:
       start_period: 120s
 
   chat-server:
-    image: ${DOCKER_USERNAME}/chat-server:latest
+    image: chat-server:latest
     container_name: orgtalk-chat-server
     restart: always
     ports:
@@ -129,7 +129,7 @@ services:
       - RABBITMQ_VHOST=${RABBITMQ_VHOST}
 
   frontend:
-    image: ${DOCKER_USERNAME}/frontend:latest
+    image: frontend:latest
     container_name: orgtalk-frontend
     restart: always
     ports:
