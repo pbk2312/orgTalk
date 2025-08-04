@@ -19,10 +19,24 @@ env:
   DB_USERNAME: ${{ secrets.DB_USERNAME }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
+  # Redis
+  REDIS_HOST: ${{ secrets.REDIS_HOST }}
+  REDIS_PORT: ${{ secrets.REDIS_PORT }}
+
   # MongoDB
+  MONGODB_HOST: ${{ secrets.MONGODB_HOST }}
+  MONGODB_PORT: ${{ secrets.MONGODB_PORT }}
   MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
   MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
   MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
+  MONGODB_AUTH_DB: ${{ secrets.MONGODB_AUTH_DB }}
+
+  # RabbitMQ
+  RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST }}
+  RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT }}
+  RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+  RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+  RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
 
   # JWT Keys
   ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
@@ -33,9 +47,6 @@ env:
   # GitHub OAuth
   OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
   OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
-  RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
-  RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
-  RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
 
   # Frontend
   FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
@@ -70,8 +81,11 @@ jobs:
         if: matrix.test-type == 'main-server'
         run: |
           cd backend/main-server
-          ../gradlew test --continue || true
+          ../gradlew test
         env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
           REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
           JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
@@ -79,6 +93,16 @@ jobs:
           OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
           OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
           FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+
+
+      # Chat-server
+      - name: Print Environment Variables
+        if: matrix.test-type == 'chat-server'
+        run: |
+          echo "Printing environment variables..."
+          printenv
 
       - name: Run Chat Server tests
         if: matrix.test-type == 'chat-server'
@@ -86,14 +110,31 @@ jobs:
           cd backend/chat-server
           ../gradlew test
         env:
-          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
-          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+          MONGODB_HOST: ${{ secrets.MONGODB_HOST }}
+          MONGODB_PORT: ${{ secrets.MONGODB_PORT }}
+          MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
           MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
           MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
-          MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
+          MONGODB_AUTH_DB: ${{ secrets.MONGODB_AUTH_DB }}
+
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+
+          RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST }}
+          RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT }}
           RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
           RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
           RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
+
+          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
+          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
+
+
+
 
       # 프론트엔드 테스트
       - name: Set up Node.js
@@ -107,13 +148,11 @@ jobs:
         run: |
           cd frontend
           npm install
-
       - name: Run frontend tests
         if: matrix.test-type == 'frontend'
         run: |
           cd frontend
           npm test -- --coverage --watchAll=false --passWithNoTests
-
   build:
     needs: test
     runs-on: ubuntu-latest
@@ -128,7 +167,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 백엔드 빌드 (Main Server, Chat Server)
+      # 백엔드 빌드
       - name: Set up JDK 21 for Backend
         if: matrix.component == 'main-server' || matrix.component == 'chat-server'
         uses: actions/setup-java@v4
@@ -146,7 +185,6 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-
       - name: Grant execute permission for gradlew
         if: matrix.component == 'main-server' || matrix.component == 'chat-server'
         run: chmod +x ./backend/gradlew
@@ -156,30 +194,11 @@ jobs:
         run: |
           cd backend/main-server
           ../gradlew build -x test
-        env:
-          ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
-          REFRESH_KEY: ${{ secrets.REFRESH_KEY }}
-          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
-          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
-          OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
-          OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
-          FRONTEND_REDIRECT_URI: ${{ secrets.FRONTEND_REDIRECT_URI }}
-
       - name: Build Chat Server
         if: matrix.component == 'chat-server'
         run: |
           cd backend/chat-server
           ../gradlew build -x test
-        env:
-          JWT_ORIGIN_KEY: ${{ secrets.JWT_ORIGIN_KEY }}
-          JWT_APP_KEY: ${{ secrets.JWT_APP_KEY }}
-          MONGODB_USERNAME: ${{ secrets.MONGODB_USERNAME }}
-          MONGODB_PASSWORD: ${{ secrets.MONGODB_PASSWORD }}
-          MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
-          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
-          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
-          RABBITMQ_VHOST: ${{ secrets.RABBITMQ_VHOST }}
-
       # 프론트엔드 빌드
       - name: Set up Node.js
         if: matrix.component == 'frontend'
@@ -192,13 +211,11 @@ jobs:
         run: |
           cd frontend
           npm install
-
       - name: Build frontend
         if: matrix.component == 'frontend'
         run: |
           cd frontend
           CI=false npm run build
-
       # Docker Hub 로그인
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -206,7 +223,7 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      # GitHub Actions Runner에서 기존 이미지 정리 (Main Server만 실행)
+      # GitHub Actions Runner에서 기존 이미지 정리
       - name: Clean up existing Docker images
         if: matrix.component == 'main-server'
         run: |
@@ -214,8 +231,7 @@ jobs:
           # 기존 프로젝트 이미지들 삭제
           docker images | grep -E "${{ env.DOCKER_USERNAME }}/(main-server|chat-server|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
           docker image prune -f || true
-
-      # Docker 이미지 빌드 및 푸시 (각 컴포넌트별)
+      # Docker 이미지 빌드 및 푸시
       - name: Build and push Main Server image
         if: matrix.component == 'main-server'
         run: |
@@ -224,7 +240,6 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/main-server:latest
           docker push ${{ env.DOCKER_USERNAME }}/main-server:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/main-server:latest
-
       - name: Build and push Chat Server image
         if: matrix.component == 'chat-server'
         run: |
@@ -233,7 +248,6 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/chat-server:latest
           docker push ${{ env.DOCKER_USERNAME }}/chat-server:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/chat-server:latest
-
       - name: Build and push Frontend image
         if: matrix.component == 'frontend'
         run: |
@@ -242,3 +256,106 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }} ${{ env.DOCKER_USERNAME }}/frontend:latest
           docker push ${{ env.DOCKER_USERNAME }}/frontend:${{ github.sha }}
           docker push ${{ env.DOCKER_USERNAME }}/frontend:latest
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    steps:
+      - uses: actions/checkout@v4
+
+        # EC2 정리 작업
+      - name: Clean up EC2 (containers, images, files)
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          script: |
+            # 실행 중인 컨테이너 중지 및 삭제
+            docker stop $(docker ps -aq) 2>/dev/null || true
+            docker rm $(docker ps -aq) 2>/dev/null || true
+            
+            # 모든 이미지 삭제
+            docker rmi $(docker images -q) 2>/dev/null || true
+            
+            # 시스템 정리 (네트워크, 볼륨, 빌드 캐시 등)
+            docker system prune -af
+            
+            # 기존 프로젝트 파일들 삭제
+            rm -rf /home/ubuntu/orgtalk/*
+            
+            # 디렉토리 재생성
+            mkdir -p /home/ubuntu/orgtalk
+
+      - name: Copy docker-compose.yml to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/home/ubuntu/orgtalk/"
+
+      # nginx 설정 파일들 복사
+      - name: Copy nginx config files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          source: "frontend/nginx.conf,frontend/default.conf"
+          target: "/home/ubuntu/orgtalk/"
+
+      # 배포 시작
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ env.EC2_SSH_KEY }}
+          envs: DOCKER_USERNAME,DOCKER_PASSWORD,EC2_HOST,EC2_USERNAME,EC2_SSH_KEY,DB_URL,DB_USERNAME,DB_PASSWORD,REDIS_HOST,REDIS_PORT,MONGODB_HOST,MONGODB_PORT,MONGODB_USERNAME,MONGODB_PASSWORD,MONGODB_DATABASE,MONGODB_AUTH_DB,RABBITMQ_HOST,RABBITMQ_PORT,RABBITMQ_USERNAME,RABBITMQ_PASSWORD,RABBITMQ_VHOST,ACCESS_KEY,REFRESH_KEY,JWT_ORIGIN_KEY,JWT_APP_KEY,OAUTH_GITHUB_CLIENT_ID,OAUTH_GITHUB_CLIENT_SECRET,FRONTEND_REDIRECT_URI
+          script: |
+            cd /home/ubuntu/orgtalk
+            
+            
+            # .env 파일 생성
+            cat > .env << EOF
+            DB_URL=${DB_URL}
+            DB_USERNAME=${DB_USERNAME}
+            DB_PASSWORD=${DB_PASSWORD}
+            
+            REDIS_HOST=${REDIS_HOST}
+            REDIS_PORT=${REDIS_PORT}
+            
+            OAUTH_GITHUB_CLIENT_ID=${OAUTH_GITHUB_CLIENT_ID}
+            OAUTH_GITHUB_CLIENT_SECRET=${OAUTH_GITHUB_CLIENT_SECRET}
+            
+            JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
+            JWT_APP_KEY=${JWT_APP_KEY}
+            
+            FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
+            
+            MONGODB_HOST=${MONGODB_HOST}
+            MONGODB_PORT=${MONGODB_PORT}
+            MONGODB_USERNAME=${MONGODB_USERNAME}
+            MONGODB_PASSWORD=${MONGODB_PASSWORD}
+            MONGODB_DATABASE=${MONGODB_DATABASE}
+            MONGODB_AUTH_DB=${MONGODB_AUTH_DB}
+            
+            RABBITMQ_HOST=${RABBITMQ_HOST}
+            RABBITMQ_PORT=${RABBITMQ_PORT}
+            RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
+            RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+            RABBITMQ_VHOST=${RABBITMQ_VHOST}
+            EOF
+            
+            # 최신 이미지 풀
+            echo "도커 이미지 풀"
+            docker pull ${DOCKER_USERNAME}/main-server:latest
+            docker pull ${DOCKER_USERNAME}/chat-server:latest
+            docker pull ${DOCKER_USERNAME}/frontend:latest
+            
+            # 컨테이너 시작
+            echo "컨테이너 시작"
+            docker compose up -d

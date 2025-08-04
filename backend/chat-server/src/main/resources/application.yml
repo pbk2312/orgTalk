@@ -16,16 +16,16 @@ spring:
 
   data:
     mongodb:
-      host: ${MONGODB_HOST}  # localhost → 환경변수로 변경
-      port: ${MONGODB_PORT}  # 환경변수로 변경
-      database: ${MONGODB_DATABASE}  # orgTalk → 환경변수로 변경
+      host: ${MONGODB_HOST}
+      port: ${MONGODB_PORT}
+      database: ${MONGODB_DATABASE}
       username: ${MONGODB_USERNAME}
       password: ${MONGODB_PASSWORD}
       authentication-database: ${MONGODB_AUTH_DB}
 
     redis:
-      host: ${REDIS_HOST}  # localhost → 환경변수로 변경
-      port: ${REDIS_PORT}  # 환경변수로 변경
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 
   jpa:
     hibernate:
