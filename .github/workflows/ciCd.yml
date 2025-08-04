@@ -359,3 +359,6 @@ jobs:
             # 컨테이너 시작
             echo "컨테이너 시작"
             docker compose up -d
+            docker-compose ps
+            echo "컨테이너 성공적으로 시작 및 종료"
+            exit 0
