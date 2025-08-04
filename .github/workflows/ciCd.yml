@@ -189,7 +189,6 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      # GitHub Actions Runner에서 기존 이미지 정리 (Main Server만 실행)
       - name: Clean up existing Docker images
         if: matrix.component == 'main-server'
         run: |
@@ -198,7 +197,7 @@ jobs:
           docker images | grep -E "${{ env.DOCKER_USERNAME }}/(main-server|chat-server|frontend)" | awk '{print $3}' | xargs -r docker rmi -f || true
           docker image prune -f || true
 
-      # Docker 이미지 빌드 및 푸시 (각 컴포넌트별)
+      # Docker 이미지 빌드 및 푸시
       - name: Build and push Main Server image
         if: matrix.component == 'main-server'
         run: |
