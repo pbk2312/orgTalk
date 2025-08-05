@@ -48,12 +48,12 @@ spring:
 custom:
   jwt:
     duration:
-      access: 360000
+      access: 3600000
       refresh: 86400000
     secrets:
       origin-key: ${JWT_ORIGIN_KEY}
-      app-key: ${JWT_APP_KEY}]
-  api: ${API_MAIN_SERVER}
+      app-key: ${JWT_APP_KEY}
+
 
 logging:
   level:
