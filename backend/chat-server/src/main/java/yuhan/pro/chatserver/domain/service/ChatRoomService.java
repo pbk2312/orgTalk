@@ -139,16 +139,13 @@ public class ChatRoomService {
     ) {
         Long memberId = getMemberId(getAuthentication());
 
-        // ① 키워드 분기 로직 분리
         Page<ChatRoomSummary> summaryPage = fetchSummaryPage(organizationId, type, keyword,
                 pageable);
 
-        // ② 검색 결과가 없으면 빈 페이지 리턴
         if (summaryPage.isEmpty()) {
             return PageResponse.fromPage(Page.empty(pageable));
         }
 
-        // ③ 추가 데이터 조회 및 매핑
         List<Long> roomIds = summaryPage.stream()
                 .map(ChatRoomSummary::id)
                 .toList();
@@ -169,7 +166,6 @@ public class ChatRoomService {
     public ChatRoomInfoResponse getChatRoomInfo(Long roomId, String jwtToken) {
         ChatRoom chatRoom = findChatRoomOrThrow(roomId);
 
-        // 메인 서버에서 참여중인 멤버 정보 가져오기
         Set<Long> memberIds = chatRoom.getMembers().stream()
                 .map(ChatRoomMember::getMemberId)
                 .collect(Collectors.toSet());
@@ -245,7 +241,6 @@ public class ChatRoomService {
             );
         }
 
-        // 3) 긴 키워드: full-text 검색
         Page<ChatRoomSummaryProjection> projPage =
                 chatRoomRepository.findSummaryByOrgTypeAndFullText(
                         organizationId,
