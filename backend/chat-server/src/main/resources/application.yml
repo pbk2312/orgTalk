@@ -1,12 +1,9 @@
-server:
-  port: 8081
-  tomcat:
-    mbeanregistry:
-      enabled: true
-
 spring:
   application:
     name: chat-server
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}  # 환경 변수가 없으면 prod 사용
 
   datasource:
     url: ${DB_URL}
@@ -54,6 +51,11 @@ custom:
       origin-key: ${JWT_ORIGIN_KEY}
       app-key: ${JWT_APP_KEY}
 
+server:
+  port: 8081
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 logging:
   level:
