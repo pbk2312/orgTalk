@@ -67,6 +67,9 @@ custom:
       origin-key: dev-origin-key-12345678901234567890123456789012
       app-key: dev-app-key-67890123456789012345678901234567890
 
+main-server:
+  url: http://localhost:8080
+
 logging:
   level:
     org.springframework.web.socket.messaging.StompSubProtocolHandler: DEBUG

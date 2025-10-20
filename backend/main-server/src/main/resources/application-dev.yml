@@ -35,14 +35,14 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
 
-  # OAuth2 설정 (개발용 더미 값)
+  # OAuth2 설정 (환경 변수 사용)
   security:
     oauth2:
       client:
         registration:
           github:
-            client-id: dummy-client-id
-            client-secret: dummy-client-secret
+            client-id: ${OAUTH_GITHUB_CLIENT_ID}
+            client-secret: ${OAUTH_GITHUB_CLIENT_SECRET}
             scope:
               - read:user
               - user:email
@@ -82,7 +82,7 @@ custom:
       origin-key: dev-origin-key-12345678901234567890123456789012
       app-key: dev-app-key-67890123456789012345678901234567890
   app:
-    frontend-redirect-uri: http://localhost:3000
+    frontend-redirect-uri: http://localhost:3000/oauth/callback
 
 logging:
   level:
