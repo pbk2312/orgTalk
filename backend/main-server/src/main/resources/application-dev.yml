@@ -1,30 +1,41 @@
 spring:
+  config:
+    activate:
+      on-profile: dev
+  
   application:
     name: main-server
 
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:prod}  # 환경 변수가 없으면 prod 사용
-
+  # H2 데이터베이스 설정
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
 
+  # H2 콘솔 활성화 (개발용)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Redis 설정 (로컬 Redis)
   data:
     redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
+      host: localhost
+      port: 6379
+      timeout: 2000ms
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create-drop  # 개발용으로 테이블 자동 생성/삭제
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.H2Dialect
 
+  # OAuth2 설정 (환경 변수 사용)
   security:
     oauth2:
       client:
@@ -45,6 +56,12 @@ spring:
             user-info-uri: https://api.github.com/user
             user-name-attribute: login
 
+server:
+  port: 8080
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
 resilience4j:
   circuitbreaker:
     instances:
@@ -62,16 +79,10 @@ custom:
       access: 3600000         # Access Token: 60분 (밀리초)
       refresh: 86400000       # Refresh Token: 24시간 (밀리초)
     secrets:
-      origin-key: ${JWT_ORIGIN_KEY}
-      app-key: ${JWT_APP_KEY}
+      origin-key: dev-origin-key-12345678901234567890123456789012
+      app-key: dev-app-key-67890123456789012345678901234567890
   app:
-    frontend-redirect-uri: ${FRONTEND_REDIRECT_URI}
-
-server:
-  port: 8080
-  tomcat:
-    mbeanregistry:
-      enabled: true
+    frontend-redirect-uri: http://localhost:3000/oauth/callback
 
 logging:
   level:
@@ -79,3 +90,5 @@ logging:
     org.springframework.web.socket.server: DEBUG
     org.springframework.web.socket.sockjs: DEBUG
     org.springframework.messaging: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

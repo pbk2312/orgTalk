@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import ProtectedRoute from './components/ProtectedRoute';
 
 import LoginPage from './pages/LoginPage';
+import OAuthCallback from './pages/OAuthCallback';
 import OrganizationSelectPage from './pages/OrganizationSelectPage';
 import ChatRoomsPage from './pages/ChatRoomsPage';
 import ChatRoom from './pages/ChatRoom/ChatRoom';
@@ -16,6 +17,7 @@ function App() {
       <Routes>
         {/* 공개 페이지 */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
 
         {/* ProtectedRoute 하위에 들어간 경로는 auth 검사 후 렌더링 */}
         <Route element={<ProtectedRoute />}>

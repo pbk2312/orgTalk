@@ -22,9 +22,9 @@ import yuhan.pro.mainserver.domain.member.mapper.MemberMapper;
 import yuhan.pro.mainserver.domain.member.repository.MemberRepository;
 import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
 import yuhan.pro.mainserver.domain.organization.repository.OrganizationRepository;
-import yuhan.pro.mainserver.sharedkernel.dto.PageResponse;
+import yuhan.pro.mainserver.sharedkernel.common.dto.PageResponse;
 import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
-import yuhan.pro.mainserver.sharedkernel.jwt.CustomUserDetails;
+import yuhan.pro.mainserver.sharedkernel.security.authentication.CustomUserDetails;
 
 @Service
 @Slf4j
