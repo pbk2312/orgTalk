@@ -6,10 +6,12 @@ import {
   Globe,
   Lock,
   Shield,
+  Sparkles,
   Trash2,
   UserMinus,
   Users
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import styles from '../../css/ChatRoom/ChatRoomHeader.module.css';
 import {kickMember} from '../../service/ChatService';
 
@@ -25,6 +27,7 @@ const ChatHeader = ({
   roomIdNum
 }) => {
   console.log(roomInfo)
+  const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
@@ -169,6 +172,15 @@ const ChatHeader = ({
             </div>
           </div>
           <div className={styles.headerRight}>
+            <button
+                className={styles.aiMentorButton}
+                onClick={() => navigate('/ai-mentor')}
+                title="AI 멘토에게 질문하기"
+                aria-label="AI 멘토"
+            >
+              <Sparkles size={18}/>
+              <span>AI 멘토</span>
+            </button>
             <button
                 className={styles.memberButton}
                 onClick={handleMemberClick}

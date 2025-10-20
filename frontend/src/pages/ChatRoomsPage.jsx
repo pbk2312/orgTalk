@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MessageCircle, Users, Plus } from 'lucide-react';
+import { MessageCircle, Users, Plus, Sparkles } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import OrgTalkHeader from './OrgTalkHeader';
 import CreateChatRoomModal from './CreateChatRoomModal';
@@ -263,10 +263,16 @@ const ChatRoomsPage = () => {
                     </p>
                   </div>
                 </div>
-                <button className={styles['create-button']} onClick={handleOpenModal}>
-                  <Plus size={18} />
-                  <span>새 채팅방</span>
-                </button>
+                <div className={styles['action-buttons']}>
+                  <button className={styles['ai-mentor-button']} onClick={() => navigate('/ai-mentor')}>
+                    <Sparkles size={18} />
+                    <span>AI 멘토</span>
+                  </button>
+                  <button className={styles['create-button']} onClick={handleOpenModal}>
+                    <Plus size={18} />
+                    <span>새 채팅방</span>
+                  </button>
+                </div>
               </div>
               <p className={styles['page-description']}>
                 참여하고 싶은 <span className={styles['description-highlight']}>채팅방</span>을 선택하세요

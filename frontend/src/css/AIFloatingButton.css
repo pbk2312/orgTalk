@@ -1,0 +1,97 @@
+.ai-floating-button {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.ai-floating-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+  padding-right: 1.5rem;
+}
+
+.ai-floating-button:active {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+}
+
+.ai-floating-icon {
+  animation: sparkle 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15) rotate(10deg);
+    opacity: 0.8;
+  }
+}
+
+.ai-floating-text {
+  animation: slideIn 0.3s ease-out;
+  max-width: 120px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    max-width: 0;
+  }
+  to {
+    opacity: 1;
+    max-width: 120px;
+  }
+}
+
+/* 작은 화면에서는 항상 텍스트 표시 */
+@media (max-width: 768px) {
+  .ai-floating-button {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    padding: 0.875rem 1.25rem;
+  }
+
+  .ai-floating-text {
+    display: inline;
+  }
+}
+
+/* 펄스 효과 추가 */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 30px rgba(102, 126, 234, 0.7);
+  }
+}
+
+.ai-floating-button {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.ai-floating-button:hover {
+  animation: none;
+}
+
+

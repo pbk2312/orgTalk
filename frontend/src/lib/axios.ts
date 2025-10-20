@@ -13,7 +13,8 @@ let refreshErrorShown = false;
 
 const PUBLIC_ENDPOINTS = [
   '/auth/refresh',
-  '/auth/login'
+  '/auth/login',
+  '/auth/me'
 ];
 
 export function setAccessToken(token: string) {
@@ -112,9 +113,35 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
   instance.interceptors.request.use(
     async (config) => {
       const url = config.url ?? '';
-      if (PUBLIC_ENDPOINTS.some(ep => url.endsWith(ep))) {
+      const isPublicEndpoint = PUBLIC_ENDPOINTS.some(ep => url.endsWith(ep));
+      
+      // /auth/me는 토큰이 있으면 보내고, 없으면 refresh 시도
+      if (url.endsWith('/auth/me')) {
+        if (accessToken) {
+          config.headers = config.headers ?? {};
+          config.headers.Authorization = `Bearer ${accessToken}`;
+        } else {
+          // accessToken이 없으면 refresh 시도
+          try {
+            const token = await getAccessToken();
+            if (token) {
+              config.headers = config.headers ?? {};
+              config.headers.Authorization = `Bearer ${token}`;
+            }
+          } catch (err) {
+            // refresh 실패해도 /auth/me는 계속 호출 (인증되지 않은 상태로)
+            console.log('토큰 갱신 실패, 비인증 상태로 /auth/me 호출');
+          }
+        }
         return config;
       }
+      
+      // 다른 public 엔드포인트는 토큰 없이 호출
+      if (isPublicEndpoint) {
+        return config;
+      }
+      
+      // 그 외 엔드포인트는 토큰 필수
       const token = await getAccessToken();
       if (token) {
         config.headers = config.headers ?? {};

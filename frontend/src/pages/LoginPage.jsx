@@ -76,7 +76,8 @@ const LoginPage = () => {
   const features = [
     { icon: Users, title: "Organization 기반", desc: "같은 Org 멤버들과 소통", colorClass: "feature-blue", delay: "0.1s" },
     { icon: MessageCircle, title: "실시간 채팅", desc: "즉시 협업하고 아이디어 공유", colorClass: "feature-green", delay: "0.2s" },
-    { icon: GitBranch, title: "개발자 친화적", desc: "GitHub과 완벽하게 연동", colorClass: "feature-purple", delay: "0.3s" }
+    { icon: Sparkles, title: "AI 개발 멘토", desc: "개발 질문에 즉시 답변 받기", colorClass: "feature-ai", delay: "0.3s" },
+    { icon: GitBranch, title: "개발자 친화적", desc: "GitHub과 완벽하게 연동", colorClass: "feature-purple", delay: "0.4s" }
   ];
 
   return (

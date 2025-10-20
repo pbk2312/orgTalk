@@ -295,6 +295,22 @@
   background: linear-gradient(45deg, #10b981, #059669);
 }
 
+.feature-ai {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  animation: sparkle-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
 .feature-purple {
   background: linear-gradient(45deg, #8b5cf6, #ec4899);
 }
