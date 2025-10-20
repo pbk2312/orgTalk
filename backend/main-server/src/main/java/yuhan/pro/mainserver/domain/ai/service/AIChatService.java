@@ -34,27 +34,10 @@ public class AIChatService {
         try {
             log.info("OpenAI API 호출 시작 - 질문: {}", request.question());
 
-            OpenAIRequest openAIRequest = OpenAIRequest.createDeveloperAssistant(
-                    request.question());
+            OpenAIRequest openAIRequest = createOpenAIRequest(request.question());
+            OpenAIResponse openAIResponse = callOpenAI(openAIRequest);
 
-            OpenAIResponse response = webClient.post()
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-                    .bodyValue(openAIRequest)
-                    .retrieve()
-                    .bodyToMono(OpenAIResponse.class)
-                    .block();
-
-            if (response == null) {
-                log.error("OpenAI API 응답이 null입니다");
-                return new ChatResponse("죄송합니다. 응답을 받지 못했습니다. 다시 시도해주세요.");
-            }
-
-            String answer = response.getContent();
-            int tokensUsed = response.getTotalTokens();
-
-            log.info("OpenAI API 호출 성공 - 사용 토큰: {}", tokensUsed);
-
-            return new ChatResponse(answer, tokensUsed);
+            return buildChatResponse(openAIResponse);
 
         } catch (WebClientResponseException e) {
             log.error("OpenAI API 호출 실패 - 상태 코드: {}, 응답: {}", e.getStatusCode(),
@@ -64,5 +47,31 @@ public class AIChatService {
             log.error("OpenAI API 호출 중 예외 발생", e);
             return new ChatResponse("죄송합니다. 예상치 못한 오류가 발생했습니다. 관리자에게 문의해주세요.");
         }
+    }
+
+    private OpenAIRequest createOpenAIRequest(String question) {
+        return OpenAIRequest.createDeveloperAssistant(question);
+    }
+
+    private OpenAIResponse callOpenAI(OpenAIRequest request) {
+        return webClient.post()
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(OpenAIResponse.class)
+                .block();
+    }
+
+    private ChatResponse buildChatResponse(OpenAIResponse response) {
+        if (response == null) {
+            log.error("OpenAI API 응답이 null입니다");
+            return new ChatResponse("죄송합니다. 응답을 받지 못했습니다. 다시 시도해주세요.");
+        }
+
+        String answer = response.getContent();
+        int tokensUsed = response.getTotalTokens();
+
+        log.info("OpenAI API 호출 성공 - 사용 토큰: {}", tokensUsed);
+        return new ChatResponse(answer, tokensUsed);
     }
 }
