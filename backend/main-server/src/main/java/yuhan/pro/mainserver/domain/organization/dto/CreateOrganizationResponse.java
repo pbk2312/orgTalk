@@ -4,14 +4,13 @@ import lombok.Builder;
 
 @Builder
 public record CreateOrganizationResponse(
-    Long id,
-    String login,
-    String avatarUrl,
-    String accessToken,
-    String refreshToken,
-    Integer accessTokenExpiresIn,
-    Integer refreshTokenExpiresIn
+        Long id,
+        String login,
+        String avatarUrl,
+        String accessToken,
+        String refreshToken,
+        Integer accessTokenExpiresIn,
+        Integer refreshTokenExpiresIn
 ) {
+
 }
-
-

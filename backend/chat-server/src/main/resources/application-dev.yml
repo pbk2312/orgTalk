@@ -43,15 +43,6 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
 
-  rabbitmq:
-    host: localhost
-    port: 5672
-    stomp:
-      port: 61613
-    username: guest
-    password: guest
-    virtual-host: /
-
 server:
   port: 8081
   tomcat:
