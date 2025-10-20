@@ -6,7 +6,7 @@ import lombok.experimental.UtilityClass;
 public final class OAuth2Constants {
 
     // GitHub API URLs
-    public static final String GITHUB_ORGS_URL = "https://api.github.com/user/orgs";
+    public static final String GITHUB_ORGS_URL = "https://api.github.com/user/memberships/orgs";
     public static final String GITHUB_EMAILS_URL = "https://api.github.com/user/emails";
 
     // GitHub OAuth Attributes

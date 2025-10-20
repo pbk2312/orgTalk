@@ -86,7 +86,7 @@ public class OAuth2Service extends DefaultOAuth2UserService {
                 .map(Organization::getId)
                 .collect(Collectors.toSet());
 
-        log.debug("Member organizations loaded: {} organizations for memberId: {}", 
+        log.debug("Member organizations loaded: {} organizations for memberId: {}",
                 orgIds.size(), member.getId());
 
         return MemberDetails.builder()
@@ -105,7 +105,8 @@ public class OAuth2Service extends DefaultOAuth2UserService {
                 GITHUB_EMAILS_URL,
                 HttpMethod.GET,
                 emailEntity,
-                new ParameterizedTypeReference<>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
 
         List<Map<String, Object>> emails = Optional.ofNullable(emailsResponse.getBody())
@@ -121,15 +122,45 @@ public class OAuth2Service extends DefaultOAuth2UserService {
 
     private List<GithubOrgDto> fetchOrganizations(String token) {
         HttpEntity<Void> orgsEntity = buildHttpEntity(token);
-        ResponseEntity<List<GithubOrgDto>> orgsResponse = restTemplate.exchange(
+
+        ResponseEntity<List<Map<String, Object>>> orgsResponse = restTemplate.exchange(
                 GITHUB_ORGS_URL,
                 HttpMethod.GET,
                 orgsEntity,
-                new ParameterizedTypeReference<>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
 
-        return Optional.ofNullable(orgsResponse.getBody())
+        List<Map<String, Object>> memberships = Optional.ofNullable(orgsResponse.getBody())
                 .orElse(Collections.emptyList());
+
+        log.info("GitHub API Response Status: {}", orgsResponse.getStatusCode());
+        log.info("Fetched {} organization memberships from GitHub", memberships.size());
+        log.info("Raw memberships response: {}", memberships);
+
+        // memberships API는 중첩된 organization 객체를 반환하므로 파싱 필요
+        List<GithubOrgDto> organizations = memberships.stream()
+                .filter(m -> {
+                    String state = (String) m.get("state");
+                    String role = (String) m.get("role");
+                    log.debug("Organization membership - state: {}, role: {}", state, role);
+                    return "active".equals(state); // active 상태만 포함
+                })
+                .map(m -> (Map<String, Object>) m.get("organization"))
+                .filter(org -> org != null)
+                .map(org -> {
+                    GithubOrgDto dto = new GithubOrgDto(
+                            ((Number) org.get("id")).longValue(),
+                            (String) org.get("login"),
+                            (String) org.get("avatar_url")
+                    );
+                    log.debug("Mapped organization: id={}, login={}", dto.id(), dto.login());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        log.info("Successfully fetched {} active organizations", organizations.size());
+        return organizations;
     }
 
     private Member findMemberOrSave(Long githubId, String login, String name,

@@ -55,7 +55,6 @@ dependencies {
     testImplementation 'com.h2database:h2'
 
     implementation "org.springframework.boot:spring-boot-starter-reactor-netty"
-    implementation 'org.springframework.amqp:spring-rabbit-stream'
 }
 
 tasks.named('test') {

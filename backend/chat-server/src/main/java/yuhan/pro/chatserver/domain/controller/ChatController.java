@@ -2,7 +2,6 @@ package yuhan.pro.chatserver.domain.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -54,18 +53,19 @@ public class ChatController {
         messagingTemplate.convertAndSend(destination, enriched);
     }
 
-    @Operation(summary = "채팅 히스토리 조회 (커서 페이징)")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "채팅 히스토리 조회 성공"),
-            @ApiResponse(responseCode = "404", description = "해당 채팅방이 없습니다.")
-    })
+    @Operation(
+            summary = "채팅 히스토리 조회 (커서 페이징)",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "채팅 히스토리 조회 성공"),
+                    @ApiResponse(responseCode = "404", description = "해당 채팅방이 없습니다.")
+            }
+    )
     @ResponseBody
     @GetMapping("/api/chat/{roomId}")
     @ResponseStatus(HttpStatus.OK)
     public ChatPageResponse getChats(
             @PathVariable Long roomId,
-            @RequestParam(required = false)
-            LocalDateTime cursor,
+            @RequestParam(required = false) LocalDateTime cursor,
             @RequestParam(defaultValue = "6") int size
     ) {
         return chatService.getChatsByCursor(roomId, cursor, size);
