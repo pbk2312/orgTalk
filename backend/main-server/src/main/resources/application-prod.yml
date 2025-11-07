@@ -76,7 +76,7 @@ custom:
       origin-key: ${JWT_ORIGIN_KEY}
       app-key: ${JWT_APP_KEY}
   app:
-    frontend-redirect-uri: ${FRONTEND_REDIRECT_URI}
+    frontend-redirect-uri: ${FRONTEND_REDIRECT_URI:http://orgtalk.shop/oauth/callback}
 
 # CORS 설정 (배포 환경)
 cors:

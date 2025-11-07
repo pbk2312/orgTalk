@@ -46,10 +46,15 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         CookieUtils.addCookie(response, REFRESH_TOKEN_COOKIE, tokenDto.refreshToken(),
                 tokenDto.refreshTokenExpiresIn());
 
-        String targetUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
+        // frontendRedirectUri의 공백 제거 및 정규화
+        String normalizedRedirectUri = frontendRedirectUri.trim();
+        
+        String targetUrl = UriComponentsBuilder.fromUriString(normalizedRedirectUri)
                 .queryParam("accessToken", tokenDto.accessToken())
                 .queryParam("expiresIn", tokenDto.accessTokenExpiresIn())
                 .build().toUriString();
+        
+        log.info("Redirecting to: {}", targetUrl);
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
