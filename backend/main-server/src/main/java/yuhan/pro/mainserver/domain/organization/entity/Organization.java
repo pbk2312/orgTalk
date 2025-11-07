@@ -13,7 +13,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import yuhan.pro.mainserver.domain.member.entity.Member;
-import yuhan.pro.mainserver.sharedkernel.entity.BaseEntity;
+import yuhan.pro.mainserver.sharedkernel.common.entity.BaseEntity;
 
 @Entity
 @Getter

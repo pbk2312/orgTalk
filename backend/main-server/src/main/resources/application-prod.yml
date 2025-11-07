@@ -1,0 +1,90 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  
+  application:
+    name: main-server
+
+  # MySQL 데이터베이스 설정 (환경 변수 사용)
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # Redis 설정 (환경 변수 사용)
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      timeout: 3000ms
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 배포 환경에서는 validate 사용 (테이블 자동 생성 방지)
+    show-sql: false  # 배포 환경에서는 SQL 로깅 비활성화
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+  # OAuth2 설정 (환경 변수 사용)
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${OAUTH_GITHUB_CLIENT_ID}
+            client-secret: ${OAUTH_GITHUB_CLIENT_SECRET}
+            scope:
+              - read:user
+              - user:email
+              - read:org
+            redirect-uri: "{baseUrl}/login/oauth2/code/github"
+            client-name: GitHub
+        provider:
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: login
+
+server:
+  port: 8080
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      circuitbreaker_test:
+        failure-rate-threshold: 60
+        recordExceptions:
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+        ignoreExceptions:
+          - java.lang.IllegalStateException
+
+custom:
+  jwt:
+    duration:
+      access: 3600000         # Access Token: 60분 (밀리초)
+      refresh: 86400000       # Refresh Token: 24시간 (밀리초)
+    secrets:
+      origin-key: ${JWT_ORIGIN_KEY}
+      app-key: ${JWT_APP_KEY}
+  app:
+    frontend-redirect-uri: ${FRONTEND_REDIRECT_URI}
+
+# CORS 설정 (배포 환경)
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+logging:
+  level:
+    org.springframework.web.socket.messaging.StompSubProtocolHandler: INFO
+    org.springframework.web.socket.server: INFO
+    org.springframework.web.socket.sockjs: INFO
+    org.springframework.messaging: INFO

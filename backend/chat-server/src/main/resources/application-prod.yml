@@ -1,0 +1,66 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  
+  application:
+    name: chat-server
+
+  # MySQL 데이터베이스 설정 (환경 변수 사용)
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    mongodb:
+      host: ${MONGODB_HOST}
+      port: ${MONGODB_PORT}
+      database: ${MONGODB_DATABASE}
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      authentication-database: ${MONGODB_AUTH_DB}
+
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      timeout: 3000ms
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 배포 환경에서는 validate 사용 (테이블 자동 생성 방지)
+    show-sql: false  # 배포 환경에서는 SQL 로깅 비활성화
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+server:
+  port: 8081
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+custom:
+  jwt:
+    duration:
+      access: 3600000
+      refresh: 86400000
+    secrets:
+      origin-key: ${JWT_ORIGIN_KEY}
+      app-key: ${JWT_APP_KEY}
+
+main-server:
+  url: ${MAIN_SERVER_URL}
+
+# CORS 설정 (배포 환경)
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+logging:
+  level:
+    org.springframework.web.socket.messaging.StompSubProtocolHandler: INFO
+    org.springframework.web.socket.server: INFO
+    org.springframework.web.socket.sockjs: INFO
+    org.springframework.messaging: INFO

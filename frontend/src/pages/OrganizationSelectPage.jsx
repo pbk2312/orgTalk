@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Code2, Users, ArrowRight, Loader2, Building2, Check, Sparkles, Zap } from 'lucide-react';
+import { Code2, Users, ArrowRight, Loader2, Building2, Check, Sparkles, Zap, Plus } from 'lucide-react';
 import '../css/OrganizationSelectPage.css';
 import { getOrganizations } from '../service/MemberService';
+import { createOrganization } from '../service/OrganizationService';
+import { setAccessToken } from '../lib/axios.ts';
 import OrgTalkHeader from './OrgTalkHeader';
 import { useNavigate } from 'react-router-dom';
 import Pagination from './Pagination';
@@ -81,6 +83,10 @@ const OrganizationSelectPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(3);
   const [totalPages, setTotalPages] = useState(0);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newOrgName, setNewOrgName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   const navigate = useNavigate();
 
@@ -134,6 +140,52 @@ const OrganizationSelectPage = () => {
     setTimeout(() => {
       navigate(`/chat-rooms/${selectedOrg.id}`);
     }, 500);
+  };
+
+  const handleCreateOrganization = async () => {
+    if (!newOrgName.trim()) {
+      setCreateError('조직 이름을 입력해주세요');
+      return;
+    }
+
+    if (newOrgName.length < 2 || newOrgName.length > 50) {
+      setCreateError('조직 이름은 2자 이상 50자 이하여야 합니다');
+      return;
+    }
+
+    setIsCreating(true);
+    setCreateError('');
+
+    try {
+      const response = await createOrganization(newOrgName);
+      
+      // 새로운 Access Token을 메모리 캐시에 저장
+      // Refresh Token은 서버가 자동으로 HttpOnly 쿠키로 갱신함
+      if (response.accessToken) {
+        setAccessToken(response.accessToken);
+        console.log('조직 생성 완료, 새로운 Access Token 적용');
+      }
+      
+      // 생성 성공 시 조직 목록 새로고침 (업데이트된 토큰으로 호출)
+      const data = await getOrganizations(0, pageSize);
+      setOrganizations(data.content);
+      setTotalPages(data.totalPages);
+      setCurrentPage(0);
+      setNewOrgName('');
+      setShowCreateForm(false);
+      
+      // 생성된 조직 자동 선택
+      setSelectedOrg({
+        id: response.id,
+        login: response.login,
+        avatarUrl: response.avatarUrl
+      });
+    } catch (error) {
+      console.error('Failed to create organization:', error);
+      setCreateError('조직 생성에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -223,8 +275,158 @@ const OrganizationSelectPage = () => {
                     </div>
                     <h3 className="empty-title">참여 가능한 조직이 없습니다</h3>
                     <p className="empty-description">
-                      GitHub Organization에 먼저 참여한 후 다시 시도해주세요
+                      GitHub Organization에 먼저 참여하거나<br />
+                      테스트용 조직을 생성해보세요
                     </p>
+
+                    {!showCreateForm ? (
+                      <button
+                        onClick={() => setShowCreateForm(true)}
+                        className="create-org-button"
+                        style={{
+                          marginTop: '1.5rem',
+                          padding: '0.75rem 1.5rem',
+                          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '12px',
+                          fontSize: '0.95rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                          margin: '1.5rem auto 0'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                        }}
+                      >
+                        <Plus size={20} />
+                        <span>테스트 조직 만들기</span>
+                      </button>
+                    ) : (
+                      <div 
+                        className="create-org-form"
+                        style={{
+                          marginTop: '1.5rem',
+                          padding: '1.5rem',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: '16px',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          maxWidth: '400px',
+                          margin: '1.5rem auto 0'
+                        }}
+                      >
+                        <input
+                          type="text"
+                          value={newOrgName}
+                          onChange={(e) => {
+                            setNewOrgName(e.target.value);
+                            setCreateError('');
+                          }}
+                          placeholder="조직 이름 입력 (예: MyTestOrg)"
+                          disabled={isCreating}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontSize: '0.95rem',
+                            marginBottom: '0.75rem',
+                            outline: 'none',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onFocus={(e) => {
+                            e.currentTarget.style.border = '1px solid #3b82f6';
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                          }}
+                        />
+                        
+                        {createError && (
+                          <p style={{
+                            color: '#ef4444',
+                            fontSize: '0.875rem',
+                            marginBottom: '0.75rem',
+                            textAlign: 'left'
+                          }}>
+                            {createError}
+                          </p>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                          <button
+                            onClick={handleCreateOrganization}
+                            disabled={isCreating}
+                            style={{
+                              flex: 1,
+                              padding: '0.75rem',
+                              background: isCreating 
+                                ? 'rgba(59, 130, 246, 0.5)' 
+                                : 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '0.95rem',
+                              fontWeight: '600',
+                              cursor: isCreating ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem',
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            {isCreating ? (
+                              <>
+                                <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                                <span>생성 중...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Check size={18} />
+                                <span>생성</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setShowCreateForm(false);
+                              setNewOrgName('');
+                              setCreateError('');
+                            }}
+                            disabled={isCreating}
+                            style={{
+                              padding: '0.75rem 1.25rem',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              color: 'rgba(255, 255, 255, 0.7)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '8px',
+                              fontSize: '0.95rem',
+                              fontWeight: '600',
+                              cursor: isCreating ? 'not-allowed' : 'pointer',
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

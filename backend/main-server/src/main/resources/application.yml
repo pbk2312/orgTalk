@@ -1,12 +1,9 @@
-server:
-  port: 8080
-  tomcat:
-    mbeanregistry:
-      enabled: true
-
 spring:
   application:
     name: main-server
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}  # 환경 변수가 없으면 prod 사용
 
   datasource:
     url: ${DB_URL}
@@ -69,6 +66,12 @@ custom:
       app-key: ${JWT_APP_KEY}
   app:
     frontend-redirect-uri: ${FRONTEND_REDIRECT_URI}
+
+server:
+  port: 8080
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 logging:
   level:

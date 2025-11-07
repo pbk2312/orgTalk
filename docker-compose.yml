@@ -35,34 +35,6 @@ services:
       retries: 10
       start_period: 60s
 
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: orgtalk-rabbitmq
-    restart: always
-    ports:
-      - "5672:5672"     # AMQP port
-      - "15672:15672"   # Management UI
-      - "61613:61613"   # STOMP port
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-      RABBITMQ_DEFAULT_VHOST: /
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    networks:
-      - orgtalk-net
-    command: >
-      bash -c "
-        rabbitmq-plugins enable rabbitmq_management rabbitmq_stomp rabbitmq_web_stomp;
-        rabbitmq-server
-      "
-    healthcheck:
-      test: [ "CMD", "rabbitmqctl", "status" ]
-      interval: 30s
-      timeout: 15s
-      retries: 10
-      start_period: 120s
-
   main-server:
     image: ${DOCKER_USERNAME}/main-server:latest
     container_name: orgtalk-main-server
@@ -73,7 +45,6 @@ services:
       - orgtalk-net
     depends_on:
       - redis
-      - rabbitmq
     environment:
       - DB_URL=${DB_URL}
       - DB_USERNAME=${DB_USERNAME}
@@ -85,8 +56,6 @@ services:
       - FRONTEND_REDIRECT_URI=${FRONTEND_REDIRECT_URI}
       - JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
       - JWT_APP_KEY=${JWT_APP_KEY}
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
       interval: 60s
@@ -105,7 +74,6 @@ services:
     depends_on:
       - mongodb
       - redis
-      - rabbitmq
     environment:
       - DB_URL=${DB_URL}
       - DB_USERNAME=${DB_USERNAME}
@@ -120,11 +88,6 @@ services:
       - REDIS_PORT=6379
       - JWT_ORIGIN_KEY=${JWT_ORIGIN_KEY}
       - JWT_APP_KEY=${JWT_APP_KEY}
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8081/health" ]
       interval: 60s
@@ -159,8 +122,6 @@ volumes:
   redis-data:
     driver: local
   mongo-data:
-    driver: local
-  rabbitmq-data:
     driver: local
 
 networks:

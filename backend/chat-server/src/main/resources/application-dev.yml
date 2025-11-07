@@ -1,0 +1,71 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  application:
+    name: chat-server
+
+  # H2 데이터베이스 설정
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  # H2 콘솔 활성화 (개발용)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: orgtalk_dev
+      # dev 환경에서는 인증 없이 사용
+      # username: 
+      # password: 
+      # authentication-database: admin
+
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+server:
+  port: 8081
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+custom:
+  jwt:
+    duration:
+      access: 3600000
+      refresh: 86400000
+    secrets:
+      origin-key: dev-origin-key-12345678901234567890123456789012
+      app-key: dev-app-key-67890123456789012345678901234567890
+
+main-server:
+  url: http://localhost:8080
+
+logging:
+  level:
+    org.springframework.web.socket.messaging.StompSubProtocolHandler: DEBUG
+    org.springframework.web.socket.server: DEBUG
+    org.springframework.web.socket.sockjs: DEBUG
+    org.springframework.messaging: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
