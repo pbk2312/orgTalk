@@ -52,7 +52,7 @@ custom:
       app-key: ${JWT_APP_KEY}
 
 main-server:
-  url: ${MAIN_SERVER_URL}
+  url: ${MAIN_SERVER_URL:http://main-server:8080}
 
 # CORS 설정 (배포 환경)
 cors:
