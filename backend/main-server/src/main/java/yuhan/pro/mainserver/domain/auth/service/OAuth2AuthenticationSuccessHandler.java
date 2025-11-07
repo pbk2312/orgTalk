@@ -31,9 +31,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException {
-
-        MemberDetails memberDetails = (MemberDetails) authentication.getPrincipal();
-        log.info("OAuth2 authentication successful for memberId: {}", memberDetails.getMemberId());
+        
+        try {
+            log.info("OAuth2 authentication success handler called");
+            MemberDetails memberDetails = (MemberDetails) authentication.getPrincipal();
+            log.info("OAuth2 authentication successful for memberId: {}", memberDetails.getMemberId());
 
         Authentication oAuth2Authentication = new UsernamePasswordAuthenticationToken(
                 memberDetails,
@@ -54,9 +56,18 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .queryParam("expiresIn", tokenDto.accessTokenExpiresIn())
                 .build().toUriString();
         
-        log.info("Redirecting to: {}", targetUrl);
+            log.info("Redirecting to: {}", targetUrl);
 
-        getRedirectStrategy().sendRedirect(request, response, targetUrl);
+            getRedirectStrategy().sendRedirect(request, response, targetUrl);
+        } catch (Exception e) {
+            log.error("Error in OAuth2 authentication success handler", e);
+            log.error("Exception type: {}", e.getClass().getName());
+            log.error("Exception message: {}", e.getMessage());
+            if (e.getCause() != null) {
+                log.error("Exception cause: {}", e.getCause().getMessage());
+            }
+            throw new IOException("Failed to process OAuth2 authentication", e);
+        }
     }
 }
 

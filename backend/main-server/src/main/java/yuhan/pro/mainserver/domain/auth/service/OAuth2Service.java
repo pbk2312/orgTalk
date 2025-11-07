@@ -52,8 +52,11 @@ public class OAuth2Service extends DefaultOAuth2UserService {
     @Override
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) {
-        OAuth2User oauth2User = super.loadUser(userRequest);
-        Map<String, Object> attrs = oauth2User.getAttributes();
+        try {
+            log.info("Loading OAuth2 user from GitHub...");
+            OAuth2User oauth2User = super.loadUser(userRequest);
+            Map<String, Object> attrs = oauth2User.getAttributes();
+            log.info("OAuth2 user loaded successfully, attributes: {}", attrs.keySet());
 
         Long githubId = ((Number) attrs.get(ATTR_ID)).longValue();
         String login = (String) attrs.get(ATTR_LOGIN);
@@ -89,14 +92,23 @@ public class OAuth2Service extends DefaultOAuth2UserService {
         log.debug("Member organizations loaded: {} organizations for memberId: {}",
                 orgIds.size(), member.getId());
 
-        return MemberDetails.builder()
-                .attributes(attrs)
-                .nickName(login)
-                .email(email)
-                .build()
-                .setMemberId(member.getId())
-                .setMemberRole(member.getMemberRole())
-                .setOrganizationIds(orgIds);
+            return MemberDetails.builder()
+                    .attributes(attrs)
+                    .nickName(login)
+                    .email(email)
+                    .build()
+                    .setMemberId(member.getId())
+                    .setMemberRole(member.getMemberRole())
+                    .setOrganizationIds(orgIds);
+        } catch (Exception e) {
+            log.error("Error loading OAuth2 user", e);
+            log.error("Exception type: {}", e.getClass().getName());
+            log.error("Exception message: {}", e.getMessage());
+            if (e.getCause() != null) {
+                log.error("Exception cause: {}", e.getCause().getMessage());
+            }
+            throw e;
+        }
     }
 
     private String fetchPrimaryEmail(String token) {

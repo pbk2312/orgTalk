@@ -12,6 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import yuhan.pro.mainserver.domain.auth.service.OAuth2AuthenticationFailureHandler;
 import yuhan.pro.mainserver.domain.auth.service.OAuth2AuthenticationSuccessHandler;
 import yuhan.pro.mainserver.domain.auth.service.OAuth2Service;
 import yuhan.pro.mainserver.sharedkernel.security.handler.JwtAccessDeniedHandler;
@@ -27,6 +28,7 @@ public class SecurityConfig {
   private final JwtValidator validator;
   private final JwtAuthenticationProvider authenticationProvider;
   private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+  private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
   private final OAuth2Service oAuth2Service;
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
   private final JwtAccessDeniedHandler accessDeniedHandler;
@@ -60,6 +62,7 @@ public class SecurityConfig {
         )
         .oauth2Login(oauth2 -> oauth2
             .successHandler(oAuth2AuthenticationSuccessHandler)
+            .failureHandler(oAuth2AuthenticationFailureHandler)
             .userInfoEndpoint(userInfoEndpoint -> userInfoEndpoint.userService(oAuth2Service))
         )
         .with(new JwtSecurityConfig(validator, authenticationProvider), c -> {
