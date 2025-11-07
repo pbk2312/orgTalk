@@ -32,5 +32,6 @@ public class Organization extends BaseEntity {
   private String avatarUrl;
 
   @ManyToMany(mappedBy = "organizations", fetch = FetchType.LAZY)
+  @Builder.Default
   private Set<Member> members = new HashSet<>();
 }
