@@ -50,6 +50,7 @@ public class SecurityConfig {
 
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/oauth2/**").permitAll()
+            .requestMatchers("/login/oauth2/code/**").permitAll()
             .requestMatchers("/actuator/**").permitAll()
             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
             .requestMatchers("/api/auth/me").permitAll()
