@@ -41,7 +41,7 @@ spring:
               - read:user
               - user:email
               - read:org
-            redirect-uri: "{baseUrl}/login/oauth2/code/github"
+            redirect-uri: "http://orgtalk.shop/login/oauth2/code/github"
             client-name: GitHub
         provider:
           github:
@@ -88,3 +88,8 @@ logging:
     org.springframework.web.socket.server: INFO
     org.springframework.web.socket.sockjs: INFO
     org.springframework.messaging: INFO
+    org.springframework.security.oauth2: DEBUG
+    org.springframework.web.client: DEBUG
+    org.springframework.security.oauth2.client.endpoint: TRACE
+    org.springframework.security.oauth2.core.http.converter: TRACE
+    org.springframework.http.converter: TRACE
