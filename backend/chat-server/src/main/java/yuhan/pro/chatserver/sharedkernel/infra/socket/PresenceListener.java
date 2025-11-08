@@ -3,6 +3,7 @@ package yuhan.pro.chatserver.sharedkernel.infra.socket;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,9 +55,17 @@ public class PresenceListener {
             return;
         }
 
-        updateRedis(roomId, user, true);
-        publishPresence(roomId);
-        log.info("사용자 {}님이 방 {}에 입장했습니다.", user.getNickName(), roomId);
+        // 비동기로 처리하여 WebSocket 스레드를 블로킹하지 않음
+        CompletableFuture.runAsync(() -> {
+            try {
+                updateRedis(roomId, user, true);
+                publishPresence(roomId);
+                log.info("사용자 {}님이 방 {}에 입장했습니다.", user.getNickName(), roomId);
+            } catch (Exception e) {
+                log.error("Failed to update presence for user {} in room {}: {}", 
+                    user.getNickName(), roomId, e.getMessage(), e);
+            }
+        });
     }
 
     @EventListener
@@ -81,9 +90,17 @@ public class PresenceListener {
             return;
         }
 
-        updateRedis(roomId, user, false);
-        publishPresence(roomId);
-        log.info("사용자 {}님이 방 {}에서 나갔습니다.", user.getNickName(), roomId);
+        // 비동기로 처리하여 WebSocket 스레드를 블로킹하지 않음
+        CompletableFuture.runAsync(() -> {
+            try {
+                updateRedis(roomId, user, false);
+                publishPresence(roomId);
+                log.info("사용자 {}님이 방 {}에서 나갔습니다.", user.getNickName(), roomId);
+            } catch (Exception e) {
+                log.error("Failed to update presence for user {} leaving room {}: {}", 
+                    user.getNickName(), roomId, e.getMessage(), e);
+            }
+        });
     }
 
     private ChatMemberDetails resolveUser(StompHeaderAccessor sha, String sessionId) {
@@ -104,9 +121,20 @@ public class PresenceListener {
         String key = PRESENCE_KEY_PREFIX + roomId;
         String field = user.getMemberId().toString();
         if (join) {
-            MemberProfileUrlResponse profile = memberClient.getMemberProfileUrl(user.getMemberId());
-            String value = user.getNickName() + "|" + profile.avatarUrl();
-            redisTemplate.opsForHash().put(key, field, value);
+            try {
+                MemberProfileUrlResponse profile = memberClient.getMemberProfileUrl(user.getMemberId());
+                String avatarUrl = profile != null && profile.avatarUrl() != null 
+                    ? profile.avatarUrl() 
+                    : "";
+                String value = user.getNickName() + "|" + avatarUrl;
+                redisTemplate.opsForHash().put(key, field, value);
+            } catch (Exception e) {
+                log.error("Failed to get profile URL for memberId {}, using default: {}", 
+                    user.getMemberId(), e.getMessage());
+                // 프로필 URL 조회 실패 시 기본값 사용
+                String value = user.getNickName() + "|";
+                redisTemplate.opsForHash().put(key, field, value);
+            }
         } else {
             redisTemplate.opsForHash().delete(key, field);
         }
