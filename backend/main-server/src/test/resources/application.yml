@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: main-server
+
+  # H2 테스트 데이터베이스 설정
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+
+  # H2 콘솔 비활성화
+  h2:
+    console:
+      enabled: false
+
+  # 임베디드 Redis 사용 (테스트용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # OAuth2 테스트 설정 (더미 값)
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope:
+              - read:user
+              - user:email
+              - read:org
+            redirect-uri: "{baseUrl}/login/oauth2/code/github"
+            client-name: GitHub
+        provider:
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: login
+
+server:
+  port: 0  # 랜덤 포트 사용
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      circuitbreaker_test:
+        failure-rate-threshold: 60
+
+custom:
+  jwt:
+    duration:
+      access: 3600000
+      refresh: 86400000
+    secrets:
+      origin-key: test-origin-key-12345678901234567890123456789012
+      app-key: test-app-key-67890123456789012345678901234567890
+  app:
+    frontend-redirect-uri: http://localhost:3000/oauth/callback
+
+# OpenAI API 테스트 설정 (더미 값)
+openai:
+  api:
+    key: test-api-key
+
+logging:
+  level:
+    root: WARN
+    yuhan.pro.mainserver: INFO
+
