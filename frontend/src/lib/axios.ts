@@ -178,6 +178,15 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
         return Promise.reject(error);
       }
 
+      // 502 Bad Gateway 에러 처리 (백엔드 서버 연결 실패)
+      if (status === 502) {
+        if (!errorShown) {
+          alert('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+          errorShown = true;
+        }
+        return Promise.reject(error);
+      }
+
       if (!errorShown && (!error.response || status >= 500 || error.code === 'ECONNABORTED')) {
         alert('서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
         console.log(error.response?.status)
