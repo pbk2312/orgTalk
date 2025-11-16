@@ -18,7 +18,7 @@ public class AIChatService {
 
     private final WebClient webClient;
 
-    @Value("${openai.api.key}")
+    @Value("${openai.api.key:}")
     private String apiKey;
 
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
@@ -31,6 +31,12 @@ public class AIChatService {
     }
 
     public ChatResponse getAnswer(ChatRequest request) {
+        // API 키가 설정되지 않은 경우
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            log.warn("OpenAI API 키가 설정되지 않았습니다.");
+            return new ChatResponse("AI 서비스가 설정되지 않았습니다. 관리자에게 문의해주세요.");
+        }
+
         try {
             log.info("OpenAI API 호출 시작 - 질문: {}", request.question());
 
