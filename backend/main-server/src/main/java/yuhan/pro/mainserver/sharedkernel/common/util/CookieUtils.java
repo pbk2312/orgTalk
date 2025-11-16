@@ -4,7 +4,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.experimental.UtilityClass;
 
-
 @UtilityClass
 public class CookieUtils {
 
@@ -15,6 +14,8 @@ public class CookieUtils {
         cookie.setSecure(false);
         cookie.setPath("/");
         cookie.setMaxAge(maxAge);
+        // 도메인 설정 제거 (서브도메인 간 쿠키 공유 문제 방지)
+        // cookie.setDomain()을 설정하지 않으면 현재 도메인에만 쿠키가 설정됨
         response.addCookie(cookie);
     }
     

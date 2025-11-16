@@ -24,6 +24,13 @@ export function setAccessToken(token: string) {
 export async function getAccessToken(): Promise<string> {
   console.log('getAccessToken 호출됨');
 
+  // 로그인 페이지나 OAuth 콜백 페이지에서는 refresh를 시도하지 않음
+  const currentPath = window.location.pathname;
+  if (currentPath === '/login' || currentPath === '/oauth/callback') {
+    console.log('로그인 페이지 또는 OAuth 콜백 페이지에서는 refresh 시도하지 않음');
+    throw new Error('No access token available');
+  }
+
   // 캐시된 액세스 토큰이 있으면 바로 반환
   if (accessToken) {
     console.log('캐시된 액세스 토큰이 있음');
@@ -115,13 +122,16 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
       const url = config.url ?? '';
       const isPublicEndpoint = PUBLIC_ENDPOINTS.some(ep => url.endsWith(ep));
       
-      // /auth/me는 토큰이 있으면 보내고, 없으면 refresh 시도 (한 번만)
+      // /auth/me는 토큰이 있으면 보내고, 없으면 refresh 시도 (로그인 페이지가 아닐 때만)
       if (url.endsWith('/auth/me')) {
+        const currentPath = window.location.pathname;
+        const isLoginPage = currentPath === '/login' || currentPath === '/oauth/callback';
+        
         if (accessToken) {
           config.headers = config.headers ?? {};
           config.headers.Authorization = `Bearer ${accessToken}`;
-        } else if (!isRefreshing && !refreshErrorShown) {
-          // accessToken이 없고, refresh 중이 아니고, 에러가 표시되지 않았을 때만 refresh 시도
+        } else if (!isLoginPage && !isRefreshing && !refreshErrorShown) {
+          // 로그인 페이지가 아니고, accessToken이 없고, refresh 중이 아니고, 에러가 표시되지 않았을 때만 refresh 시도
           try {
             const token = await getAccessToken();
             if (token) {
@@ -133,6 +143,7 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
             console.log('토큰 갱신 실패, 비인증 상태로 /auth/me 호출');
           }
         }
+        // 로그인 페이지에서는 토큰 없이 호출 (인증되지 않은 상태로 응답 받음)
         return config;
       }
       
