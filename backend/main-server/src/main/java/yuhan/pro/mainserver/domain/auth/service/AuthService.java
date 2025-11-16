@@ -56,18 +56,21 @@ public class AuthService {
     private void validateRefreshToken(String refreshToken, HttpServletResponse response) {
         // Refresh Token이 null이거나 빈 문자열인 경우
         if (refreshToken == null || refreshToken.trim().isEmpty()) {
+            log.debug("Refresh token이 없거나 비어있음");
             CookieUtils.removeCookie(response, REFRESH_TOKEN_COOKIE);
             throw new CustomException(REFRESH_TOKEN_INVALID);
         }
 
         // JWT 유효성 검증
         if (!jwtValidator.validate(refreshToken)) {
+            log.debug("Refresh token 유효성 검증 실패");
             CookieUtils.removeCookie(response, REFRESH_TOKEN_COOKIE);
             throw new CustomException(REFRESH_TOKEN_INVALID);
         }
 
         // 블랙리스트 체크
         if (blacklistService.isBlacklisted(refreshToken)) {
+            log.debug("Refresh token이 블랙리스트에 존재함");
             CookieUtils.removeCookie(response, REFRESH_TOKEN_COOKIE);
             throw new CustomException(REFRESH_TOKEN_BLACKLISTED);
         }

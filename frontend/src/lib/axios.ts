@@ -58,15 +58,15 @@ export async function getAccessToken(): Promise<string> {
         failedQueue.forEach(({ reject }) => reject(err));
       }
 
-      // 세션 만료 처리 (한 번만)
-      if (!refreshErrorShown) {
+      // 세션 만료 처리 (한 번만, 로그인 페이지가 아닐 때만)
+      if (!refreshErrorShown && window.location.pathname !== '/login') {
         console.log('세션 만료, 로그인 페이지로 이동');
         alert('세션이 만료되었습니다. 다시 로그인해주세요.');
         refreshErrorShown = true;
+        // 로그인 페이지로 리다이렉트
+        window.location.href = '/login';
       }
 
-      // 로그인 페이지로 리다이렉트
-      window.location.href = '/login';
       throw err;
     } finally {
       failedQueue = [];
@@ -115,13 +115,13 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
       const url = config.url ?? '';
       const isPublicEndpoint = PUBLIC_ENDPOINTS.some(ep => url.endsWith(ep));
       
-      // /auth/me는 토큰이 있으면 보내고, 없으면 refresh 시도
+      // /auth/me는 토큰이 있으면 보내고, 없으면 refresh 시도 (한 번만)
       if (url.endsWith('/auth/me')) {
         if (accessToken) {
           config.headers = config.headers ?? {};
           config.headers.Authorization = `Bearer ${accessToken}`;
-        } else {
-          // accessToken이 없으면 refresh 시도
+        } else if (!isRefreshing && !refreshErrorShown) {
+          // accessToken이 없고, refresh 중이 아니고, 에러가 표시되지 않았을 때만 refresh 시도
           try {
             const token = await getAccessToken();
             if (token) {
@@ -159,6 +159,13 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
     },
     (error) => {
       const status = error.response?.status;
+      const url = error.config?.url ?? '';
+
+      // /auth/refresh 엔드포인트는 별도로 처리 (alert 중복 방지)
+      if (url.endsWith('/auth/refresh')) {
+        // refresh 실패는 getAccessToken()에서 이미 처리했으므로 여기서는 조용히 reject만
+        return Promise.reject(error);
+      }
 
       if (!errorShown && (!error.response || status >= 500 || error.code === 'ECONNABORTED')) {
         alert('서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
@@ -167,11 +174,16 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
       }
 
       if (status === 401) {
+        // refresh 실패가 아닌 다른 401 에러만 처리
         if (!refreshErrorShown) {
           const msg = error.response.data?.message || '인증이 필요합니다.';
           alert(msg);
+          refreshErrorShown = true;
         }
-        window.location.href = '/login';
+        // 로그인 페이지로 이동은 한 번만
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       } else if (status === 400 || status === 404) {
         const msg = error.response.data?.message || '요청 처리 중 오류가 발생했습니다.';
         alert(msg);
