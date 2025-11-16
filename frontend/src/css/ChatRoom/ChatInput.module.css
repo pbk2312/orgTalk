@@ -37,8 +37,8 @@
 
 .chatInput {
   flex: 1;
-  min-height: 44px;
-  max-height: 150px;
+  min-height: 80px;
+  max-height: 200px;
   padding: 14px 20px;
   background: rgba(255, 255, 255, 0.03);
   border: 2px solid rgba(255, 255, 255, 0.1);

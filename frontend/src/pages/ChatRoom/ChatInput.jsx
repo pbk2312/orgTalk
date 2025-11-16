@@ -27,7 +27,7 @@ const ChatInput = ({
         onCompositionStart={() => setIsComposing(true)}
         onCompositionEnd={() => setIsComposing(false)}
         placeholder="메시지를 입력하세요. Shift+Enter 줄바꿈"
-        rows={1}
+        rows={3}
       />
       <div className={styles.inputActions}>
         <button onClick={onOpenCodeModal} className={styles.iconButton}>

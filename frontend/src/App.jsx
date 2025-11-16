@@ -8,6 +8,8 @@ import OAuthCallback from './pages/OAuthCallback';
 import OrganizationSelectPage from './pages/OrganizationSelectPage';
 import ChatRoomsPage from './pages/ChatRoomsPage';
 import ChatRoom from './pages/ChatRoom/ChatRoom';
+import AIMentorPage from './pages/AIMentorPage';
+import AIFloatingButton from './components/AIFloatingButton';
 import ServerErrorPage from './pages/ServerErrorPage';
 import Error404Page from './pages/Error404Page';
 
@@ -24,6 +26,7 @@ function App() {
           <Route path="/organizations" element={<OrganizationSelectPage />} />
           <Route path="/chat-rooms/:orgId" element={<ChatRoomsPage />} />
           <Route path="/chatroom/:roomId" element={<ChatRoom />} />
+          <Route path="/ai-mentor" element={<AIMentorPage />} />
         </Route>
 
         {/* 기본 리디렉션 및 그 외 페이지 */}
@@ -31,6 +34,9 @@ function App() {
         <Route path="/server-error" element={<ServerErrorPage />} />
         <Route path="*" element={<Error404Page />} />
       </Routes>
+      
+      {/* AI 플로팅 버튼 - 로그인한 페이지에만 표시 */}
+      <AIFloatingButton />
     </Router>
   );
 }
