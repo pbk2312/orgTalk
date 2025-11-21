@@ -42,7 +42,7 @@ public class ChatRoomMapper {
     return new ChatRoomCreateResponse(chatRoom.getId());
   }
 
-  public static ChatRoomResponse toChatRoomResponse(ChatRoom chatRoom, Long memberId) {
+  public static ChatRoomResponse toChatRoomResponse(ChatRoom chatRoom, Long memberId, Long unreadCount) {
     boolean joined = memberId != null &&
         chatRoom.getMembers().stream()
             .map(ChatRoomMember::getMemberId)
@@ -55,14 +55,18 @@ public class ChatRoomMapper {
         chatRoom.getType(),
         (long) chatRoom.getMembers().size(),
         joined,
-        chatRoom.getCreatedAt()
+        unreadCount != null ? unreadCount : 0L,
+        chatRoom.getCreatedAt(),
+        null // 최신 메시지는 이 메서드에서는 제공하지 않음
     );
   }
 
   public static ChatRoomResponse toChatRoomResponse(
       ChatRoomSummary summary,
       Long memberCount,
-      boolean joined
+      boolean joined,
+      Long unreadCount,
+      ChatRoomResponse.LatestMessage latestMessage
   ) {
     return new ChatRoomResponse(
         summary.id(),
@@ -71,7 +75,9 @@ public class ChatRoomMapper {
         summary.type(),
         memberCount,
         joined,
-        summary.createdAt()
+        unreadCount != null ? unreadCount : 0L,
+        summary.createdAt(),
+        latestMessage
     );
   }
 

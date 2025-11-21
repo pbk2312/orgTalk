@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import yuhan.pro.chatserver.domain.dto.ChatPageResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRequest;
 import yuhan.pro.chatserver.domain.service.ChatService;
@@ -68,7 +70,16 @@ public class ChatController {
             @RequestParam(required = false) LocalDateTime cursor,
             @RequestParam(defaultValue = "6") int size
     ) {
-        return chatService.getChatsByCursor(roomId, cursor, size);
+        Long memberId = getMemberIdFromAuthentication();
+        return chatService.getChatsByCursor(roomId, cursor, size, memberId);
+    }
+
+    private Long getMemberIdFromAuthentication() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof ChatMemberDetails userDetails) {
+            return userDetails.getMemberId();
+        }
+        return null;
     }
 
     private static ChatRequest createChatRequest(ChatRequest incoming, Long memberId,

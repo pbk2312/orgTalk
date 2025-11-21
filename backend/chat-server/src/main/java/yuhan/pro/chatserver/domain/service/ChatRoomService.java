@@ -10,6 +10,8 @@ import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_NOT_MATCH;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_OWNER_MISMATCH;
 
+import java.time.LocalDateTime;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +57,7 @@ public class ChatRoomService {
     private final PasswordEncoder passwordEncoder;
     private final MemberClient memberClient;
     private final ChatRepository chatRepository;
+    private final UnreadMessageService unreadMessageService;
 
     @Transactional
     public ChatRoomCreateResponse saveChatRoom(ChatRoomCreateRequest request) {
@@ -99,6 +102,9 @@ public class ChatRoomService {
         Long memberId = getMemberId(authentication);
         ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
         chatRoomMemberRepository.save(chatRoomMember);
+
+        // 채팅방 입장 시 읽은 시간 업데이트
+        unreadMessageService.markAsRead(memberId, roomId);
     }
 
 
@@ -118,9 +124,11 @@ public class ChatRoomService {
         List<Long> chatRoomIds = extractRoomIds(summaryPage);
         Map<Long, Long> memberCounts = fetchMemberCounts(chatRoomIds);
         Set<Long> joinedRoomIds = fetchJoinedRoomIds(chatRoomIds, memberId);
+        Map<Long, Long> unreadCounts = fetchUnreadCounts(chatRoomIds, memberId);
+        Map<Long, ChatRoomResponse.LatestMessage> latestMessages = fetchLatestMessages(chatRoomIds);
 
         Page<ChatRoomResponse> responsePage = mapToResponsePage(summaryPage, memberCounts,
-                joinedRoomIds, pageable);
+                joinedRoomIds, unreadCounts, latestMessages, pageable);
         return PageResponse.fromPage(responsePage);
     }
 
@@ -145,11 +153,15 @@ public class ChatRoomService {
                 .toList();
         Map<Long, Long> memberCounts = fetchMemberCounts(roomIds);
         Set<Long> joinedRoomIds = fetchJoinedRoomIds(roomIds, memberId);
+        Map<Long, Long> unreadCounts = fetchUnreadCounts(roomIds, memberId);
+        Map<Long, ChatRoomResponse.LatestMessage> latestMessages = fetchLatestMessages(roomIds);
 
         Page<ChatRoomResponse> responsePage = mapToResponsePage(
                 summaryPage,
                 memberCounts,
                 joinedRoomIds,
+                unreadCounts,
+                latestMessages,
                 pageable
         );
         return PageResponse.fromPage(responsePage);
@@ -168,6 +180,9 @@ public class ChatRoomService {
         Long memberId = getMemberId(auth);
 
         validateMemberRoomIn(chatRoom, memberId);
+
+        // 채팅방 정보 조회 시 읽은 시간 업데이트
+        unreadMessageService.markAsRead(memberId, roomId);
 
         Set<ChatMemberResponse> chatMembers = memberClient.getChatMembers(memberIds, jwtToken);
 
@@ -322,18 +337,79 @@ public class ChatRoomService {
         return chatRoomMemberRepository.findJoinedChatRoomIds(roomIds, memberId);
     }
 
+    private Map<Long, Long> fetchUnreadCounts(List<Long> roomIds, Long memberId) {
+        return roomIds.stream()
+                .collect(Collectors.toMap(
+                        roomId -> roomId,
+                        roomId -> calculateUnreadCount(roomId, memberId),
+                        (existing, replacement) -> existing
+                ));
+    }
+
+    private Long calculateUnreadCount(Long roomId, Long memberId) {
+        // 참여하지 않은 채팅방은 읽지 않은 메시지 수를 0으로 반환
+        if (!chatRoomMemberRepository.existsByChatRoom_IdAndMemberId(roomId, memberId)) {
+            return 0L;
+        }
+
+        LocalDateTime lastReadTime = unreadMessageService.getLastReadTime(memberId, roomId);
+        
+        // 마지막 읽은 시간이 없으면 모든 메시지를 읽지 않은 것으로 간주하지 않음 (0 반환)
+        // 또는 채팅방 생성 시간 이후의 메시지만 카운트할 수도 있음
+        if (lastReadTime == null) {
+            return 0L;
+        }
+
+        long unreadCount = chatRepository.countByRoomIdAndCreatedAtAfter(roomId, lastReadTime);
+        return unreadCount;
+    }
+
+    private Map<Long, ChatRoomResponse.LatestMessage> fetchLatestMessages(List<Long> roomIds) {
+        return roomIds.stream()
+                .map(roomId -> {
+                    var latestChat = chatRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId);
+                    if (latestChat == null) {
+                        return null;
+                    }
+                    return new AbstractMap.SimpleEntry<>(
+                            roomId,
+                            new ChatRoomResponse.LatestMessage(
+                                    latestChat.getMessage(),
+                                    latestChat.getSenderName(),
+                                    latestChat.getCreatedAt()
+                            )
+                    );
+                })
+                .filter(entry -> entry != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue
+                ));
+    }
+
     private Page<ChatRoomResponse> mapToResponsePage(
             Page<ChatRoomSummary> summaryPage,
             Map<Long, Long> memberCounts,
             Set<Long> joinedRoomIds,
+            Map<Long, Long> unreadCounts,
+            Map<Long, ChatRoomResponse.LatestMessage> latestMessages,
             Pageable pageable
     ) {
         List<ChatRoomResponse> responses = summaryPage.getContent().stream()
-                .map(summary -> ChatRoomMapper.toChatRoomResponse(
-                        summary,
-                        memberCounts.getOrDefault(summary.id(), 0L),
-                        joinedRoomIds.contains(summary.id())
-                ))
+                .map(summary -> {
+                    boolean joined = joinedRoomIds.contains(summary.id());
+                    // 참여하지 않은 채팅방에서는 최신 메시지를 보여주지 않음
+                    ChatRoomResponse.LatestMessage latestMessage = joined 
+                            ? latestMessages.get(summary.id()) 
+                            : null;
+                    return ChatRoomMapper.toChatRoomResponse(
+                            summary,
+                            memberCounts.getOrDefault(summary.id(), 0L),
+                            joined,
+                            unreadCounts.getOrDefault(summary.id(), 0L),
+                            latestMessage
+                    );
+                })
                 .toList();
 
         return new PageImpl<>(

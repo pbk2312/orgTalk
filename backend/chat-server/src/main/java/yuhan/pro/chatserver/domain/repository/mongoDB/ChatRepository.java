@@ -16,5 +16,10 @@ public interface ChatRepository extends MongoRepository<Chat, String> {
   List<Chat> findByRoomIdOrderByCreatedAtDesc(
       Long roomId, Pageable pageable);
 
+  long countByRoomIdAndCreatedAtAfter(Long roomId, LocalDateTime after);
+
   void deleteByRoomId(Long roomId);
+
+  // 특정 채팅방의 최신 메시지 1개 조회
+  Chat findFirstByRoomIdOrderByCreatedAtDesc(Long roomId);
 }

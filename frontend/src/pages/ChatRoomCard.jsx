@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hash, Lock, Globe, Users, ChevronRight,  Calendar } from 'lucide-react';
+import { Hash, Lock, Globe, Users, ChevronRight, Calendar, Bell, MessageSquare } from 'lucide-react';
 import styles from '../css/ChatRoomCard.module.css';
 import { formatTime } from '../util/ChatRoomsFormatTime';
 
@@ -42,18 +42,38 @@ const ChatRoomCard = ({
             <h3 className={styles['room-name']}>{room.name}</h3>
             {/* 작은 타입 아이콘은 제거하거나 유지 가능 */}
             <div className={styles['room-type']}>{getTypeIcon(room.type)}</div>
+            {/* 읽지 않은 메시지 배지 */}
+            {room.unreadCount > 0 && (
+              <div className={styles['unread-badge']}>
+                <Bell size={14} />
+                <span className={styles['unread-count']}>
+                  {room.unreadCount > 99 ? '99+' : room.unreadCount}
+                </span>
+              </div>
+            )}
           </div>
           <p className={styles['room-description']}>{room.description}</p>
         </div>
       </div>
 
-      {/* 생성일 표시 */}
+      {/* 최신 메시지 또는 생성일 표시 */}
       <div className={styles['room-card-body']}>
-        <div className={styles['created-time']}>  
-          <Calendar size={14} />
-          <span className={styles['created-label']}>생성일</span>
-          <span>{formatTime(room.createdAt)}</span>
-        </div>
+        {room.latestMessage ? (
+          <div className={styles['latest-message']}>
+            <MessageSquare size={14} />
+            <div className={styles['message-content']}>
+              <span className={styles['message-sender']}>{room.latestMessage.senderName}:</span>
+              <span className={styles['message-text']}>{room.latestMessage.message}</span>
+            </div>
+            <span className={styles['message-time']}>{formatTime(room.latestMessage.createdAt)}</span>
+          </div>
+        ) : (
+          <div className={styles['created-time']}>  
+            <Calendar size={14} />
+            <span className={styles['created-label']}>생성일</span>
+            <span>{formatTime(room.createdAt)}</span>
+          </div>
+        )}
       </div>
 
       <div className={styles['room-card-footer']}>

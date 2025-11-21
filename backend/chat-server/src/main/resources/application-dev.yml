@@ -23,7 +23,7 @@ spring:
     mongodb:
       host: localhost
       port: 27017
-      database: orgtalk_dev
+      database: devtalk_dev
       # dev 환경에서는 인증 없이 사용
       # username: 
       # password: 

@@ -49,6 +49,8 @@ export async function getAccessToken(): Promise<string> {
 
       const newToken: string = response.data.accessToken;
       accessToken = newToken;
+      // refresh 성공 시 에러 플래그 리셋 (다음 refresh 시도 가능하도록)
+      refreshErrorShown = false;
 
       // 대기 중인 요청들 처리
       if (failedQueue.length > 0) {
@@ -57,7 +59,7 @@ export async function getAccessToken(): Promise<string> {
       }
 
       return newToken;
-    } catch (err) {
+    } catch (err: any) {
       console.error('토큰 갱신 실패:', err);
       
       // 대기 중인 요청들 reject
@@ -65,13 +67,16 @@ export async function getAccessToken(): Promise<string> {
         failedQueue.forEach(({ reject }) => reject(err));
       }
 
-      // 세션 만료 처리 (한 번만, 로그인 페이지가 아닐 때만)
-      if (!refreshErrorShown && window.location.pathname !== '/login') {
+      // 세션 만료 처리 (한 번만, 로그인 페이지가 아닐 때만, 실제 refresh token 만료일 때만)
+      const isRefreshTokenExpired = err.response?.status === 401 || err.response?.status === 403;
+      if (!refreshErrorShown && window.location.pathname !== '/login' && isRefreshTokenExpired) {
         console.log('세션 만료, 로그인 페이지로 이동');
-        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
         refreshErrorShown = true;
-        // 로그인 페이지로 리다이렉트
-        window.location.href = '/login';
+        // 네트워크 오류 등이 아닌 실제 인증 실패일 때만 로그인 페이지로 이동
+        if (err.response) {
+          alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+          window.location.href = '/login';
+        }
       }
 
       throw err;
@@ -130,17 +135,21 @@ function attachInterceptors(instance: ReturnType<typeof axios.create>) {
         if (accessToken) {
           config.headers = config.headers ?? {};
           config.headers.Authorization = `Bearer ${accessToken}`;
-        } else if (!isLoginPage && !isRefreshing && !refreshErrorShown) {
-          // 로그인 페이지가 아니고, accessToken이 없고, refresh 중이 아니고, 에러가 표시되지 않았을 때만 refresh 시도
+        } else if (!isLoginPage && !refreshErrorShown) {
+          // 로그인 페이지가 아니고, 에러가 표시되지 않았을 때 refresh 시도
+          // isRefreshing이 true여도 getAccessToken()이 자동으로 대기 큐에 추가함
           try {
             const token = await getAccessToken();
             if (token) {
               config.headers = config.headers ?? {};
               config.headers.Authorization = `Bearer ${token}`;
             }
-          } catch (err) {
+          } catch (err: any) {
             // refresh 실패해도 /auth/me는 계속 호출 (인증되지 않은 상태로)
-            console.log('토큰 갱신 실패, 비인증 상태로 /auth/me 호출');
+            // refresh token이 실제로 만료된 경우 /auth/me가 401을 반환할 것이고,
+            // 그때 useAuth에서 처리할 것임
+            console.log('토큰 갱신 실패, 비인증 상태로 /auth/me 호출 시도');
+            // refreshErrorShown을 true로 설정하지 않음 (실제 401 응답을 받아야 함)
           }
         }
         // 로그인 페이지에서는 토큰 없이 호출 (인증되지 않은 상태로 응답 받음)

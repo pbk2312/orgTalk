@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setAccessToken } from '../lib/axios.ts';
+import LoadingScreen from '../components/LoadingScreen';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -28,32 +29,7 @@ const OAuthCallback = () => {
     }
   }, [searchParams, navigate]);
 
-  return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh',
-      flexDirection: 'column',
-      gap: '20px'
-    }}>
-      <div className="loading-spinner" style={{
-        border: '4px solid #f3f3f3',
-        borderTop: '4px solid #3498db',
-        borderRadius: '50%',
-        width: '50px',
-        height: '50px',
-        animation: 'spin 1s linear infinite'
-      }} />
-      <p>로그인 처리 중...</p>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
-  );
+  return <LoadingScreen message="로그인 처리 중..." />;
 };
 
 export default OAuthCallback;

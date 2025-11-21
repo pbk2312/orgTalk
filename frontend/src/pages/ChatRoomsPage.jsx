@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { MessageCircle, Plus, Sparkles } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { MessageCircle, Plus, Sparkles, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import OrgTalkHeader from './OrgTalkHeader';
+import DevTalkHeader from './DevTalkHeader';
 import CreateChatRoomModal from './CreateChatRoomModal';
 import PasswordInputModal from '../pages/PasswordInputModal';
 import PublicRoomJoinModal from './PublicRoomJoinModal';
@@ -35,14 +35,14 @@ const ChatRoomsPage = () => {
   const [publicRoomToJoin, setPublicRoomToJoin] = useState(null);
   const [publicJoinLoading, setPublicJoinLoading] = useState(false);
 
-  const [selectedRoom, setSelectedRoom] = useState(null);
   const [hoveredRoom, setHoveredRoom] = useState(null);
+  const [showHelpTooltip, setShowHelpTooltip] = useState(false);
 
   // prevent duplicate calls
   const loadingRef = useRef(false);
 
   // fetch chat rooms
-  const fetchChatRooms = async (pageNum, search, filter, options = {}) => {
+  const fetchChatRooms = useCallback(async (pageNum, search, filter, options = {}) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
     setError(null);
@@ -75,18 +75,17 @@ const ChatRoomsPage = () => {
       setTotalElements(response?.totalElements || 0);
     } catch (err) {
       if (err.name !== 'AbortError') {
-        console.error(err);
+        console.error('채팅방 목록 로딩 오류:', err);
         setError('채팅방 목록을 불러오는 중 오류가 발생했습니다.');
       }
     } finally {
       loadingRef.current = false;
     }
-  };
+  }, [size]);
 
 
   // 페이지, 검색, 필터 변경 시 채팅방 가져오기
   useEffect(() => {
-    console.log("채팅방 가져오기....")
     const controller = new AbortController();
     const loadChatRooms = async () => {
       setIsLoading(true);
@@ -98,7 +97,7 @@ const ChatRoomsPage = () => {
     };
     loadChatRooms();
     return () => controller.abort();
-  }, [page, activeSearchQuery, filterType]);
+  }, [page, activeSearchQuery, filterType, fetchChatRooms]);
 
 
   const handlePageChange = (newPage) => {
@@ -182,19 +181,23 @@ const ChatRoomsPage = () => {
   // initial loading state
   if (isLoading && chatRooms.length === 0) {
     return (
-      <><OrgTalkHeader />
-      <div className={styles['chat-rooms-page']}>
-        <div className={styles['loading-container']}>
-          <MessageCircle size={48} />
-          <p>채팅방 목록을 불러오는 중...</p>
+      <>
+        <DevTalkHeader />
+        <div className={styles['chat-rooms-page']}>
+          <div className={styles['loading-container']}>
+            <div className={styles['loading-spinner-wrapper']}>
+              <MessageCircle className={styles['loading-icon']} size={48} />
+            </div>
+            <p className={styles['loading-text']}>채팅방 목록을 불러오는 중...</p>
+          </div>
         </div>
-      </div></>
+      </>
     );
   }
 
     return (
     <>
-      <OrgTalkHeader />
+      <DevTalkHeader />
 
       {/* 비밀번호 입력 모달 (비공개방용) */}
       <PasswordInputModal
@@ -216,34 +219,63 @@ const ChatRoomsPage = () => {
       />
 
       <div className={styles['chat-rooms-page']}>
-        <div className={styles['background-effects']}>
-          <div className={styles['bg-circle-1']}></div>
-          <div className={styles['bg-circle-2']}></div>
-          <div className={styles['bg-circle-3']}></div>
-        </div>
         <div className={styles['main-content']}>
           <div className={styles['chat-rooms-container']}>
             <div className={styles['header-section']}>
-              <div className={styles['header-top']}>
-                <div className={styles['org-info']}>
-                  <div className={styles['org-details']}>
-                    <h1 className={styles['org-name']}>채팅방</h1>
-                  </div>
+              <div className={styles['header-content']}>
+                <div className={styles['header-text']}>
+                  <h1 className={styles['main-title']}>채팅방 목록</h1>
+                  <p className={styles['subtitle']}>
+                    개발자들과 함께 소통하고 아이디어를 공유하세요
+                  </p>
                 </div>
                 <div className={styles['action-buttons']}>
-                  <button className={styles['ai-mentor-button']} onClick={() => navigate('/ai-mentor')}>
-                    <Sparkles size={18} />
-                    <span>AI 멘토</span>
-                  </button>
-                  <button className={styles['create-button']} onClick={handleOpenModal}>
-                    <Plus size={18} />
-                    <span>새 채팅방</span>
-                  </button>
+                  <div className={styles['button-with-tooltip']}>
+                    <button 
+                      className={styles['ai-mentor-button']} 
+                      onClick={() => navigate('/ai-mentor')}
+                      onMouseEnter={() => setShowHelpTooltip('ai-mentor')}
+                      onMouseLeave={() => setShowHelpTooltip(false)}
+                    >
+                      <Sparkles size={18} />
+                      <span>AI 멘토</span>
+                    </button>
+                    {showHelpTooltip === 'ai-mentor' && (
+                      <div className={styles['tooltip']}>
+                        <div className={styles['tooltip-content']}>
+                          <Info size={16} />
+                          <div>
+                            <strong>AI 멘토</strong>
+                            <p>코딩 질문이나 개발 관련 도움이 필요할 때 AI 멘토에게 물어보세요</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles['button-with-tooltip']}>
+                    <button 
+                      className={styles['create-button']} 
+                      onClick={handleOpenModal}
+                      onMouseEnter={() => setShowHelpTooltip('create')}
+                      onMouseLeave={() => setShowHelpTooltip(false)}
+                    >
+                      <Plus size={18} />
+                      <span>새 채팅방</span>
+                    </button>
+                    {showHelpTooltip === 'create' && (
+                      <div className={styles['tooltip']}>
+                        <div className={styles['tooltip-content']}>
+                          <Info size={16} />
+                          <div>
+                            <strong>새 채팅방 만들기</strong>
+                            <p>공개 또는 비공개 채팅방을 생성하여 개발자들과 소통하세요</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <p className={styles['page-description']}>
-                참여하고 싶은 <span className={styles['description-highlight']}>채팅방</span>을 선택하세요
-              </p>
             </div>
 
             <SearchFilter
@@ -260,9 +292,11 @@ const ChatRoomsPage = () => {
               totalPages={totalPages}
             />
 
-            {isLoading && (
+            {isLoading && chatRooms.length === 0 && (
               <div className={styles['loading-container']}>
-                <MessageCircle size={48} className={styles['loading-icon']} />
+                <div className={styles['loading-spinner-wrapper']}>
+                  <MessageCircle className={styles['loading-icon']} size={48} />
+                </div>
                 <p className={styles['loading-text']}>검색 중...</p>
               </div>
             )}
@@ -274,7 +308,7 @@ const ChatRoomsPage = () => {
                     key={room.id}
                     room={room}
                     isHovered={hoveredRoom === room.id}
-                    isSelected={selectedRoom?.id === room.id}
+                    isSelected={false}
                     onClick={() => handleRoomSelect(room)}
                     onMouseEnter={() => setHoveredRoom(room.id)}
                     onMouseLeave={() => setHoveredRoom(null)}
@@ -322,8 +356,6 @@ const ChatRoomsPage = () => {
             </div>
           </div>
         </div>
-
-        <div className={styles['bottom-decoration']}></div>
 
         <CreateChatRoomModal
           isOpen={isModalOpen}
