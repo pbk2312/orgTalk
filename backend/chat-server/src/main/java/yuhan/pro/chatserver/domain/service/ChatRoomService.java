@@ -5,7 +5,6 @@ import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.CHAT_ROO
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.CHAT_ROOM_NAME_DUPLICATE;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_ACCEPTED;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.MEMBER_NOT_FOUND;
-import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ORGANIZATION_NOT_FOUND;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.OWNER_CANNOT_BE_KICKED;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_IS_EMPTY;
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_ROOM_PASSWORD_NOT_MATCH;
@@ -66,8 +65,6 @@ public class ChatRoomService {
 
         valiadteChatRoomNameDuplicated(request);
 
-        validateMemberInOrg(request.organizationId(), authentication);
-
         RoomType type = request.type();
 
         String encodedPassword = null;
@@ -106,16 +103,14 @@ public class ChatRoomService {
 
 
     @Transactional(readOnly = true)
-    public PageResponse<ChatRoomResponse> getChatRooms(Long organizationId, RoomType type,
+    public PageResponse<ChatRoomResponse> getChatRooms(RoomType type,
             Pageable pageable) {
 
         Authentication authentication = getAuthentication();
 
         Long memberId = getMemberId(authentication);
 
-        validateMemberInOrg(organizationId, authentication);
-
-        Page<ChatRoomSummary> summaryPage = fetchSummaries(organizationId, type, pageable);
+        Page<ChatRoomSummary> summaryPage = fetchSummaries(type, pageable);
         if (summaryPage.isEmpty()) {
             return PageResponse.fromPage(Page.empty(pageable));
         }
@@ -132,14 +127,13 @@ public class ChatRoomService {
 
     @Transactional(readOnly = true)
     public PageResponse<ChatRoomResponse> searchChatRooms(
-            Long organizationId,
             RoomType type,
             String keyword,
             Pageable pageable
     ) {
         Long memberId = getMemberId(getAuthentication());
 
-        Page<ChatRoomSummary> summaryPage = fetchSummaryPage(organizationId, type, keyword,
+        Page<ChatRoomSummary> summaryPage = fetchSummaryPage(type, keyword,
                 pageable);
 
         if (summaryPage.isEmpty()) {
@@ -226,24 +220,22 @@ public class ChatRoomService {
     }
 
     private Page<ChatRoomSummary> fetchSummaryPage(
-            Long organizationId,
             RoomType type,
             String keyword,
             Pageable pageable
     ) {
         if (keyword == null || keyword.isBlank()) {
-            return chatRoomRepository.findSummaryByOrgAndType(organizationId, type, pageable);
+            return chatRoomRepository.findSummaryByType(type, pageable);
         }
 
         if (keyword.length() <= 2) {
-            return chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
-                    organizationId, type, keyword, pageable
+            return chatRoomRepository.findSummaryByTypeAndNamePrefix(
+                    type, keyword, pageable
             );
         }
 
         Page<ChatRoomSummaryProjection> projPage =
-                chatRoomRepository.findSummaryByOrgTypeAndFullText(
-                        organizationId,
+                chatRoomRepository.findSummaryByTypeAndFullText(
                         type != null ? type.name() : null,
                         keyword,
                         pageable
@@ -307,18 +299,8 @@ public class ChatRoomService {
         return null;
     }
 
-    private void validateMemberInOrg(Long orgId, Authentication authentication) {
-        if (authentication != null
-                && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
-            Set<Long> orgIds = chatMemberDetails.getOrganizationIds();
-            if (orgIds == null || !orgIds.contains(orgId)) {
-                throw new CustomException(ORGANIZATION_NOT_FOUND);
-            }
-        }
-    }
-
-    private Page<ChatRoomSummary> fetchSummaries(Long orgId, RoomType type, Pageable pageable) {
-        return chatRoomRepository.findChatRoomsByOrgAndType(orgId, type, pageable);
+    private Page<ChatRoomSummary> fetchSummaries(RoomType type, Pageable pageable) {
+        return chatRoomRepository.findChatRoomsByType(type, pageable);
     }
 
     private List<Long> extractRoomIds(Page<ChatRoomSummary> summaryPage) {
@@ -362,8 +344,7 @@ public class ChatRoomService {
     }
 
     private void valiadteChatRoomNameDuplicated(ChatRoomCreateRequest request) {
-        if (chatRoomRepository.existsByOrganizationIdAndName(
-                request.organizationId(), request.name())) {
+        if (chatRoomRepository.existsByName(request.name())) {
             throw new CustomException(CHAT_ROOM_NAME_DUPLICATE);
         }
     }

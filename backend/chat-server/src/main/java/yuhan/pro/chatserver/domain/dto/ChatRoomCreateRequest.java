@@ -7,10 +7,6 @@ import yuhan.pro.chatserver.domain.entity.RoomType;
 
 @Builder
 public record ChatRoomCreateRequest(
-
-    Long organizationId,
-
-
     @NotBlank(message = "채팅방 이름은 필수입니다.")
     String name,
 

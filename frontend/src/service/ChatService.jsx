@@ -21,7 +21,7 @@ export async function getChatRooms(params) {
     const { signal, ...requestParams } = params;
     
     const { data } = await chatRoomApi.get(
-      `/list/${params.organizationId}`,
+      `/list`,
       { 
         params: requestParams
       }
@@ -41,7 +41,6 @@ export async function getChatRooms(params) {
 
 
 export async function searchChatRooms({
-  organizationId,
   keyword,
   type,
   page,
@@ -69,7 +68,7 @@ export async function searchChatRooms({
     console.log('🔍 searchChatRooms params:', params);
 
     const { data } = await chatRoomApi.get(
-      `/search/${organizationId}`,
+      `/search`,
       { 
         params,
         signal: options.signal // signal을 axios 옵션으로 전달

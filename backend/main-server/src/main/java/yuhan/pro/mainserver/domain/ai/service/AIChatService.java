@@ -1,5 +1,11 @@
 package yuhan.pro.mainserver.domain.ai.service;
 
+import static yuhan.pro.mainserver.domain.ai.constants.Aiconstants.API_KEY_NOT_SET;
+import static yuhan.pro.mainserver.domain.ai.constants.Aiconstants.NULL_RESPONSE;
+import static yuhan.pro.mainserver.domain.ai.constants.Aiconstants.OPENAI_API_URL;
+import static yuhan.pro.mainserver.domain.ai.constants.Aiconstants.TEMPORARY_ERROR;
+import static yuhan.pro.mainserver.domain.ai.constants.Aiconstants.UNEXPECTED_ERROR;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -21,8 +27,6 @@ public class AIChatService {
     @Value("${openai.api.key:}")
     private String apiKey;
 
-    private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-
     public AIChatService(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder
                 .baseUrl(OPENAI_API_URL)
@@ -31,28 +35,25 @@ public class AIChatService {
     }
 
     public ChatResponse getAnswer(ChatRequest request) {
-        // API 키가 설정되지 않은 경우
-        if (apiKey == null || apiKey.trim().isEmpty()) {
+        if (isApiKeyInvalid()) {
             log.warn("OpenAI API 키가 설정되지 않았습니다.");
-            return new ChatResponse("AI 서비스가 설정되지 않았습니다. 관리자에게 문의해주세요.");
+            return new ChatResponse(API_KEY_NOT_SET);
         }
 
         try {
             log.info("OpenAI API 호출 시작 - 질문: {}", request.question());
-
             OpenAIRequest openAIRequest = createOpenAIRequest(request.question());
             OpenAIResponse openAIResponse = callOpenAI(openAIRequest);
-
             return buildChatResponse(openAIResponse);
-
         } catch (WebClientResponseException e) {
-            log.error("OpenAI API 호출 실패 - 상태 코드: {}, 응답: {}", e.getStatusCode(),
-                    e.getResponseBodyAsString());
-            return new ChatResponse("죄송합니다. AI 서비스에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            return handleWebClientError(e);
         } catch (Exception e) {
-            log.error("OpenAI API 호출 중 예외 발생", e);
-            return new ChatResponse("죄송합니다. 예상치 못한 오류가 발생했습니다. 관리자에게 문의해주세요.");
+            return handleUnexpectedError(e);
         }
+    }
+
+    private boolean isApiKeyInvalid() {
+        return apiKey == null || apiKey.trim().isEmpty();
     }
 
     private OpenAIRequest createOpenAIRequest(String question) {
@@ -70,14 +71,22 @@ public class AIChatService {
 
     private ChatResponse buildChatResponse(OpenAIResponse response) {
         if (response == null) {
-            log.error("OpenAI API 응답이 null입니다");
-            return new ChatResponse("죄송합니다. 응답을 받지 못했습니다. 다시 시도해주세요.");
+            log.error("OpenAI API 응답이 null입니다.");
+            return new ChatResponse(NULL_RESPONSE);
         }
 
-        String answer = response.getContent();
-        int tokensUsed = response.getTotalTokens();
+        log.info("OpenAI API 호출 성공 - 사용 토큰: {}", response.getTotalTokens());
+        return new ChatResponse(response.getContent(), response.getTotalTokens());
+    }
 
-        log.info("OpenAI API 호출 성공 - 사용 토큰: {}", tokensUsed);
-        return new ChatResponse(answer, tokensUsed);
+    private ChatResponse handleWebClientError(WebClientResponseException e) {
+        log.error("OpenAI API 호출 실패 - 상태 코드: {}, 응답: {}", e.getStatusCode(),
+                e.getResponseBodyAsString());
+        return new ChatResponse(TEMPORARY_ERROR);
+    }
+
+    private ChatResponse handleUnexpectedError(Exception e) {
+        log.error("OpenAI API 호출 중 예외 발생", e);
+        return new ChatResponse(UNEXPECTED_ERROR);
     }
 }

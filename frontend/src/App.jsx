@@ -5,7 +5,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import LoginPage from './pages/LoginPage';
 import OAuthCallback from './pages/OAuthCallback';
-import OrganizationSelectPage from './pages/OrganizationSelectPage';
 import ChatRoomsPage from './pages/ChatRoomsPage';
 import ChatRoom from './pages/ChatRoom/ChatRoom';
 import AIMentorPage from './pages/AIMentorPage';
@@ -23,8 +22,7 @@ function App() {
 
         {/* ProtectedRoute 하위에 들어간 경로는 auth 검사 후 렌더링 */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/organizations" element={<OrganizationSelectPage />} />
-          <Route path="/chat-rooms/:orgId" element={<ChatRoomsPage />} />
+          <Route path="/chat-rooms" element={<ChatRoomsPage />} />
           <Route path="/chatroom/:roomId" element={<ChatRoom />} />
           <Route path="/ai-mentor" element={<AIMentorPage />} />
         </Route>

@@ -20,8 +20,8 @@ const OAuthCallback = () => {
       
       console.log('Access Token 저장 완료, 만료 시간:', expiresIn, '초');
       
-      // Organizations 페이지로 리다이렉트
-      navigate('/organizations', { replace: true });
+      // 채팅방 목록 페이지로 리다이렉트
+      navigate('/chat-rooms', { replace: true });
     } else {
       console.error('URL에 Access Token이 없음');
       navigate('/login', { replace: true });

@@ -21,35 +21,21 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException exception) throws IOException {
-        
-        log.error("OAuth2 authentication failed", exception);
-        log.error("Request URI: {}", request.getRequestURI());
-        log.error("Query String: {}", request.getQueryString());
-        log.error("Exception message: {}", exception.getMessage());
-        log.error("Exception type: {}", exception.getClass().getName());
-        
+
+        String requestUri = request.getRequestURI();
+        String message = exception.getMessage();
+
+        log.warn("OAuth2 인증 실패 - URI: {}, 메시지: {}", requestUri, message);
+
         if (exception instanceof OAuth2AuthenticationException oauth2Exception) {
             OAuth2Error error = oauth2Exception.getError();
-            log.error("OAuth2 Error Code: {}", error.getErrorCode());
-            log.error("OAuth2 Error Description: {}", error.getDescription());
-            log.error("OAuth2 Error URI: {}", error.getUri());
+            log.warn("OAuth2 Error - 코드: {}, 설명: {}", error.getErrorCode(), error.getDescription());
         }
-        
-        if (exception.getCause() != null) {
-            log.error("Exception cause: {}", exception.getCause().getMessage());
-            log.error("Cause type: {}", exception.getCause().getClass().getName());
-            if (exception.getCause().getCause() != null) {
-                log.error("Root cause: {}", exception.getCause().getCause().getMessage());
-                log.error("Root cause type: {}", exception.getCause().getCause().getClass().getName());
-            }
-        }
-        
-        // 에러를 프론트엔드로 전달
-        String errorUrl = frontendRedirectUri.trim() + "?error=" + 
-                java.net.URLEncoder.encode(exception.getMessage(), "UTF-8");
-        
-        log.info("Redirecting to error URL: {}", errorUrl);
+
+        String errorUrl = frontendRedirectUri.trim() + "?error=" +
+                java.net.URLEncoder.encode(message, "UTF-8");
+        log.info("오류 페이지로 리다이렉트: {}", errorUrl);
+
         getRedirectStrategy().sendRedirect(request, response, errorUrl);
     }
 }
-

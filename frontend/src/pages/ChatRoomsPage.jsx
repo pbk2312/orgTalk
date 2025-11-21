@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MessageCircle, Users, Plus, Sparkles } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { MessageCircle, Plus, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import OrgTalkHeader from './OrgTalkHeader';
 import CreateChatRoomModal from './CreateChatRoomModal';
 import PasswordInputModal from '../pages/PasswordInputModal';
 import PublicRoomJoinModal from './PublicRoomJoinModal';
-import { getOrganizationInfo } from '../service/OrganizationService';
 import { getChatRooms, joinChatRoom, searchChatRooms } from '../service/ChatService';
 import Pagination from './Pagination';
 import ChatRoomCard from './ChatRoomCard';
@@ -13,10 +12,8 @@ import SearchFilter from './SearchFilter';
 import styles from '../css/ChatRoomsPage.module.css';
 
 const ChatRoomsPage = () => {
-  const { orgId } = useParams();
   const navigate = useNavigate();
 
-  const [organization, setOrganization] = useState(null);
   const [chatRooms, setChatRooms] = useState([]);
   const [page, setPage] = useState(0);
   const [size] = useState(9);
@@ -46,16 +43,14 @@ const ChatRoomsPage = () => {
 
   // fetch chat rooms
   const fetchChatRooms = async (pageNum, search, filter, options = {}) => {
-    if (!orgId || loadingRef.current) return;
+    if (loadingRef.current) return;
     loadingRef.current = true;
     setError(null);
     try {
-      const orgIdNum = Number(orgId);
       let response;
       if (search.trim()) {
         response = await searchChatRooms(
           {
-            organizationId: orgIdNum,
             keyword: search.trim(),
             type: filter !== 'all' ? filter.toUpperCase() : undefined,
             page: pageNum,
@@ -66,7 +61,6 @@ const ChatRoomsPage = () => {
       } else {
         response = await getChatRooms(
           {
-            organizationId: orgIdNum,
             type: filter !== 'all' ? filter.toUpperCase() : undefined,
             page: pageNum,
             size,
@@ -90,25 +84,8 @@ const ChatRoomsPage = () => {
   };
 
 
+  // 페이지, 검색, 필터 변경 시 채팅방 가져오기
   useEffect(() => {
-    if (!orgId) return;
-    console.log("조직정보 가져오기....")
-    const controller = new AbortController();
-    const loadOrganization = async () => {
-      try {
-        const data = await getOrganizationInfo(Number(orgId));
-        setOrganization(data);
-      } catch (err) {
-        if (err.name !== 'AbortError') console.error(err);
-      }
-    };
-    loadOrganization();
-    return () => controller.abort();
-  }, [orgId]);
-
-  // 2) 페이지, 검색, 필터 변경 시 채팅방 가져오기
-  useEffect(() => {
-    if (!orgId) return;
     console.log("채팅방 가져오기....")
     const controller = new AbortController();
     const loadChatRooms = async () => {
@@ -121,7 +98,7 @@ const ChatRoomsPage = () => {
     };
     loadChatRooms();
     return () => controller.abort();
-  }, [orgId, page, activeSearchQuery, filterType]);
+  }, [page, activeSearchQuery, filterType]);
 
 
   const handlePageChange = (newPage) => {
@@ -203,7 +180,7 @@ const ChatRoomsPage = () => {
   const handleSearchChange = (q) => setSearchQuery(q);
 
   // initial loading state
-  if (isLoading && !organization) {
+  if (isLoading && chatRooms.length === 0) {
     return (
       <><OrgTalkHeader />
       <div className={styles['chat-rooms-page']}>
@@ -249,18 +226,8 @@ const ChatRoomsPage = () => {
             <div className={styles['header-section']}>
               <div className={styles['header-top']}>
                 <div className={styles['org-info']}>
-                  <div className={styles['org-avatar']}>
-                    <img
-                      src={organization?.avatarUrl}
-                      alt={organization?.login}
-                      className={styles['org-avatar-img']}
-                    />
-                  </div>
                   <div className={styles['org-details']}>
-                    <h1 className={styles['org-name']}>{organization?.login}</h1>
-                    <p className={styles['org-member-count']}>
-                      <Users size={16} /> <span>{organization?.memberCount}명의 멤버</span>
-                    </p>
+                    <h1 className={styles['org-name']}>채팅방</h1>
                   </div>
                 </div>
                 <div className={styles['action-buttons']}>

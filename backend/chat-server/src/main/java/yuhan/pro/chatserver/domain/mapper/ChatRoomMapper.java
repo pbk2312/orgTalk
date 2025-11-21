@@ -23,7 +23,6 @@ public class ChatRoomMapper {
   ) {
     return ChatRoom.builder()
         .ownerId(ownerId)
-        .organizationId(request.organizationId())
         .name(request.name())
         .password(encodedPassword)
         .description(request.description())
