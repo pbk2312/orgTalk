@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import OAuthCallback from './pages/OAuthCallback';
 import ChatRoomsPage from './pages/ChatRoomsPage';
 import ChatRoom from './pages/ChatRoom/ChatRoom';
+import AIMentorPage from './pages/AIMentorPage';
 import ServerErrorPage from './pages/ServerErrorPage';
 import Error404Page from './pages/Error404Page';
 
@@ -22,6 +23,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/chat-rooms" element={<ChatRoomsPage />} />
           <Route path="/chatroom/:roomId" element={<ChatRoom />} />
+          <Route path="/ai-mentor" element={<AIMentorPage />} />
         </Route>
 
         {/* 기본 리디렉션 및 그 외 페이지 */}
