@@ -1,18 +1,18 @@
-# OrgTalk
+# DevTalk
 
-GitHub 조직 기반 실시간 채팅 플랫폼
+GitHub 계정 기반 실시간 채팅 플랫폼
 
 ## 📖 프로젝트 소개
 
-OrgTalk은 GitHub 조직을 기반으로 한 실시간 채팅 서비스입니다. 사용자는 GitHub OAuth2를 통해 로그인하고, 자신이 속한 GitHub 조직의 채팅방에서 실시간으로 소통할 수 있습니다.
+DevTalk은 GitHub 계정으로 로그인하여 사용할 수 있는 실시간 채팅 서비스입니다. 사용자는 GitHub OAuth2를 통해 로그인하고, 채팅방을 생성하고 참여하여 실시간으로 소통할 수 있습니다.
 
 ### 아키텍처
 
 - **마이크로서비스 아키텍처**: `main-server`와 `chat-server`로 분리
 - **Frontend** (포트 80/443): React 기반 SPA, Nginx로 서빙
-- **Main Server** (포트 8080): 인증, 멤버 관리, 조직 관리
+- **Main Server** (포트 8080): 인증, 멤버 관리
 - **Chat Server** (포트 8081): 실시간 채팅 및 채팅방 관리
-
+ㄱ
 ## 🛠 기술 스택
 
 ### Frontend
@@ -38,7 +38,7 @@ OrgTalk은 GitHub 조직을 기반으로 한 실시간 채팅 서비스입니다
 - **Spring Data Redis**
 
 ### Database
-- **MySQL**: 멤버, 조직, 채팅방 메타데이터
+- **MySQL**: 멤버, 채팅방 메타데이터
 - **MongoDB**: 채팅 메시지 저장
 - **Redis**: Refresh Token 저장, 사용자 Presence 정보
 
@@ -114,24 +114,16 @@ chat-server/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/member/organizations` | 사용자가 속한 조직 목록 조회 |
 | POST | `/api/member/chatMembers` | 채팅방 멤버 정보 조회 |
 | GET | `/api/member/profile-url` | 멤버 프로필 URL 조회 |
-
-### 조직 (Main Server - `/api/organization`)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/organization/{organizationId}` | 조직 정보 조회 |
-| POST | `/api/organization` | 조직 생성 |
 
 ### 채팅방 (Chat Server - `/api/chatroom`)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/chatroom/create` | 채팅방 생성 |
-| GET | `/api/chatroom/list/{organizationId}` | 채팅방 목록 조회 (페이징) |
-| GET | `/api/chatroom/search/{organizationId}` | 채팅방 검색 |
+| GET | `/api/chatroom/list` | 채팅방 목록 조회 (페이징) |
+| GET | `/api/chatroom/search` | 채팅방 검색 |
 | GET | `/api/chatroom/{roomId}` | 채팅방 정보 조회 |
 | POST | `/api/chatroom/{roomId}/join` | 채팅방 입장 |
 | POST | `/api/chatroom/{roomId}/delete` | 채팅방 삭제 |

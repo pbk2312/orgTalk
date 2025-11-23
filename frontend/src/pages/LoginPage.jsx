@@ -74,7 +74,7 @@ const LoginPage = () => {
   };
 
   const features = [
-    { icon: Users, title: "Organization 기반", desc: "같은 Org 멤버들과 소통", colorClass: "feature-blue", delay: "0.1s" },
+    { icon: Users, title: "개발자 커뮤니티", desc: "개발자들과 함께 소통하고 협업", colorClass: "feature-blue", delay: "0.1s" },
     { icon: MessageCircle, title: "실시간 채팅", desc: "즉시 협업하고 아이디어 공유", colorClass: "feature-green", delay: "0.2s" },
     { icon: Sparkles, title: "AI 개발 멘토", desc: "개발 질문에 즉시 답변 받기", colorClass: "feature-ai", delay: "0.3s" },
     { icon: GitBranch, title: "개발자 친화적", desc: "GitHub과 완벽하게 연동", colorClass: "feature-purple", delay: "0.4s" }
@@ -96,9 +96,9 @@ const LoginPage = () => {
               <div className="main-logo"><Code2 /></div>
               <div className="sparkle-icon"><Sparkles /></div>
             </div>
-            <h1 className="main-title">OrgTalk<span className="title-highlight"></span></h1>
-            <p className="main-description">GitHub Organization 멤버들과 함께하는</p>
-            <p className="main-description-highlight">개발자 커뮤니티 플랫폼</p>
+            <h1 className="main-title">DevTalk<span className="title-highlight"></span></h1>
+            <p className="main-description">개발자들과 함께하는</p>
+            <p className="main-description-highlight">커뮤니티 플랫폼</p>
           </div>
 
           <div className="feature-cards">
@@ -130,7 +130,7 @@ const LoginPage = () => {
                 <div className="btn-content"><Github /><span>GitHub로 시작하기</span><ArrowRight className={`btn-arrow ${isHovered ? 'hovered' : ''}`} /></div>
               )}
             </button>
-            <p className="login-description">GitHub 계정으로 로그인하여 소속 Organization의<br />전용 커뮤니티에 참여하세요</p>
+            <p className="login-description">GitHub 계정으로 로그인하여<br />개발자 커뮤니티에 참여하세요</p>
           </div>
 
           <div className="status-indicator">

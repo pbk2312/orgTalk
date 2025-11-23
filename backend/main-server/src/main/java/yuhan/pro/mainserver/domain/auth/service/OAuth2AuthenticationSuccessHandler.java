@@ -14,9 +14,9 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 import yuhan.pro.mainserver.domain.member.dto.MemberDetails;
+import yuhan.pro.mainserver.sharedkernel.common.util.CookieUtils;
 import yuhan.pro.mainserver.sharedkernel.security.jwt.TokenProvider;
 import yuhan.pro.mainserver.sharedkernel.security.jwt.dto.TokenDto;
-import yuhan.pro.mainserver.sharedkernel.common.util.CookieUtils;
 
 @Slf4j
 @Component
@@ -31,46 +31,33 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException {
-        
         try {
-            log.info("OAuth2 authentication success handler called");
             MemberDetails memberDetails = (MemberDetails) authentication.getPrincipal();
-            log.info("OAuth2 authentication successful for memberId: {}", memberDetails.getMemberId());
+            log.info("OAuth2 인증 성공 - memberId: {}", memberDetails.getMemberId());
 
-        Authentication oAuth2Authentication = new UsernamePasswordAuthenticationToken(
-                memberDetails,
-                null,
-                authentication.getAuthorities()
-        );
+            Authentication oAuth2Authentication = new UsernamePasswordAuthenticationToken(
+                    memberDetails,
+                    null,
+                    authentication.getAuthorities()
+            );
 
-        TokenDto tokenDto = tokenProvider.generateTokenDto(oAuth2Authentication);
+            TokenDto tokenDto = tokenProvider.generateTokenDto(oAuth2Authentication);
 
-        CookieUtils.addCookie(response, REFRESH_TOKEN_COOKIE, tokenDto.refreshToken(),
-                tokenDto.refreshTokenExpiresIn());
+            CookieUtils.addCookie(response, REFRESH_TOKEN_COOKIE, tokenDto.refreshToken(),
+                    tokenDto.refreshTokenExpiresIn());
 
-        // frontendRedirectUri의 공백 제거 및 정규화
-        String normalizedRedirectUri = frontendRedirectUri.trim();
-        
-        String targetUrl = UriComponentsBuilder.fromUriString(normalizedRedirectUri)
-                .queryParam("accessToken", tokenDto.accessToken())
-                .queryParam("expiresIn", tokenDto.accessTokenExpiresIn())
-                .build().toUriString();
-        
-            log.info("Redirecting to: {}", targetUrl);
+            String normalizedRedirectUri = frontendRedirectUri.trim();
+            String targetUrl = UriComponentsBuilder.fromUriString(normalizedRedirectUri)
+                    .queryParam("accessToken", tokenDto.accessToken())
+                    .queryParam("expiresIn", tokenDto.accessTokenExpiresIn())
+                    .build().toUriString();
+
+            log.info("프론트엔드로 리다이렉트: {}", targetUrl);
 
             getRedirectStrategy().sendRedirect(request, response, targetUrl);
         } catch (Exception e) {
-            log.error("Error in OAuth2 authentication success handler", e);
-            log.error("Exception type: {}", e.getClass().getName());
-            log.error("Exception message: {}", e.getMessage());
-            if (e.getCause() != null) {
-                log.error("Exception cause: {}", e.getCause().getMessage());
-            }
-            throw new IOException("Failed to process OAuth2 authentication", e);
+            log.error("OAuth2 인증 성공 처리 중 오류 발생: {}", e.getMessage());
+            throw new IOException("OAuth2 인증 처리 실패", e);
         }
     }
 }
-
-
-
-

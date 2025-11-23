@@ -18,8 +18,6 @@ import yuhan.pro.mainserver.domain.member.dto.ChatMemberResponse;
 import yuhan.pro.mainserver.domain.member.dto.ChatMembersRequest;
 import yuhan.pro.mainserver.domain.member.dto.MemberProfileUrlResponse;
 import yuhan.pro.mainserver.domain.member.service.MemberService;
-import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
-import yuhan.pro.mainserver.sharedkernel.common.dto.PageResponse;
 
 @Slf4j
 @RestController
@@ -29,17 +27,6 @@ import yuhan.pro.mainserver.sharedkernel.common.dto.PageResponse;
 public class MemberController {
 
     private final MemberService memberService;
-
-    @Operation(summary = "조직 리스트 조회")
-    @ApiResponse(responseCode = "200", description = "조직 조회 성공")
-    @ApiResponse(responseCode = "404", description = "회원 조회 실패")
-    @GetMapping("/organizations")
-    public PageResponse<OrganizationsResponse> getOrganizations(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "3") int size
-    ) {
-        return memberService.getOrganizations(page, size);
-    }
 
     @Operation(summary = "채팅방에 참여하는 회원들 조회")
     @ApiResponse(responseCode = "200", description = "회원들 정보 조회 성공")

@@ -1,4 +1,4 @@
-.orgtalk-header {
+.devtalk-header {
   position: fixed;
   top: 0;
   width: 100%;
@@ -8,7 +8,7 @@
   z-index: 9999; /* 10 → 9999로 변경 */
 }
 
-.orgtalk-header-content {
+.devtalk-header-content {
   max-width: 1280px;
   margin: 0 auto;
   padding: 1rem 1.5rem;
@@ -17,13 +17,13 @@
   justify-content: space-between;
 }
 
-.orgtalk-logo {
+.devtalk-logo {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.orgtalk-logo-icon {
+.devtalk-logo-icon {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 0.5rem;
@@ -33,33 +33,33 @@
   justify-content: center;
 }
 
-.orgtalk-logo-icon svg {
+.devtalk-logo-icon svg {
   width: 1.5rem;
   height: 1.5rem;
   color: white;
 }
 
-.orgtalk-title {
+.devtalk-title {
   font-size: 1.25rem;
   font-weight: bold;
   color: white;
   margin: 0;
 }
 
-.orgtalk-subtitle {
+.devtalk-subtitle {
   font-size: 0.75rem;
   color: #94a3b8;
   margin: 0;
 }
 
-.orgtalk-user {
+.devtalk-user {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
 /* 통합된 사용자 카드 */
-.orgtalk-user-card {
+.devtalk-user-card {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -74,7 +74,7 @@
   cursor: pointer;
 }
 
-.orgtalk-user-card::before {
+.devtalk-user-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -84,21 +84,21 @@
   background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);
 }
 
-.orgtalk-user-card:hover {
+.devtalk-user-card:hover {
   background: rgba(51, 65, 85, 0.6);
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
   transform: translateY(-1px);
 }
 
-.orgtalk-user-info {
+.devtalk-user-info {
   background: none;
   border: none;
   padding: 0;
   margin: 0;
 }
 
-.orgtalk-username {
+.devtalk-username {
   font-size: 0.875rem;
   font-weight: 600;
   color: #e2e8f0;
@@ -107,13 +107,13 @@
   white-space: nowrap;
 }
 
-.orgtalk-org {
+.devtalk-org {
   font-size: 0.75rem;
   color: #94a3b8;
   margin: 0;
 }
 
-.orgtalk-avatar {
+.devtalk-avatar {
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
@@ -123,12 +123,12 @@
   flex-shrink: 0;
 }
 
-.orgtalk-user-card:hover .orgtalk-avatar {
+.devtalk-user-card:hover .devtalk-avatar {
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
-.orgtalk-avatar-placeholder {
+.devtalk-avatar-placeholder {
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
@@ -142,18 +142,18 @@
   flex-shrink: 0;
 }
 
-.orgtalk-user-card:hover .orgtalk-avatar-placeholder {
+.devtalk-user-card:hover .devtalk-avatar-placeholder {
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
-.orgtalk-avatar-placeholder svg {
+.devtalk-avatar-placeholder svg {
   width: 1rem;
   height: 1rem;
   color: #cbd5e1;
 }
 
-.orgtalk-logout-btn {
+.devtalk-logout-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -169,7 +169,7 @@
   backdrop-filter: blur(8px);
 }
 
-.orgtalk-logout-btn:hover {
+.devtalk-logout-btn:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.5);
   color: #f87171;
@@ -177,15 +177,15 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-.orgtalk-logout-btn:active {
+.devtalk-logout-btn:active {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15);
 }
 
-.orgtalk-logout-btn svg {
+.devtalk-logout-btn svg {
   transition: transform 0.2s ease-in-out;
 }
 
-.orgtalk-logout-btn:hover svg {
+.devtalk-logout-btn:hover svg {
   transform: scale(1.1);
 }

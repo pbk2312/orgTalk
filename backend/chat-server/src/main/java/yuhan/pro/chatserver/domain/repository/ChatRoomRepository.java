@@ -22,12 +22,10 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
         c.createdAt
       )
       from ChatRoom c
-      where c.organizationId = :orgId
-        and ( :type is null or c.type = :type )
+      where ( :type is null or c.type = :type )
       order by c.createdAt desc, c.updatedAt desc
       """)
-  Page<ChatRoomSummary> findChatRoomsByOrgAndType(
-      @Param("orgId") Long organizationId,
+  Page<ChatRoomSummary> findChatRoomsByType(
       @Param("type") RoomType type,
       Pageable pageable
   );
@@ -38,12 +36,10 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
           c.id, c.name, c.description, c.type, c.createdAt
         )
         from ChatRoom c
-        where c.organizationId = :orgId
-          and (:type is null or c.type = :type)
+        where (:type is null or c.type = :type)
         order by c.createdAt desc, c.updatedAt desc
       """)
-  Page<ChatRoomSummary> findSummaryByOrgAndType(
-      @Param("orgId") Long organizationId,
+  Page<ChatRoomSummary> findSummaryByType(
       @Param("type") RoomType type,
       Pageable pageable
   );
@@ -53,13 +49,11 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
           c.id, c.name, c.description, c.type, c.createdAt
         )
         from ChatRoom c
-        where c.organizationId = :orgId
-          and (:type is null or c.type = :type)
+        where (:type is null or c.type = :type)
           and c.name like concat(:kw, '%')
         order by c.createdAt desc, c.updatedAt desc
       """)
-  Page<ChatRoomSummary> findSummaryByOrgTypeAndNamePrefix(
-      @Param("orgId") Long orgId,
+  Page<ChatRoomSummary> findSummaryByTypeAndNamePrefix(
       @Param("type") RoomType type,
       @Param("kw") String keyword,
       Pageable pageable
@@ -71,27 +65,24 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
       value = """
             SELECT id, name, description, type, created_at AS createdAt
             FROM chat_room
-            WHERE organization_id = :orgId
-              AND (:type IS NULL OR type = :type)
+            WHERE (:type IS NULL OR type = :type)
               AND MATCH(name, description) AGAINST(CONCAT('+', :kw, '*') IN BOOLEAN MODE)
             ORDER BY created_at DESC, updated_at DESC
           """,
       countQuery = """
             SELECT COUNT(*)
             FROM chat_room
-            WHERE organization_id = :orgId
-              AND (:type IS NULL OR type = :type)
+            WHERE (:type IS NULL OR type = :type)
               AND MATCH(name, description) AGAINST(CONCAT('+', :kw, '*') IN BOOLEAN MODE)
           """,
       nativeQuery = true
   )
-  Page<ChatRoomSummaryProjection> findSummaryByOrgTypeAndFullText(
-      @Param("orgId") Long orgId,
+  Page<ChatRoomSummaryProjection> findSummaryByTypeAndFullText(
       @Param("type") String type,
       @Param("kw") String keyword,
       Pageable pageable
   );
 
 
-  boolean existsByOrganizationIdAndName(Long organizationId, String name);
+  boolean existsByName(String name);
 }

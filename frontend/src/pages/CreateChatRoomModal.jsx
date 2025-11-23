@@ -1,15 +1,13 @@
 // src/components/CreateChatRoomModal.jsx
 import React, {useState} from 'react';
-import {useNavigate, useParams} from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {Edit3, Globe, Hash, Lock, Sparkles, Users, X} from 'lucide-react';
 import styles from '../css/CreateChatRoomModal.module.css';
 import {createChatRoom} from '../service/ChatService.jsx';
 
 const CreateChatRoomModal = ({isOpen, onClose /* onCreate 제거하거나 유지 */}) => {
-  const {orgId} = useParams();
   const navigate = useNavigate(); // ← navigate 훅
 
-  const orgIdNum = orgId ? Number(orgId) : null;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('public');
@@ -19,11 +17,6 @@ const CreateChatRoomModal = ({isOpen, onClose /* onCreate 제거하거나 유지
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!orgIdNum) {
-      setErrorMsg('유효한 조직 ID가 존재하지 않습니다.');
-      return;
-    }
 
     if (type === 'private' && password.trim() === '') {
       setErrorMsg('비공개 방의 비밀번호를 입력해주세요.');
@@ -35,7 +28,6 @@ const CreateChatRoomModal = ({isOpen, onClose /* onCreate 제거하거나 유지
 
     const enumType = type === 'private' ? 'PRIVATE' : 'PUBLIC';
     const payload = {
-      organizationId: orgIdNum,
       name: name.trim(),
       description: description.trim() || null,
       type: enumType,

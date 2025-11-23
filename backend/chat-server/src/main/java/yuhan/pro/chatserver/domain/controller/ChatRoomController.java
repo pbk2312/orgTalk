@@ -62,16 +62,15 @@ public class ChatRoomController {
                     @ApiResponse(responseCode = "200", description = "채팅방 목록 조회 성공")
             }
     )
-    @GetMapping("/list/{organizationId}")
+    @GetMapping("/list")
     @ResponseStatus(HttpStatus.OK)
     public PageResponse<ChatRoomResponse> getChatRooms(
-            @PathVariable @Positive Long organizationId,
             @Parameter(description = "채팅방 타입 (PUBLIC, PRIVATE). 미지정 시 전체 조회")
             @RequestParam(value = "type", required = false) RoomType type,
             @PageableDefault(size = 9, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-        return chatRoomService.getChatRooms(organizationId, type, pageable);
+        return chatRoomService.getChatRooms(type, pageable);
     }
 
     @Operation(
@@ -80,17 +79,16 @@ public class ChatRoomController {
                     @ApiResponse(responseCode = "200", description = "키워드로 채팅방 검색 성공")
             }
     )
-    @GetMapping("/search/{organizationId}")
+    @GetMapping("/search")
     @ResponseStatus(HttpStatus.OK)
     public PageResponse<ChatRoomResponse> searchChatRooms(
-            @PathVariable @Positive Long organizationId,
             @RequestParam(required = false) String keyword,
             @Parameter(description = "채팅방 타입 (PUBLIC, PRIVATE). 미지정 시 전체 검색")
             @RequestParam(value = "type", required = false) RoomType type,
             @PageableDefault(size = 9) Pageable pageable
     ) {
         log.info("type={}, keyword={}", type, keyword);
-        return chatRoomService.searchChatRooms(organizationId, type, keyword, pageable);
+        return chatRoomService.searchChatRooms(type, keyword, pageable);
     }
 
     @Operation(

@@ -2,7 +2,6 @@ package yuhan.pro.mainserver.sharedkernel.security.authentication;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,7 +21,6 @@ public class CustomUserDetails implements UserDetails {
   private String nickName;
   private String password;
   private MemberRole memberRole;
-  private Set<Long> organizationIds;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -31,12 +29,11 @@ public class CustomUserDetails implements UserDetails {
 
   @Builder
   public CustomUserDetails(Long memberId, String username, String nickName, String password,
-      MemberRole memberRole, Set<Long> organizationIds) {
+      MemberRole memberRole) {
     this.memberId = memberId;
     this.username = username;
     this.nickName = nickName;
     this.password = password;
     this.memberRole = memberRole;
-    this.organizationIds = organizationIds;
   }
 }

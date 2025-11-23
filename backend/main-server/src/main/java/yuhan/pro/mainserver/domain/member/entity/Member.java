@@ -1,7 +1,6 @@
 package yuhan.pro.mainserver.domain.member.entity;
 
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,17 +8,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import java.util.HashSet;
-import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import yuhan.pro.mainserver.domain.organization.entity.Organization;
 import yuhan.pro.mainserver.sharedkernel.common.entity.BaseEntity;
 
 @Getter
@@ -48,14 +41,6 @@ public class Member extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private MemberRole memberRole;
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-            name = "member_organizations",
-            joinColumns = @JoinColumn(name = "member_id"),
-            inverseJoinColumns = @JoinColumn(name = "organizations_id")
-    )
-    private Set<Organization> organizations = new HashSet<>();
-
     @Builder
     public Member(String login, String name, String email, String avatarUrl, MemberRole memberRole,
             Long githubId) {
@@ -65,13 +50,5 @@ public class Member extends BaseEntity {
         this.avatarUrl = avatarUrl;
         this.memberRole = memberRole;
         this.githubId = githubId;
-    }
-
-    public void clearOrganizations() {
-        this.organizations.clear();
-    }
-
-    public void addOrganization(Organization organization) {
-        this.organizations.add(organization);
     }
 }

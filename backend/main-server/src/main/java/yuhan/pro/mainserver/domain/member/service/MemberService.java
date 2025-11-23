@@ -6,8 +6,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,8 +18,6 @@ import yuhan.pro.mainserver.domain.member.dto.MemberResponse;
 import yuhan.pro.mainserver.domain.member.entity.Member;
 import yuhan.pro.mainserver.domain.member.mapper.MemberMapper;
 import yuhan.pro.mainserver.domain.member.repository.MemberRepository;
-import yuhan.pro.mainserver.domain.organization.dto.OrganizationsResponse;
-import yuhan.pro.mainserver.domain.organization.repository.OrganizationRepository;
 import yuhan.pro.mainserver.sharedkernel.common.dto.PageResponse;
 import yuhan.pro.mainserver.sharedkernel.exception.CustomException;
 import yuhan.pro.mainserver.sharedkernel.security.authentication.CustomUserDetails;
@@ -32,19 +28,6 @@ import yuhan.pro.mainserver.sharedkernel.security.authentication.CustomUserDetai
 public class MemberService {
 
   private final MemberRepository memberRepository;
-  private final OrganizationRepository organizationRepository;
-
-
-  @Transactional(readOnly = true)
-  public PageResponse<OrganizationsResponse> getOrganizations(int page, int size) {
-    Long memberId = getMemberId();
-
-    PageRequest pageRequest = PageRequest.of(page, size);
-    Page<OrganizationsResponse> dtoPage =
-        organizationRepository.findByMemberIdProjected(memberId, pageRequest);
-
-    return PageResponse.fromPage(dtoPage);
-  }
 
   @Transactional(readOnly = true)
   public MemberResponse isLogin() {

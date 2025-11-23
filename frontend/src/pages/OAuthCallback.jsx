@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setAccessToken } from '../lib/axios.ts';
+import LoadingScreen from '../components/LoadingScreen';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -20,40 +21,15 @@ const OAuthCallback = () => {
       
       console.log('Access Token 저장 완료, 만료 시간:', expiresIn, '초');
       
-      // Organizations 페이지로 리다이렉트
-      navigate('/organizations', { replace: true });
+      // 채팅방 목록 페이지로 리다이렉트
+      navigate('/chat-rooms', { replace: true });
     } else {
       console.error('URL에 Access Token이 없음');
       navigate('/login', { replace: true });
     }
   }, [searchParams, navigate]);
 
-  return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh',
-      flexDirection: 'column',
-      gap: '20px'
-    }}>
-      <div className="loading-spinner" style={{
-        border: '4px solid #f3f3f3',
-        borderTop: '4px solid #3498db',
-        borderRadius: '50%',
-        width: '50px',
-        height: '50px',
-        animation: 'spin 1s linear infinite'
-      }} />
-      <p>로그인 처리 중...</p>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
-  );
+  return <LoadingScreen message="로그인 처리 중..." />;
 };
 
 export default OAuthCallback;

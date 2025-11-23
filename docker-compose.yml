@@ -3,13 +3,13 @@ version: '3.8'
 services:
   redis:
     image: redis:7.0
-    container_name: orgtalk-redis
+    container_name: devtalk-redis
     restart: always
     volumes:
       - redis-data:/data
     command: [ "redis-server", "--appendonly", "yes" ]
     networks:
-      - orgtalk-net
+      - devtalk-net
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
@@ -19,7 +19,7 @@ services:
 
   mongodb:
     image: mongo:latest
-    container_name: orgtalk-mongodb
+    container_name: devtalk-mongodb
     restart: always
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
@@ -27,7 +27,7 @@ services:
     volumes:
       - mongo-data:/data/db
     networks:
-      - orgtalk-net
+      - devtalk-net
     healthcheck:
       test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
       interval: 30s
@@ -37,12 +37,12 @@ services:
 
   main-server:
     image: ${DOCKER_USERNAME}/main-server:latest
-    container_name: orgtalk-main-server
+    container_name: devtalk-main-server
     restart: always
     ports:
       - "8080:8080"
     networks:
-      - orgtalk-net
+      - devtalk-net
     depends_on:
       - redis
     environment:
@@ -67,12 +67,12 @@ services:
 
   chat-server:
     image: ${DOCKER_USERNAME}/chat-server:latest
-    container_name: orgtalk-chat-server
+    container_name: devtalk-chat-server
     restart: always
     ports:
       - "8081:8081"
     networks:
-      - orgtalk-net
+      - devtalk-net
     depends_on:
       - mongodb
       - redis
@@ -101,12 +101,12 @@ services:
 
   frontend:
     image: ${DOCKER_USERNAME}/frontend:latest
-    container_name: orgtalk-frontend
+    container_name: devtalk-frontend
     restart: always
     ports:
       - "80:80"
     networks:
-      - orgtalk-net
+      - devtalk-net
     depends_on:
       - main-server
       - chat-server
@@ -128,5 +128,5 @@ volumes:
     driver: local
 
 networks:
-  orgtalk-net:
+  devtalk-net:
     driver: bridge

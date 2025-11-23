@@ -32,10 +32,10 @@ import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Table(
     indexes = {
-        @Index(name = "idx_chatroom_org_type", columnList = "organizationId, type"),
+        @Index(name = "idx_chatroom_type", columnList = "type"),
         @Index(
-            name = "idx_chatroom_orgid_type_created_updated",
-            columnList = "organizationId, type, createdAt, updatedAt"
+            name = "idx_chatroom_type_created_updated",
+            columnList = "type, createdAt, updatedAt"
         )
     }
 )
@@ -44,8 +44,6 @@ public class ChatRoom extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
-
-  private Long organizationId;
 
   @Column(unique = true)
   private String name;

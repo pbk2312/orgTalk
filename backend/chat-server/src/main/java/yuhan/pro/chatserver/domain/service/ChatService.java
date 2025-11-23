@@ -32,6 +32,7 @@ public class ChatService {
     private final ChatRepository chatRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
+    private final UnreadMessageService unreadMessageService;
 
     @Transactional
     public void saveChat(
@@ -49,7 +50,7 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public ChatPageResponse getChatsByCursor(
-            Long roomId, LocalDateTime cursor, int size
+            Long roomId, LocalDateTime cursor, int size, Long memberId
     ) {
         ChatRoom room = findChatRoomOrThrow(roomId);
 
@@ -70,6 +71,17 @@ public class ChatService {
         LocalDateTime nextCursor = data.isEmpty()
                 ? null
                 : data.getFirst().createdAt();
+
+        // 메시지 조회 시 읽은 시간 업데이트 (최신 메시지의 시간으로)
+        if (memberId != null && !data.isEmpty()) {
+            LocalDateTime latestMessageTime = data.stream()
+                    .map(ChatResponse::createdAt)
+                    .max(LocalDateTime::compareTo)
+                    .orElse(LocalDateTime.now());
+            unreadMessageService.updateLastReadTime(memberId, roomId, latestMessageTime);
+            log.debug("채팅 조회 시 읽은 시간 업데이트: memberId={}, roomId={}, time={}", 
+                memberId, roomId, latestMessageTime);
+        }
 
         return new ChatPageResponse(data, nextCursor);
     }

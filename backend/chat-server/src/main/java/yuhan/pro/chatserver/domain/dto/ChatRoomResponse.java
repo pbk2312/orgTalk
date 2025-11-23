@@ -12,6 +12,15 @@ public record ChatRoomResponse(
     RoomType type,
     Long memberCount,
     boolean joined,
-    LocalDateTime createdAt) {
+    Long unreadCount,
+    LocalDateTime createdAt,
+    LatestMessage latestMessage) {
 
+    @Builder
+    public record LatestMessage(
+        String message,
+        String senderName,
+        LocalDateTime createdAt
+    ) {
+    }
 }
