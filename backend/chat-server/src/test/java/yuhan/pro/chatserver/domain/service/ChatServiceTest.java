@@ -39,6 +39,7 @@ import yuhan.pro.chatserver.domain.mapper.ChatMapper;
 import yuhan.pro.chatserver.domain.repository.ChatRoomMemberRepository;
 import yuhan.pro.chatserver.domain.repository.ChatRoomRepository;
 import yuhan.pro.chatserver.domain.repository.mongoDB.ChatRepository;
+import yuhan.pro.chatserver.domain.service.UnreadMessageService;
 import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 import yuhan.pro.chatserver.sharedkernel.jwt.MemberRole;
@@ -54,6 +55,9 @@ class ChatServiceTest {
 
   @Mock
   private ChatRoomMemberRepository chatRoomMemberRepository;
+
+  @Mock
+  private UnreadMessageService unreadMessageService;
 
   @InjectMocks
   private ChatService chatService;
@@ -83,7 +87,6 @@ class ChatServiceTest {
 
     chatRoom = ChatRoom.builder()
         .id(1L)
-        .organizationId(10L)
         .name("Test Room")
         .description("테스트용 방")
         .type(RoomType.PUBLIC)
@@ -242,7 +245,7 @@ class ChatServiceTest {
 
       // when
       int pageSize = 2;
-      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), null, pageSize);
+      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), null, pageSize, chatMemberDetails.getMemberId());
 
       // then
       List<ChatResponse> data = response.chats();
@@ -311,7 +314,7 @@ class ChatServiceTest {
           .thenReturn(List.of(chat2));
 
       // when
-      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), cursor, pageSize);
+      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), cursor, pageSize, chatMemberDetails.getMemberId());
 
       // then
       List<ChatResponse> data = response.chats();
@@ -340,7 +343,7 @@ class ChatServiceTest {
           .thenReturn(List.of());
 
       // when
-      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), tCursor, 10);
+      ChatPageResponse response = chatService.getChatsByCursor(chatRoom.getId(), tCursor, 10, chatMemberDetails.getMemberId());
 
       // then
       List<ChatResponse> data = response.chats();
@@ -359,7 +362,7 @@ class ChatServiceTest {
       when(chatRoomRepository.findById(1L)).thenReturn(Optional.empty());
 
       // when & then
-      assertThatThrownBy(() -> chatService.getChatsByCursor(1L, null, 10))
+      assertThatThrownBy(() -> chatService.getChatsByCursor(1L, null, 10, chatMemberDetails.getMemberId()))
           .isInstanceOf(CustomException.class)
           .hasMessage("해당하는 채팅방이 없습니다.");
 

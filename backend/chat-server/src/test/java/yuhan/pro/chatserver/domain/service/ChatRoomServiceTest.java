@@ -44,6 +44,7 @@ import yuhan.pro.chatserver.domain.entity.RoomType;
 import yuhan.pro.chatserver.domain.repository.ChatRoomMemberRepository;
 import yuhan.pro.chatserver.domain.repository.ChatRoomRepository;
 import yuhan.pro.chatserver.domain.repository.mongoDB.ChatRepository;
+import yuhan.pro.chatserver.domain.service.UnreadMessageService;
 import yuhan.pro.chatserver.sharedkernel.dto.PageResponse;
 import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
@@ -66,6 +67,9 @@ class ChatRoomServiceTest {
 
   @Mock
   private ChatRepository chatRepository;
+
+  @Mock
+  private UnreadMessageService unreadMessageService;
 
   @InjectMocks
   private ChatRoomService chatRoomService;
@@ -106,13 +110,12 @@ class ChatRoomServiceTest {
     void saveChatRoom() {
       // given
       ChatRoomCreateRequest request = ChatRoomCreateRequest.builder()
-          .organizationId(1L)
           .name("테스트방")
           .description("설명입니다")
           .type(RoomType.PUBLIC)
           .build();
 
-      when(chatRoomRepository.existsByOrganizationIdAndName(1L, "테스트방"))
+      when(chatRoomRepository.existsByName("테스트방"))
           .thenReturn(false);
 
       // when
@@ -122,7 +125,6 @@ class ChatRoomServiceTest {
       ArgumentCaptor<ChatRoom> roomCaptor = ArgumentCaptor.forClass(ChatRoom.class);
       verify(chatRoomRepository).save(roomCaptor.capture());
       ChatRoom savedRoom = roomCaptor.getValue();
-      assertThat(savedRoom.getOrganizationId()).isEqualTo(1L);
       assertThat(savedRoom.getName()).isEqualTo("테스트방");
       assertThat(savedRoom.getDescription()).isEqualTo("설명입니다");
       assertThat(savedRoom.getType()).isEqualTo(RoomType.PUBLIC);
@@ -135,35 +137,18 @@ class ChatRoomServiceTest {
       assertThat(savedMember.getMemberId()).isEqualTo(1L);
     }
 
-    @Test
-    @DisplayName("채팅방 저장 실패 - 조직에 속하지 않음")
-    void saveRoomFailure_NotInOrganization() {
-      // given
-      ChatRoomCreateRequest request = ChatRoomCreateRequest.builder()
-          .organizationId(100L)
-          .name("테스트방")
-          .description("설명입니다")
-          .type(RoomType.PUBLIC)
-          .build();
-
-      // when & then
-      assertThatThrownBy(() -> chatRoomService.saveChatRoom(request))
-          .isInstanceOf(CustomException.class)
-          .hasMessage("해당되는 조직 ID가 존재하지 않습니다");
-    }
 
     @Test
     @DisplayName("채팅방 저장 실패 - 중복된 이름")
     void saveRoomFailure_DuplicateName() {
       // given
       ChatRoomCreateRequest request = ChatRoomCreateRequest.builder()
-          .organizationId(1L)
           .name("중복방")
           .description("설명입니다")
           .type(RoomType.PUBLIC)
           .build();
 
-      when(chatRoomRepository.existsByOrganizationIdAndName(1L, "중복방"))
+      when(chatRoomRepository.existsByName("중복방"))
           .thenReturn(true);
 
       // when & then
@@ -177,14 +162,13 @@ class ChatRoomServiceTest {
     void savePrivateRoomSuccess() {
       // given
       ChatRoomCreateRequest request = ChatRoomCreateRequest.builder()
-          .organizationId(1L)
           .name("비밀방")
           .description("비밀 설명")
           .type(RoomType.PRIVATE)
           .password("password123")
           .build();
 
-      when(chatRoomRepository.existsByOrganizationIdAndName(1L, "비밀방"))
+      when(chatRoomRepository.existsByName("비밀방"))
           .thenReturn(false);
       when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
 
@@ -204,14 +188,13 @@ class ChatRoomServiceTest {
     void savePrivateRoomFailure_NoPassword() {
       // given
       ChatRoomCreateRequest request = ChatRoomCreateRequest.builder()
-          .organizationId(1L)
           .name("비밀방")
           .description("비밀 설명")
           .type(RoomType.PRIVATE)
           .password(null)
           .build();
 
-      when(chatRoomRepository.existsByOrganizationIdAndName(1L, "비밀방"))
+      when(chatRoomRepository.existsByName("비밀방"))
           .thenReturn(false);
 
       // when & then
@@ -229,7 +212,6 @@ class ChatRoomServiceTest {
     @DisplayName("페이징 조회 테스트")
     void getChatRoomsSuccess() {
       // given
-      Long organizationId = 1L;
       Pageable pageable = PageRequest.of(0, 2);
 
       ChatRoomSummary summary1 = new ChatRoomSummary(1L, "간단테스트방", "간단 설명", RoomType.PUBLIC,
@@ -240,7 +222,7 @@ class ChatRoomServiceTest {
 
       Page<ChatRoomSummary> summaryPage = new PageImpl<>(summaries, pageable, 2L);
 
-      when(chatRoomRepository.findChatRoomsByOrgAndType(organizationId, RoomType.PUBLIC, pageable))
+      when(chatRoomRepository.findChatRoomsByType(RoomType.PUBLIC, pageable))
           .thenReturn(summaryPage);
 
       // 멤버 수 조회 모킹
@@ -253,7 +235,7 @@ class ChatRoomServiceTest {
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.getChatRooms(organizationId, RoomType.PUBLIC, pageable);
+          chatRoomService.getChatRooms(RoomType.PUBLIC, pageable);
 
       // then
       assertThat(response).isNotNull();
@@ -268,35 +250,20 @@ class ChatRoomServiceTest {
     @DisplayName("빈 결과 조회")
     void getChatRoomsEmpty() {
       // given
-      Long organizationId = 1L;
       Pageable pageable = PageRequest.of(0, 2);
 
       Page<ChatRoomSummary> emptyPage = Page.empty(pageable);
-      when(chatRoomRepository.findChatRoomsByOrgAndType(organizationId, RoomType.PUBLIC, pageable))
+      when(chatRoomRepository.findChatRoomsByType(RoomType.PUBLIC, pageable))
           .thenReturn(emptyPage);
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.getChatRooms(organizationId, RoomType.PUBLIC, pageable);
+          chatRoomService.getChatRooms(RoomType.PUBLIC, pageable);
 
       // then
       assertThat(response).isNotNull();
       assertThat(response.getTotalElements()).isEqualTo(0L);
       assertThat(response.getContent()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("채팅방 조회 실패 - 조직에 속하지 않음")
-    void getChatRoomsFailure_NotInOrganization() {
-      // given
-      Long organizationId = 100L;
-      Pageable pageable = PageRequest.of(0, 2);
-
-      // when & then
-      assertThatThrownBy(
-          () -> chatRoomService.getChatRooms(organizationId, RoomType.PUBLIC, pageable))
-          .isInstanceOf(CustomException.class)
-          .hasMessage("해당되는 조직 ID가 존재하지 않습니다");
     }
   }
 
@@ -313,7 +280,6 @@ class ChatRoomServiceTest {
       ChatRoom publicRoom = ChatRoom.builder()
           .id(1L)
           .ownerId(10L)
-          .organizationId(1L)
           .type(RoomType.PUBLIC)
           .build();
 
@@ -339,7 +305,6 @@ class ChatRoomServiceTest {
       ChatRoom privateRoom = ChatRoom.builder()
           .id(1L)
           .ownerId(1L)
-          .organizationId(1L)
           .type(RoomType.PRIVATE)
           .password("encodedPassword")
           .build();
@@ -362,7 +327,6 @@ class ChatRoomServiceTest {
       ChatRoom privateRoom = ChatRoom.builder()
           .id(1L)
           .ownerId(1L)
-          .organizationId(1L)
           .type(RoomType.PRIVATE)
           .password("encodedPassword")
           .build();
@@ -394,7 +358,6 @@ class ChatRoomServiceTest {
       ChatRoom privateRoom = ChatRoom.builder()
           .id(1L)
           .ownerId(1L)
-          .organizationId(1L)
           .type(RoomType.PRIVATE)
           .password("123")
           .build();
@@ -415,7 +378,6 @@ class ChatRoomServiceTest {
       ChatRoom privateRoom = ChatRoom.builder()
           .id(2L)
           .ownerId(99L)
-          .organizationId(1L)
           .type(RoomType.PRIVATE)
           .password("pwd")
           .build();
@@ -445,7 +407,6 @@ class ChatRoomServiceTest {
           .ownerId(1L)
           .name("room")
           .description("desc")
-          .organizationId(1L)
           .type(RoomType.PUBLIC)
           .build();
       when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
@@ -468,7 +429,6 @@ class ChatRoomServiceTest {
           .ownerId(1L)
           .name("room")
           .description("desc")
-          .organizationId(1L)
           .type(RoomType.PUBLIC)
           .build();
       when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
@@ -496,7 +456,6 @@ class ChatRoomServiceTest {
           .ownerId(1L)
           .name("room")
           .description("desc")
-          .organizationId(1L)
           .type(RoomType.PRIVATE)
           .password("encoded")
           .build();
@@ -522,7 +481,6 @@ class ChatRoomServiceTest {
           .ownerId(1L)
           .name("room")
           .description("desc")
-          .organizationId(1L)
           .type(RoomType.PRIVATE)
           .password("old")
           .build();
@@ -548,7 +506,6 @@ class ChatRoomServiceTest {
           .ownerId(99L)
           .name("room")
           .description("desc")
-          .organizationId(1L)
           .type(RoomType.PUBLIC)
           .build();
       when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
@@ -574,7 +531,6 @@ class ChatRoomServiceTest {
       ChatRoom room = ChatRoom.builder()
           .id(1L)
           .ownerId(1L)
-          .organizationId(1L)
           .type(RoomType.PUBLIC)
           .build();
 
@@ -602,7 +558,6 @@ class ChatRoomServiceTest {
       ChatRoom room = ChatRoom.builder()
           .id(1L)
           .ownerId(99L)
-          .organizationId(1L)
           .type(RoomType.PUBLIC)
           .build();
 
@@ -621,7 +576,6 @@ class ChatRoomServiceTest {
       ChatRoom room = ChatRoom.builder()
           .id(1L)
           .ownerId(1L)
-          .organizationId(1L)
           .type(RoomType.PUBLIC)
           .build();
 
@@ -640,7 +594,6 @@ class ChatRoomServiceTest {
       ChatRoom room = ChatRoom.builder()
           .id(1L)
           .ownerId(1L)
-          .organizationId(1L)
           .type(RoomType.PUBLIC)
           .build();
 
@@ -663,7 +616,6 @@ class ChatRoomServiceTest {
     @DisplayName("키워드 없이 검색 - 전체 조회")
     void searchWithoutKeyword() {
       // given
-      Long organizationId = 1L;
       Pageable pageable = PageRequest.of(0, 10);
 
       ChatRoomSummary summary1 = new ChatRoomSummary(1L, "테스트방1", "설명1", RoomType.PUBLIC,
@@ -673,7 +625,7 @@ class ChatRoomServiceTest {
       List<ChatRoomSummary> summaries = List.of(summary1, summary2);
       Page<ChatRoomSummary> summaryPage = new PageImpl<>(summaries, pageable, 2L);
 
-      when(chatRoomRepository.findSummaryByOrgAndType(organizationId, RoomType.PUBLIC, pageable))
+      when(chatRoomRepository.findSummaryByType(RoomType.PUBLIC, pageable))
           .thenReturn(summaryPage);
 
       List<Object[]> counts = new ArrayList<>();
@@ -687,19 +639,18 @@ class ChatRoomServiceTest {
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.searchChatRooms(organizationId, RoomType.PUBLIC, null, pageable);
+          chatRoomService.searchChatRooms(RoomType.PUBLIC, null, pageable);
 
       // then
       assertThat(response.getTotalElements()).isEqualTo(2L);
       assertThat(response.getContent()).hasSize(2);
-      verify(chatRoomRepository).findSummaryByOrgAndType(organizationId, RoomType.PUBLIC, pageable);
+      verify(chatRoomRepository).findSummaryByType(RoomType.PUBLIC, pageable);
     }
 
     @Test
     @DisplayName("짧은 키워드로 검색 (2글자 이하)")
     void searchWithShortKeyword() {
       // given
-      Long organizationId = 1L;
       String keyword = "테스";
       Pageable pageable = PageRequest.of(0, 10);
 
@@ -707,8 +658,8 @@ class ChatRoomServiceTest {
           LocalDateTime.now());
       Page<ChatRoomSummary> summaryPage = new PageImpl<>(List.of(summary), pageable, 1L);
 
-      when(chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
-          organizationId, RoomType.PUBLIC, keyword, pageable))
+      when(chatRoomRepository.findSummaryByTypeAndNamePrefix(
+          RoomType.PUBLIC, keyword, pageable))
           .thenReturn(summaryPage);
 
       List<Object[]> counts = new ArrayList<>();
@@ -721,21 +672,20 @@ class ChatRoomServiceTest {
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.searchChatRooms(organizationId, RoomType.PUBLIC, keyword, pageable);
+          chatRoomService.searchChatRooms(RoomType.PUBLIC, keyword, pageable);
 
       // then
       assertThat(response.getTotalElements()).isEqualTo(1L);
       assertThat(response.getContent()).hasSize(1);
       assertThat(response.getContent().getFirst().name()).isEqualTo("테스트방");
-      verify(chatRoomRepository).findSummaryByOrgTypeAndNamePrefix(
-          organizationId, RoomType.PUBLIC, keyword, pageable);
+      verify(chatRoomRepository).findSummaryByTypeAndNamePrefix(
+          RoomType.PUBLIC, keyword, pageable);
     }
 
     @Test
     @DisplayName("긴 키워드로 풀텍스트 검색 (3글자 이상)")
     void searchWithLongKeyword() {
       // given
-      Long organizationId = 1L;
       String keyword = "개발팀회의";
       Pageable pageable = PageRequest.of(0, 10);
 
@@ -743,8 +693,8 @@ class ChatRoomServiceTest {
       Page<ChatRoomSummaryProjection> projectionPage =
           new PageImpl<>(List.of(projection), pageable, 1L);
 
-      when(chatRoomRepository.findSummaryByOrgTypeAndFullText(
-          organizationId, "PUBLIC", keyword, pageable))
+      when(chatRoomRepository.findSummaryByTypeAndFullText(
+          "PUBLIC", keyword, pageable))
           .thenReturn(projectionPage);
 
       List<Object[]> counts = new ArrayList<>();
@@ -757,31 +707,30 @@ class ChatRoomServiceTest {
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.searchChatRooms(organizationId, RoomType.PUBLIC, keyword, pageable);
+          chatRoomService.searchChatRooms(RoomType.PUBLIC, keyword, pageable);
 
       // then
       assertThat(response.getTotalElements()).isEqualTo(1L);
       assertThat(response.getContent()).hasSize(1);
       assertThat(response.getContent().getFirst().name()).isEqualTo("개발팀 회의방");
-      verify(chatRoomRepository).findSummaryByOrgTypeAndFullText(
-          organizationId, "PUBLIC", keyword, pageable);
+      verify(chatRoomRepository).findSummaryByTypeAndFullText(
+          "PUBLIC", keyword, pageable);
     }
 
     @Test
     @DisplayName("검색 결과 없음")
     void searchWithNoResults() {
       // given
-      Long organizationId = 1L;
       String keyword = "존재하지않는방";
       Pageable pageable = PageRequest.of(0, 10);
 
-      when(chatRoomRepository.findSummaryByOrgTypeAndFullText(
-          organizationId, "PUBLIC", keyword, pageable))
+      when(chatRoomRepository.findSummaryByTypeAndFullText(
+          "PUBLIC", keyword, pageable))
           .thenReturn(Page.empty(pageable));
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.searchChatRooms(organizationId, RoomType.PUBLIC, keyword, pageable);
+          chatRoomService.searchChatRooms(RoomType.PUBLIC, keyword, pageable);
 
       // then
       assertThat(response.getTotalElements()).isEqualTo(0L);
@@ -792,7 +741,6 @@ class ChatRoomServiceTest {
     @DisplayName("빈 키워드로 검색")
     void searchWithEmptyKeyword() {
       // given
-      Long organizationId = 1L;
       String keyword = "   ";
       Pageable pageable = PageRequest.of(0, 10);
 
@@ -800,7 +748,7 @@ class ChatRoomServiceTest {
           LocalDateTime.now());
       Page<ChatRoomSummary> summaryPage = new PageImpl<>(List.of(summary), pageable, 1L);
 
-      when(chatRoomRepository.findSummaryByOrgAndType(organizationId, RoomType.PUBLIC, pageable))
+      when(chatRoomRepository.findSummaryByType(RoomType.PUBLIC, pageable))
           .thenReturn(summaryPage);
 
       List<Object[]> counts = new ArrayList<>();
@@ -813,18 +761,17 @@ class ChatRoomServiceTest {
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.searchChatRooms(organizationId, RoomType.PUBLIC, keyword, pageable);
+          chatRoomService.searchChatRooms(RoomType.PUBLIC, keyword, pageable);
 
       // then
       assertThat(response.getTotalElements()).isEqualTo(1L);
-      verify(chatRoomRepository).findSummaryByOrgAndType(organizationId, RoomType.PUBLIC, pageable);
+      verify(chatRoomRepository).findSummaryByType(RoomType.PUBLIC, pageable);
     }
 
     @Test
     @DisplayName("비공개방 검색")
     void searchPrivateRooms() {
       // given
-      Long organizationId = 1L;
       String keyword = "비밀";
       Pageable pageable = PageRequest.of(0, 10);
 
@@ -832,8 +779,8 @@ class ChatRoomServiceTest {
           LocalDateTime.now());
       Page<ChatRoomSummary> summaryPage = new PageImpl<>(List.of(summary), pageable, 1L);
 
-      when(chatRoomRepository.findSummaryByOrgTypeAndNamePrefix(
-          organizationId, RoomType.PRIVATE, keyword, pageable))
+      when(chatRoomRepository.findSummaryByTypeAndNamePrefix(
+          RoomType.PRIVATE, keyword, pageable))
           .thenReturn(summaryPage);
 
       List<Object[]> counts = new ArrayList<>();
@@ -846,13 +793,13 @@ class ChatRoomServiceTest {
 
       // when
       PageResponse<ChatRoomResponse> response =
-          chatRoomService.searchChatRooms(organizationId, RoomType.PRIVATE, keyword, pageable);
+          chatRoomService.searchChatRooms(RoomType.PRIVATE, keyword, pageable);
 
       // then
       assertThat(response.getTotalElements()).isEqualTo(1L);
       assertThat(response.getContent().getFirst().type()).isEqualTo(RoomType.PRIVATE);
-      verify(chatRoomRepository).findSummaryByOrgTypeAndNamePrefix(
-          organizationId, RoomType.PRIVATE, keyword, pageable);
+      verify(chatRoomRepository).findSummaryByTypeAndNamePrefix(
+          RoomType.PRIVATE, keyword, pageable);
     }
   }
 
