@@ -61,129 +61,64 @@ public class ChatRoomService {
 
     @Transactional
     public ChatRoomCreateResponse saveChatRoom(ChatRoomCreateRequest request) {
+        Long memberId = getCurrentMemberId();
+        validateChatRoomNameNotDuplicated(request.name());
 
-        Authentication authentication = getAuthentication();
+        String encodedPassword = encodePasswordIfPrivate(request.type(), request.password());
+        ChatRoom chatRoom = createAndSaveChatRoom(request, memberId, encodedPassword);
+        createAndSaveChatRoomMember(memberId, chatRoom);
 
-        Long memberId = getMemberId(authentication);
-
-        valiadteChatRoomNameDuplicated(request);
-
-        RoomType type = request.type();
-
-        String encodedPassword = null;
-        if (requestRoomTypeIsPrivate(type)) {
-            String rawPassword = request.password();
-
-            rawPasswordIsEmpty(rawPassword);
-            encodedPassword = passwordEncoder.encode(rawPassword);
-        }
-
-        ChatRoom chatRoom = ChatRoomMapper.fromChatRoomCreateRequest(request, memberId,
-                encodedPassword);
-
-        chatRoomRepository.save(chatRoom);
-
-        ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
-        chatRoomMemberRepository.save(chatRoomMember);
         return ChatRoomMapper.toChatRoomCreateResponse(chatRoom);
     }
 
     @Transactional
     public void joinChatRoom(Long roomId, JoinChatRoomRequest request) {
-        String password = request.password();
         ChatRoom chatRoom = findChatRoomOrThrow(roomId);
+        validatePasswordIfPrivate(chatRoom, request.password());
 
-        if (chatRoom.isPrivate() && !chatRoom.matchesPassword(password, passwordEncoder)) {
-            throw new CustomException(PRIVATE_ROOM_PASSWORD_NOT_MATCH);
-        }
-
-        Authentication authentication = getAuthentication();
-
-        Long memberId = getMemberId(authentication);
-        ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
-        chatRoomMemberRepository.save(chatRoomMember);
-
-        // 채팅방 입장 시 읽은 시간 업데이트
+        Long memberId = getCurrentMemberId();
+        createAndSaveChatRoomMember(memberId, chatRoom);
         unreadMessageService.markAsRead(memberId, roomId);
     }
 
-
     @Transactional(readOnly = true)
-    public PageResponse<ChatRoomResponse> getChatRooms(RoomType type,
-            Pageable pageable) {
-
-        Authentication authentication = getAuthentication();
-
-        Long memberId = getMemberId(authentication);
-
+    public PageResponse<ChatRoomResponse> getChatRooms(RoomType type, Pageable pageable) {
+        Long memberId = getCurrentMemberId();
         Page<ChatRoomSummary> summaryPage = fetchSummaries(type, pageable);
+
         if (summaryPage.isEmpty()) {
             return PageResponse.fromPage(Page.empty(pageable));
         }
 
-        List<Long> chatRoomIds = extractRoomIds(summaryPage);
-        Map<Long, Long> memberCounts = fetchMemberCounts(chatRoomIds);
-        Set<Long> joinedRoomIds = fetchJoinedRoomIds(chatRoomIds, memberId);
-        Map<Long, Long> unreadCounts = fetchUnreadCounts(chatRoomIds, memberId);
-        Map<Long, ChatRoomResponse.LatestMessage> latestMessages = fetchLatestMessages(chatRoomIds);
-
-        Page<ChatRoomResponse> responsePage = mapToResponsePage(summaryPage, memberCounts,
-                joinedRoomIds, unreadCounts, latestMessages, pageable);
+        Page<ChatRoomResponse> responsePage = buildChatRoomResponsePage(summaryPage, memberId,
+                pageable);
         return PageResponse.fromPage(responsePage);
     }
-
 
     @Transactional(readOnly = true)
-    public PageResponse<ChatRoomResponse> searchChatRooms(
-            RoomType type,
-            String keyword,
-            Pageable pageable
-    ) {
-        Long memberId = getMemberId(getAuthentication());
-
-        Page<ChatRoomSummary> summaryPage = fetchSummaryPage(type, keyword,
-                pageable);
+    public PageResponse<ChatRoomResponse> searchChatRooms(RoomType type, String keyword,
+            Pageable pageable) {
+        Long memberId = getCurrentMemberId();
+        Page<ChatRoomSummary> summaryPage = fetchSummaryPage(type, keyword, pageable);
 
         if (summaryPage.isEmpty()) {
             return PageResponse.fromPage(Page.empty(pageable));
         }
 
-        List<Long> roomIds = summaryPage.stream()
-                .map(ChatRoomSummary::id)
-                .toList();
-        Map<Long, Long> memberCounts = fetchMemberCounts(roomIds);
-        Set<Long> joinedRoomIds = fetchJoinedRoomIds(roomIds, memberId);
-        Map<Long, Long> unreadCounts = fetchUnreadCounts(roomIds, memberId);
-        Map<Long, ChatRoomResponse.LatestMessage> latestMessages = fetchLatestMessages(roomIds);
-
-        Page<ChatRoomResponse> responsePage = mapToResponsePage(
-                summaryPage,
-                memberCounts,
-                joinedRoomIds,
-                unreadCounts,
-                latestMessages,
-                pageable
-        );
+        Page<ChatRoomResponse> responsePage = buildChatRoomResponsePage(summaryPage, memberId,
+                pageable);
         return PageResponse.fromPage(responsePage);
     }
-
 
     @Transactional(readOnly = true)
     public ChatRoomInfoResponse getChatRoomInfo(Long roomId, String jwtToken) {
         ChatRoom chatRoom = findChatRoomOrThrow(roomId);
+        Long memberId = getCurrentMemberId();
 
-        Set<Long> memberIds = chatRoom.getMembers().stream()
-                .map(ChatRoomMember::getMemberId)
-                .collect(Collectors.toSet());
-
-        Authentication auth = getAuthentication();
-        Long memberId = getMemberId(auth);
-
-        validateMemberRoomIn(chatRoom, memberId);
-
-        // 채팅방 정보 조회 시 읽은 시간 업데이트
+        validateMemberInRoom(chatRoom, memberId);
         unreadMessageService.markAsRead(memberId, roomId);
 
+        Set<Long> memberIds = extractMemberIds(chatRoom);
         Set<ChatMemberResponse> chatMembers = memberClient.getChatMembers(memberIds, jwtToken);
 
         return ChatRoomMapper.toChatRoomInfoResponse(chatRoom, chatMembers);
@@ -191,100 +126,129 @@ public class ChatRoomService {
 
     @Transactional
     public void deleteChatRoom(Long roomId) {
-        Authentication authentication = getAuthentication();
-
-        Long memberId = getMemberId(authentication);
-
+        Long memberId = getCurrentMemberId();
         ChatRoom chatRoom = findChatRoomOrThrow(roomId);
+
         validateOwner(memberId, chatRoom);
+
         chatRepository.deleteByRoomId(roomId);
         chatRoomRepository.delete(chatRoom);
     }
 
     @Transactional
-    public void updateChatRoom(Long roomId, ChatRoomUpdateRequest req) {
-        Authentication auth = getAuthentication();
-        Long memberId = getMemberId(auth);
+    public void updateChatRoom(Long roomId, ChatRoomUpdateRequest request) {
+        Long memberId = getCurrentMemberId();
+        ChatRoom chatRoom = findChatRoomOrThrow(roomId);
 
-        ChatRoom room = findChatRoomOrThrow(roomId);
-        validateOwner(memberId, room);
-
-        room.updateRoom(
-                req.name(),
-                req.description(),
-                req.type(),
-                req.password(),
+        validateOwner(memberId, chatRoom);
+        chatRoom.updateRoom(
+                request.name(),
+                request.description(),
+                request.type(),
+                request.password(),
                 passwordEncoder
         );
     }
 
-
     @Transactional
     public void kickOutMember(Long roomId, Long kickedMemberId) {
-        Authentication auth = getAuthentication();
-        Long memberId = getMemberId(auth);
-        ChatRoom room = findChatRoomOrThrow(roomId);
-        validateOwner(memberId, room);
+        Long ownerId = getCurrentMemberId();
+        ChatRoom chatRoom = findChatRoomOrThrow(roomId);
 
-        validateKickOwnerId(kickedMemberId, memberId);
+        validateOwner(ownerId, chatRoom);
+        validateNotKickingSelf(kickedMemberId, ownerId);
 
-        ChatRoomMember member = findChatMemberAndThrows(roomId,
-                kickedMemberId);
-
+        ChatRoomMember member = findChatRoomMemberOrThrow(roomId, kickedMemberId);
         chatRoomMemberRepository.delete(member);
     }
 
-    private Page<ChatRoomSummary> fetchSummaryPage(
-            RoomType type,
-            String keyword,
-            Pageable pageable
-    ) {
-        if (keyword == null || keyword.isBlank()) {
+    private Long getCurrentMemberId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null
+                && authentication.getPrincipal() instanceof ChatMemberDetails details) {
+            return details.getMemberId();
+        }
+        return null;
+    }
+
+    private String encodePasswordIfPrivate(RoomType type, String password) {
+        if (type != RoomType.PRIVATE) {
+            return null;
+        }
+
+        validatePasswordNotEmpty(password);
+        return passwordEncoder.encode(password);
+    }
+
+    private ChatRoom createAndSaveChatRoom(ChatRoomCreateRequest request, Long memberId,
+            String encodedPassword) {
+        ChatRoom chatRoom = ChatRoomMapper.fromChatRoomCreateRequest(request, memberId,
+                encodedPassword);
+        return chatRoomRepository.save(chatRoom);
+    }
+
+    private void createAndSaveChatRoomMember(Long memberId, ChatRoom chatRoom) {
+        ChatRoomMember chatRoomMember = ChatRoomMapper.fromMemberId(memberId, chatRoom);
+        chatRoomMemberRepository.save(chatRoomMember);
+    }
+
+    private void validatePasswordIfPrivate(ChatRoom chatRoom, String password) {
+        if (chatRoom.isPrivate() && !chatRoom.matchesPassword(password, passwordEncoder)) {
+            throw new CustomException(PRIVATE_ROOM_PASSWORD_NOT_MATCH);
+        }
+    }
+
+    private Page<ChatRoomResponse> buildChatRoomResponsePage(
+            Page<ChatRoomSummary> summaryPage,
+            Long memberId,
+            Pageable pageable) {
+
+        List<Long> roomIds = extractRoomIds(summaryPage);
+
+        Map<Long, Long> memberCounts = fetchMemberCounts(roomIds);
+        Set<Long> joinedRoomIds = fetchJoinedRoomIds(roomIds, memberId);
+        Map<Long, Long> unreadCounts = fetchUnreadCounts(roomIds, memberId);
+        Map<Long, ChatRoomResponse.LatestMessage> latestMessages = fetchLatestMessages(roomIds);
+
+        return mapToResponsePage(summaryPage, memberCounts, joinedRoomIds, unreadCounts,
+                latestMessages, pageable);
+    }
+
+    private Set<Long> extractMemberIds(ChatRoom chatRoom) {
+        return chatRoom.getMembers().stream()
+                .map(ChatRoomMember::getMemberId)
+                .collect(Collectors.toSet());
+    }
+
+    private Page<ChatRoomSummary> fetchSummaryPage(RoomType type, String keyword,
+            Pageable pageable) {
+        if (isBlankKeyword(keyword)) {
             return chatRoomRepository.findSummaryByType(type, pageable);
         }
 
-        if (keyword.length() <= 2) {
-            return chatRoomRepository.findSummaryByTypeAndNamePrefix(
-                    type, keyword, pageable
-            );
+        if (isShortKeyword(keyword)) {
+            return chatRoomRepository.findSummaryByTypeAndNamePrefix(type, keyword, pageable);
         }
 
-        Page<ChatRoomSummaryProjection> projPage =
-                chatRoomRepository.findSummaryByTypeAndFullText(
-                        type != null ? type.name() : null,
-                        keyword,
-                        pageable
-                );
+        return fetchFullTextSearchResults(type, keyword, pageable);
+    }
 
+    private boolean isBlankKeyword(String keyword) {
+        return keyword == null || keyword.isBlank();
+    }
+
+    private boolean isShortKeyword(String keyword) {
+        return keyword.length() <= 2;
+    }
+
+    private Page<ChatRoomSummary> fetchFullTextSearchResults(RoomType type, String keyword,
+            Pageable pageable) {
+        Page<ChatRoomSummaryProjection> projPage = chatRoomRepository.findSummaryByTypeAndFullText(
+                type != null ? type.name() : null,
+                keyword,
+                pageable
+        );
         return projPage.map(ChatRoomSummary::fromProjection);
-    }
-
-    private ChatRoomMember findChatMemberAndThrows(Long roomId, Long kickedMemberId) {
-        return chatRoomMemberRepository
-                .findByChatRoom_IdAndMemberId(roomId, kickedMemberId)
-                .orElseThrow(() -> new CustomException(CHAT_ROOM_MEMBER_NOT_FOUND));
-    }
-
-    private static void validateKickOwnerId(Long kickedMemberId, Long memberId) {
-        if (memberId.equals(kickedMemberId)) {
-            throw new CustomException(OWNER_CANNOT_BE_KICKED);
-        }
-    }
-
-
-    private void validateOwner(Long memberId, ChatRoom chatRoom) {
-        if (!chatRoom.getOwnerId().equals(memberId)) {
-            throw new CustomException(ROOM_OWNER_MISMATCH);
-        }
-    }
-
-    private void validateMemberRoomIn(ChatRoom chatRoom, Long memberId) {
-        boolean inRoom = chatRoom.getMembers().stream()
-                .map(ChatRoomMember::getMemberId)
-                .anyMatch(id -> id.equals(memberId));
-        if (!inRoom) {
-            throw new CustomException(MEMBER_NOT_ACCEPTED);
-        }
     }
 
     private ChatRoom findChatRoomOrThrow(Long roomId) {
@@ -292,26 +256,44 @@ public class ChatRoomService {
                 .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
     }
 
-    private void rawPasswordIsEmpty(String rawPassword) {
-        if (rawPassword == null || rawPassword.isEmpty()) {
+    private ChatRoomMember findChatRoomMemberOrThrow(Long roomId, Long memberId) {
+        return chatRoomMemberRepository
+                .findByChatRoom_IdAndMemberId(roomId, memberId)
+                .orElseThrow(() -> new CustomException(CHAT_ROOM_MEMBER_NOT_FOUND));
+    }
+
+    private void validatePasswordNotEmpty(String password) {
+        if (password == null || password.isEmpty()) {
             throw new CustomException(PRIVATE_ROOM_PASSWORD_IS_EMPTY);
         }
     }
 
-    private boolean requestRoomTypeIsPrivate(RoomType type) {
-        return type == RoomType.PRIVATE;
-    }
-
-    private Authentication getAuthentication() {
-        return SecurityContextHolder.getContext().getAuthentication();
-    }
-
-    private Long getMemberId(Authentication authentication) {
-        if (authentication != null
-                && authentication.getPrincipal() instanceof ChatMemberDetails chatMemberDetails) {
-            return chatMemberDetails.getMemberId();
+    private void validateOwner(Long memberId, ChatRoom chatRoom) {
+        if (!chatRoom.getOwnerId().equals(memberId)) {
+            throw new CustomException(ROOM_OWNER_MISMATCH);
         }
-        return null;
+    }
+
+    private void validateMemberInRoom(ChatRoom chatRoom, Long memberId) {
+        boolean inRoom = chatRoom.getMembers().stream()
+                .map(ChatRoomMember::getMemberId)
+                .anyMatch(id -> id.equals(memberId));
+
+        if (!inRoom) {
+            throw new CustomException(MEMBER_NOT_ACCEPTED);
+        }
+    }
+
+    private void validateNotKickingSelf(Long kickedMemberId, Long ownerId) {
+        if (ownerId.equals(kickedMemberId)) {
+            throw new CustomException(OWNER_CANNOT_BE_KICKED);
+        }
+    }
+
+    private void validateChatRoomNameNotDuplicated(String name) {
+        if (chatRoomRepository.existsByName(name)) {
+            throw new CustomException(CHAT_ROOM_NAME_DUPLICATE);
+        }
     }
 
     private Page<ChatRoomSummary> fetchSummaries(RoomType type, Pageable pageable) {
@@ -347,44 +329,46 @@ public class ChatRoomService {
     }
 
     private Long calculateUnreadCount(Long roomId, Long memberId) {
-        // 참여하지 않은 채팅방은 읽지 않은 메시지 수를 0으로 반환
-        if (!chatRoomMemberRepository.existsByChatRoom_IdAndMemberId(roomId, memberId)) {
+        if (!isMemberInRoom(roomId, memberId)) {
             return 0L;
         }
 
         LocalDateTime lastReadTime = unreadMessageService.getLastReadTime(memberId, roomId);
-        
-        // 마지막 읽은 시간이 없으면 모든 메시지를 읽지 않은 것으로 간주하지 않음 (0 반환)
-        // 또는 채팅방 생성 시간 이후의 메시지만 카운트할 수도 있음
         if (lastReadTime == null) {
             return 0L;
         }
 
-        long unreadCount = chatRepository.countByRoomIdAndCreatedAtAfter(roomId, lastReadTime);
-        return unreadCount;
+        return chatRepository.countByRoomIdAndCreatedAtAfterAndSenderIdNot(roomId, lastReadTime,
+                memberId);
+    }
+
+    private boolean isMemberInRoom(Long roomId, Long memberId) {
+        return chatRoomMemberRepository.existsByChatRoom_IdAndMemberId(roomId, memberId);
     }
 
     private Map<Long, ChatRoomResponse.LatestMessage> fetchLatestMessages(List<Long> roomIds) {
         return roomIds.stream()
-                .map(roomId -> {
-                    var latestChat = chatRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId);
-                    if (latestChat == null) {
-                        return null;
-                    }
-                    return new AbstractMap.SimpleEntry<>(
-                            roomId,
-                            new ChatRoomResponse.LatestMessage(
-                                    latestChat.getMessage(),
-                                    latestChat.getSenderName(),
-                                    latestChat.getCreatedAt()
-                            )
-                    );
-                })
+                .map(this::createLatestMessageEntry)
                 .filter(entry -> entry != null)
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue
                 ));
+    }
+
+    private Map.Entry<Long, ChatRoomResponse.LatestMessage> createLatestMessageEntry(Long roomId) {
+        var latestChat = chatRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId);
+        if (latestChat == null) {
+            return null;
+        }
+
+        ChatRoomResponse.LatestMessage message = new ChatRoomResponse.LatestMessage(
+                latestChat.getMessage(),
+                latestChat.getSenderName(),
+                latestChat.getCreatedAt()
+        );
+
+        return new AbstractMap.SimpleEntry<>(roomId, message);
     }
 
     private Page<ChatRoomResponse> mapToResponsePage(
@@ -393,35 +377,38 @@ public class ChatRoomService {
             Set<Long> joinedRoomIds,
             Map<Long, Long> unreadCounts,
             Map<Long, ChatRoomResponse.LatestMessage> latestMessages,
-            Pageable pageable
-    ) {
+            Pageable pageable) {
+
         List<ChatRoomResponse> responses = summaryPage.getContent().stream()
-                .map(summary -> {
-                    boolean joined = joinedRoomIds.contains(summary.id());
-                    // 참여하지 않은 채팅방에서는 최신 메시지를 보여주지 않음
-                    ChatRoomResponse.LatestMessage latestMessage = joined 
-                            ? latestMessages.get(summary.id()) 
-                            : null;
-                    return ChatRoomMapper.toChatRoomResponse(
-                            summary,
-                            memberCounts.getOrDefault(summary.id(), 0L),
-                            joined,
-                            unreadCounts.getOrDefault(summary.id(), 0L),
-                            latestMessage
-                    );
-                })
+                .map(summary -> createChatRoomResponse(
+                        summary,
+                        memberCounts,
+                        joinedRoomIds,
+                        unreadCounts,
+                        latestMessages))
                 .toList();
 
-        return new PageImpl<>(
-                responses,
-                pageable,
-                summaryPage.getTotalElements()
-        );
+        return new PageImpl<>(responses, pageable, summaryPage.getTotalElements());
     }
 
-    private void valiadteChatRoomNameDuplicated(ChatRoomCreateRequest request) {
-        if (chatRoomRepository.existsByName(request.name())) {
-            throw new CustomException(CHAT_ROOM_NAME_DUPLICATE);
-        }
+    private ChatRoomResponse createChatRoomResponse(
+            ChatRoomSummary summary,
+            Map<Long, Long> memberCounts,
+            Set<Long> joinedRoomIds,
+            Map<Long, Long> unreadCounts,
+            Map<Long, ChatRoomResponse.LatestMessage> latestMessages) {
+
+        boolean joined = joinedRoomIds.contains(summary.id());
+        ChatRoomResponse.LatestMessage latestMessage =
+                joined ? latestMessages.get(summary.id()) : null;
+
+        return ChatRoomMapper.toChatRoomResponse(
+                summary,
+                memberCounts.getOrDefault(summary.id(), 0L),
+                joined,
+                unreadCounts.getOrDefault(summary.id(), 0L),
+                latestMessage
+        );
     }
 }
+

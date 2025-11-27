@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yuhan.pro.chatserver.domain.dto.ChatPageResponse;
@@ -23,6 +25,7 @@ import yuhan.pro.chatserver.domain.repository.ChatRoomMemberRepository;
 import yuhan.pro.chatserver.domain.repository.ChatRoomRepository;
 import yuhan.pro.chatserver.domain.repository.mongoDB.ChatRepository;
 import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
+import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
 @Slf4j
 @Service
@@ -46,12 +49,22 @@ public class ChatService {
 
         Chat chat = ChatMapper.fromRequest(chatRequest, chatRoom.getId());
         chatRepository.save(chat);
+
+        unreadMessageService.updateLastReadTime(
+                chatRequest.senderId(),
+                roomId,
+                chatRequest.createdAt()
+        );
+        log.debug("메시지 전송 시 읽음 처리: senderId={}, roomId={}, createdAt={}",
+                chatRequest.senderId(), roomId, chatRequest.createdAt());
     }
 
     @Transactional(readOnly = true)
     public ChatPageResponse getChatsByCursor(
-            Long roomId, LocalDateTime cursor, int size, Long memberId
+            Long roomId, LocalDateTime cursor, int size
     ) {
+
+        Long memberId = getMemberIdFromAuthentication();
         ChatRoom room = findChatRoomOrThrow(roomId);
 
         Pageable pg = PageRequest.of(0, size, Sort.by("createdAt").descending());
@@ -72,18 +85,26 @@ public class ChatService {
                 ? null
                 : data.getFirst().createdAt();
 
-        // 메시지 조회 시 읽은 시간 업데이트 (최신 메시지의 시간으로)
         if (memberId != null && !data.isEmpty()) {
             LocalDateTime latestMessageTime = data.stream()
                     .map(ChatResponse::createdAt)
                     .max(LocalDateTime::compareTo)
                     .orElse(LocalDateTime.now());
             unreadMessageService.updateLastReadTime(memberId, roomId, latestMessageTime);
-            log.debug("채팅 조회 시 읽은 시간 업데이트: memberId={}, roomId={}, time={}", 
-                memberId, roomId, latestMessageTime);
+            log.debug("채팅 조회 시 읽은 시간 업데이트: memberId={}, roomId={}, time={}",
+                    memberId, roomId, latestMessageTime);
         }
 
         return new ChatPageResponse(data, nextCursor);
+    }
+
+    private Long getMemberIdFromAuthentication() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof ChatMemberDetails userDetails) {
+            return userDetails.getMemberId();
+        }
+        log.warn("Authentication not found or invalid principal");
+        throw new IllegalStateException("인증 정보가 없습니다.");
     }
 
     private ChatRoom findChatRoomOrThrow(Long roomId) {

@@ -16,7 +16,7 @@ const ChatRoomsPage = () => {
 
   const [chatRooms, setChatRooms] = useState([]);
   const [page, setPage] = useState(0);
-  const [size] = useState(9);
+  const [size] = useState(6);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
