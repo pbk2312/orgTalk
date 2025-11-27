@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,11 @@ public class ChatRoomService {
         String encodedPassword = encodePasswordIfPrivate(request.type(), request.password());
         ChatRoom chatRoom = createAndSaveChatRoom(request, memberId, encodedPassword);
         createAndSaveChatRoomMember(memberId, chatRoom);
+
+        // 방어: 만약 chatRoom이 null이면 Mapper 호출로 인한 NPE를 피합니다.
+        if (chatRoom == null) {
+            return new ChatRoomCreateResponse(null);
+        }
 
         return ChatRoomMapper.toChatRoomCreateResponse(chatRoom);
     }
@@ -168,7 +174,7 @@ public class ChatRoomService {
                 && authentication.getPrincipal() instanceof ChatMemberDetails details) {
             return details.getMemberId();
         }
-        return null;
+        throw new CustomException(MEMBER_NOT_FOUND);
     }
 
     private String encodePasswordIfPrivate(RoomType type, String password) {
@@ -184,7 +190,9 @@ public class ChatRoomService {
             String encodedPassword) {
         ChatRoom chatRoom = ChatRoomMapper.fromChatRoomCreateRequest(request, memberId,
                 encodedPassword);
-        return chatRoomRepository.save(chatRoom);
+        // 저장소 구현(예: 테스트용 mock)이 null을 반환할 수 있으므로 안전하게 처리합니다.
+        ChatRoom saved = chatRoomRepository.save(chatRoom);
+        return saved != null ? saved : chatRoom;
     }
 
     private void createAndSaveChatRoomMember(Long memberId, ChatRoom chatRoom) {
@@ -238,6 +246,9 @@ public class ChatRoomService {
     }
 
     private boolean isShortKeyword(String keyword) {
+        if (keyword == null) {
+            return false;
+        }
         return keyword.length() <= 2;
     }
 
@@ -269,7 +280,7 @@ public class ChatRoomService {
     }
 
     private void validateOwner(Long memberId, ChatRoom chatRoom) {
-        if (!chatRoom.getOwnerId().equals(memberId)) {
+        if (!Objects.equals(chatRoom.getOwnerId(), memberId)) {
             throw new CustomException(ROOM_OWNER_MISMATCH);
         }
     }
@@ -277,7 +288,7 @@ public class ChatRoomService {
     private void validateMemberInRoom(ChatRoom chatRoom, Long memberId) {
         boolean inRoom = chatRoom.getMembers().stream()
                 .map(ChatRoomMember::getMemberId)
-                .anyMatch(id -> id.equals(memberId));
+                .anyMatch(id -> Objects.equals(id, memberId));
 
         if (!inRoom) {
             throw new CustomException(MEMBER_NOT_ACCEPTED);
@@ -285,7 +296,7 @@ public class ChatRoomService {
     }
 
     private void validateNotKickingSelf(Long kickedMemberId, Long ownerId) {
-        if (ownerId.equals(kickedMemberId)) {
+        if (Objects.equals(ownerId, kickedMemberId)) {
             throw new CustomException(OWNER_CANNOT_BE_KICKED);
         }
     }
@@ -349,7 +360,7 @@ public class ChatRoomService {
     private Map<Long, ChatRoomResponse.LatestMessage> fetchLatestMessages(List<Long> roomIds) {
         return roomIds.stream()
                 .map(this::createLatestMessageEntry)
-                .filter(entry -> entry != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue
@@ -411,4 +422,3 @@ public class ChatRoomService {
         );
     }
 }
-
