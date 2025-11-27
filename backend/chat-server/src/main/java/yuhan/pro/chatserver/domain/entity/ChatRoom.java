@@ -31,67 +31,67 @@ import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Table(
-    indexes = {
-        @Index(name = "idx_chatroom_type", columnList = "type"),
-        @Index(
-            name = "idx_chatroom_type_created_updated",
-            columnList = "type, createdAt, updatedAt"
-        )
-    }
+        indexes = {
+                @Index(name = "idx_chatroom_type", columnList = "type"),
+                @Index(
+                        name = "idx_chatroom_type_created_updated",
+                        columnList = "type, createdAt, updatedAt"
+                )
+        }
 )
 public class ChatRoom extends BaseEntity {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(unique = true)
-  private String name;
-  private String description; // 채팅방 설명
+    @Column(unique = true)
+    private String name;
+    private String description;
 
-  @Enumerated(EnumType.STRING)
-  private RoomType type;
+    @Enumerated(EnumType.STRING)
+    private RoomType type;
 
-  private Long ownerId; // 방장 ID
+    private Long ownerId;
 
-  // PRIVATE ROOM ONLY
-  @Column(nullable = true)
-  private String password;
+    @Column(nullable = true)
+    private String password;
 
-  @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<ChatRoomMember> members = new ArrayList<>();
+    @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ChatRoomMember> members = new ArrayList<>();
 
-  public boolean isPrivate() {
-    return this.type == RoomType.PRIVATE;
-  }
-
-  public boolean matchesPassword(String rawPassword, PasswordEncoder encoder) {
-    if (this.password == null || rawPassword == null) {
-      return false;
+    public boolean isPrivate() {
+        return this.type == RoomType.PRIVATE;
     }
-    return encoder.matches(rawPassword, this.password);
-  }
 
-  public void updateRoom(String newName,
-      String newDescription,
-      RoomType newType,
-      String rawPassword,
-      PasswordEncoder encoder) {
-    this.name = newName;
-    this.description = newDescription;
-
-    if (this.type != newType) {
-      this.type = newType;
-      if (newType == RoomType.PRIVATE) {
-        if (rawPassword == null || rawPassword.isEmpty()) {
-          throw new CustomException(PRIVATE_ROOM_PASSWORD_IS_EMPTY);
+    public boolean matchesPassword(String rawPassword, PasswordEncoder encoder) {
+        if (this.password == null || rawPassword == null) {
+            return false;
         }
-        this.password = encoder.encode(rawPassword);
-      } else {
-        this.password = null;
-      }
-    } else if (newType == RoomType.PRIVATE && rawPassword != null && !rawPassword.isEmpty()) {
-      this.password = encoder.encode(rawPassword);
+        return encoder.matches(rawPassword, this.password);
     }
-  }
+
+    public void updateRoom(String newName,
+            String newDescription,
+            RoomType newType,
+            String rawPassword,
+            PasswordEncoder encoder) {
+        this.name = newName;
+        this.description = newDescription;
+
+        if (this.type != newType) {
+            this.type = newType;
+            if (newType == RoomType.PRIVATE) {
+                if (rawPassword == null || rawPassword.isEmpty()) {
+                    throw new CustomException(PRIVATE_ROOM_PASSWORD_IS_EMPTY);
+                }
+                this.password = encoder.encode(rawPassword);
+            } else {
+                this.password = null;
+            }
+        } else if (newType == RoomType.PRIVATE && rawPassword != null && !rawPassword.isEmpty()) {
+            this.password = encoder.encode(rawPassword);
+        }
+    }
 }

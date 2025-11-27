@@ -22,8 +22,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.setApplicationDestinationPrefixes("/send");
-        
-        // SimpleBroker 사용 - 메모리 효율적인 인메모리 브로커
+
         registry.enableSimpleBroker("/topic", "/presence");
     }
 

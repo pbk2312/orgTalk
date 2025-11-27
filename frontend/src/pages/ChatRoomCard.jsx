@@ -15,17 +15,17 @@ const ChatRoomCard = ({
   const getMainIcon = (type) => {
     switch(type) {
       case 'PRIVATE':
-        return <Lock size={20} />;
+        return <Lock size={28} />;
       case 'PUBLIC':
-        return <Globe size={20} />;
+        return <Globe size={28} />;
       default:
-        return <Hash size={20} />;
+        return <Hash size={28} />;
     }
   };
 
 
   const getTypeIcon = (type) =>
-    type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />;
+    type === 'PRIVATE' ? <Lock size={14} /> : <Globe size={14} />;
 
   return (
     <div
@@ -45,7 +45,7 @@ const ChatRoomCard = ({
             {/* 읽지 않은 메시지 배지 */}
             {room.unreadCount > 0 && (
               <div className={styles['unread-badge']}>
-                <Bell size={14} />
+                <Bell size={12} />
                 <span className={styles['unread-count']}>
                   {room.unreadCount > 99 ? '99+' : room.unreadCount}
                 </span>
@@ -60,7 +60,7 @@ const ChatRoomCard = ({
       <div className={styles['room-card-body']}>
         {room.latestMessage ? (
           <div className={styles['latest-message']}>
-            <MessageSquare size={14} />
+            <MessageSquare size={18} />
             <div className={styles['message-content']}>
               <span className={styles['message-sender']}>{room.latestMessage.senderName}:</span>
               <span className={styles['message-text']}>{room.latestMessage.message}</span>
@@ -69,7 +69,7 @@ const ChatRoomCard = ({
           </div>
         ) : (
           <div className={styles['created-time']}>  
-            <Calendar size={14} />
+            <Calendar size={18} />
             <span className={styles['created-label']}>생성일</span>
             <span>{formatTime(room.createdAt)}</span>
           </div>
@@ -78,7 +78,7 @@ const ChatRoomCard = ({
 
       <div className={styles['room-card-footer']}>
         <div className={styles['member-count']}>
-          <Users size={16} /> <span>{room.memberCount}명</span>
+          <Users size={18} /> <span>{room.memberCount}명</span>
         </div>
         <div className={styles['room-status']}>
           {room.joined ? (
@@ -93,7 +93,7 @@ const ChatRoomCard = ({
             </>
           )}
         </div>
-        <ChevronRight size={16} className={styles['enter-icon']} />
+        <ChevronRight size={20} className={styles['enter-icon']} />
       </div>
     </div>
   );

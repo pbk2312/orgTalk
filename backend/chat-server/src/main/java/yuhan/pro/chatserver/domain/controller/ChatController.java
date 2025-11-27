@@ -10,29 +10,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.RestController;
 import yuhan.pro.chatserver.domain.dto.ChatPageResponse;
 import yuhan.pro.chatserver.domain.dto.ChatRequest;
+import yuhan.pro.chatserver.domain.mapper.ChatMapper;
 import yuhan.pro.chatserver.domain.service.ChatService;
+import yuhan.pro.chatserver.sharedkernel.infra.redis.RedisPubSubService;
 import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
 @Slf4j
-@Controller
+@RestController
 @RequiredArgsConstructor
 @Tag(name = "Chat", description = "채팅 관련 API")
 public class ChatController {
 
     private final ChatService chatService;
-    private final SimpMessageSendingOperations messagingTemplate;
+    private final RedisPubSubService redisPubSubService;
 
     @MessageMapping("/chat.{roomId}")
     public void sendChat(
@@ -40,19 +38,17 @@ public class ChatController {
             @DestinationVariable("roomId") Long roomId,
             Principal principal
     ) {
-
         ChatMemberDetails userDetails = getUserDetails(
                 (UsernamePasswordAuthenticationToken) principal);
-        Long memberId = userDetails.getMemberId();
-        String userName = userDetails.getNickName();
 
-        ChatRequest enriched = createChatRequest(incoming, memberId, userName);
+        ChatRequest enriched = ChatMapper.enrichChatRequest(
+                incoming,
+                userDetails.getMemberId(),
+                userDetails.getNickName()
+        );
 
         chatService.saveChat(enriched, roomId);
-
-        String destination = "/topic/chat." + roomId;
-
-        messagingTemplate.convertAndSend(destination, enriched);
+        redisPubSubService.publishChatMessage(roomId, enriched);
     }
 
     @Operation(
@@ -62,7 +58,6 @@ public class ChatController {
                     @ApiResponse(responseCode = "404", description = "해당 채팅방이 없습니다.")
             }
     )
-    @ResponseBody
     @GetMapping("/api/chat/{roomId}")
     @ResponseStatus(HttpStatus.OK)
     public ChatPageResponse getChats(
@@ -70,29 +65,7 @@ public class ChatController {
             @RequestParam(required = false) LocalDateTime cursor,
             @RequestParam(defaultValue = "6") int size
     ) {
-        Long memberId = getMemberIdFromAuthentication();
-        return chatService.getChatsByCursor(roomId, cursor, size, memberId);
-    }
-
-    private Long getMemberIdFromAuthentication() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof ChatMemberDetails userDetails) {
-            return userDetails.getMemberId();
-        }
-        return null;
-    }
-
-    private static ChatRequest createChatRequest(ChatRequest incoming, Long memberId,
-            String userName) {
-        return new ChatRequest(
-                incoming.message(),
-                incoming.messageType(),
-                incoming.codeContent(),
-                incoming.language(),
-                memberId,
-                userName,
-                LocalDateTime.now()
-        );
+        return chatService.getChatsByCursor(roomId, cursor, size);
     }
 
     private static ChatMemberDetails getUserDetails(
