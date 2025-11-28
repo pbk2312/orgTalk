@@ -22,8 +22,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.setApplicationDestinationPrefixes("/send");
-
-        registry.enableSimpleBroker("/topic", "/presence");
     }
 
     @Override
@@ -36,6 +34,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(stompHandler);
+        registration
+                .interceptors(stompHandler)
+                .taskExecutor()
+                .corePoolSize(100)
+                .maxPoolSize(500)
+                .queueCapacity(5000);
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration
+                .taskExecutor()
+                .corePoolSize(100)
+                .maxPoolSize(500)
+                .queueCapacity(5000);
     }
 }

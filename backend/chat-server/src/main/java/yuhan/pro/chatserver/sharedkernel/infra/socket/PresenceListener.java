@@ -11,8 +11,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.RequiredArgsConstructor;
+import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -28,7 +30,6 @@ import yuhan.pro.chatserver.sharedkernel.jwt.ChatMemberDetails;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class PresenceListener {
 
     private final Map<String, String> sessionRooms = new ConcurrentHashMap<>();
@@ -36,6 +37,21 @@ public class PresenceListener {
     private final MemberClient memberClient;
     private final ObjectMapper objectMapper;
     private final RedisPubSubService redisPubSubService;
+    private final Executor asyncExecutor;
+
+    @Autowired
+    public PresenceListener(
+            RedisTemplate<String, String> redisTemplate,
+            MemberClient memberClient,
+            ObjectMapper objectMapper,
+            RedisPubSubService redisPubSubService,
+            @Qualifier("redisPubSubExecutor") Executor asyncExecutor) {
+        this.redisTemplate = redisTemplate;
+        this.memberClient = memberClient;
+        this.objectMapper = objectMapper;
+        this.redisPubSubService = redisPubSubService;
+        this.asyncExecutor = asyncExecutor;
+    }
 
     @EventListener
     public void onSubscribe(SessionSubscribeEvent event) {
@@ -61,7 +77,7 @@ public class PresenceListener {
             } catch (Exception e) {
                 logUpdatePresenceFailed(user.getNickName(), roomId, e);
             }
-        });
+        }, asyncExecutor);
     }
 
     @EventListener
@@ -94,7 +110,7 @@ public class PresenceListener {
             } catch (Exception e) {
                 logUpdatePresenceFailed(user.getNickName(), roomId, e);
             }
-        });
+        }, asyncExecutor);
     }
 
     private ChatMemberDetails resolveUser(StompHeaderAccessor sha, String sessionId) {
@@ -168,7 +184,6 @@ public class PresenceListener {
         return null;
     }
 
-    // --- 로그 헬퍼 메서드: 중복되는 로그 메시지를 한 곳에 모아 IDE의 "Similar log messages" 경고를 줄입니다.
     private void logUserJoined(String nickName, String roomId) {
         log.info("사용자 {}님이 방 {}에 입장했습니다.", nickName, roomId);
     }
@@ -178,7 +193,6 @@ public class PresenceListener {
     }
 
     private void logUpdatePresenceFailed(String nickName, String roomId, Exception e) {
-        // 스택트레이스는 과다 로그 방지를 위해 기본적으로 남기지 않고 메시지로만 기록합니다.
         log.error("사용자 {} 방 {}의 접속 상태 업데이트 실패: {}", nickName, roomId, e.getMessage());
     }
 

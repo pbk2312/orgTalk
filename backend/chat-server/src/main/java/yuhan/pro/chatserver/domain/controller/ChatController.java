@@ -47,8 +47,9 @@ public class ChatController {
                 userDetails.getNickName()
         );
 
-        chatService.saveChat(enriched, roomId);
         redisPubSubService.publishChatMessage(roomId, enriched);
+
+        chatService.saveChatAsync(enriched, roomId);
     }
 
     @Operation(

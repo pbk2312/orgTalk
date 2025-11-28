@@ -10,6 +10,12 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 50        # 최대 커넥션 수 (기본 10)
+      minimum-idle: 20             # 최소 유휴 커넥션 (기본 10)
+      connection-timeout: 30000    # 연결 타임아웃 (ms)
+      idle-timeout: 600000         # 유휴 타임아웃 (ms)
+      max-lifetime: 1800000        # 최대 수명 (ms)
 
   data:
     mongodb:
@@ -23,6 +29,12 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+      lettuce:
+        pool:
+          max-active: 100     # 최대 활성 연결 수
+          max-idle: 50        # 최대 유휴 연결 수
+          min-idle: 20        # 최소 유휴 연결 수
+          max-wait: 3000ms    # 연결 대기 시간
 
   jpa:
     hibernate:
@@ -47,10 +59,20 @@ server:
   tomcat:
     mbeanregistry:
       enabled: true
+    threads:
+      max: 500              # 최대 스레드 수 (기본 200)
+      min-spare: 100        # 최소 유휴 스레드 (기본 10)
+    accept-count: 1000      # 대기 큐 크기 (기본 100)
+    max-connections: 20000  # 최대 연결 수 (기본 8192)
+    connection-timeout: 20000  # 연결 타임아웃 (ms)
 
 logging:
   level:
-    org.springframework.web.socket.messaging.StompSubProtocolHandler: DEBUG
-    org.springframework.web.socket.server: DEBUG
-    org.springframework.web.socket.sockjs: DEBUG
-    org.springframework.messaging: DEBUG
+    org.springframework.web.socket.messaging.StompSubProtocolHandler: WARN
+    org.springframework.web.socket.server: WARN
+    org.springframework.web.socket.sockjs: WARN
+    org.springframework.messaging: WARN
+    yuhan.pro.chatserver.sharedkernel.infra.monitoring: INFO
+    yuhan.pro.chatserver.domain.controller: INFO
+    yuhan.pro.chatserver.sharedkernel.infra.redis: INFO
+    yuhan.pro.chatserver.sharedkernel.infra.socket: INFO
