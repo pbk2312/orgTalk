@@ -59,6 +59,30 @@ public class ChatService {
                 chatRequest.senderId(), roomId, chatRequest.createdAt());
     }
 
+    @org.springframework.scheduling.annotation.Async("chatSaveExecutor")
+    public void saveChatAsync(
+            ChatRequest chatRequest,
+            Long roomId
+    ) {
+        try {
+            // 검증은 캐시를 사용하거나 최소화
+            Chat chat = ChatMapper.fromRequest(chatRequest, roomId);
+            chatRepository.save(chat);
+
+            // 읽음 처리도 비동기로
+            unreadMessageService.updateLastReadTime(
+                    chatRequest.senderId(),
+                    roomId,
+                    chatRequest.createdAt()
+            );
+            log.debug("비동기 메시지 저장 완료: senderId={}, roomId={}",
+                    chatRequest.senderId(), roomId);
+        } catch (Exception e) {
+            log.error("비동기 메시지 저장 실패: roomId={}, error={}", roomId, e.getMessage(), e);
+            // 실패해도 클라이언트는 이미 메시지를 받았으므로 별도 처리
+        }
+    }
+
     @Transactional(readOnly = true)
     public ChatPageResponse getChatsByCursor(
             Long roomId, LocalDateTime cursor, int size

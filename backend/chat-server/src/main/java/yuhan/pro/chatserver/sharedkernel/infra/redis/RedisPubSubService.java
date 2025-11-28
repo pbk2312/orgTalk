@@ -6,6 +6,7 @@ import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.REDIS_PU
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import java.util.concurrent.Executor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.MessageListener;
@@ -16,6 +17,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import yuhan.pro.chatserver.domain.dto.ChatRequest;
 import yuhan.pro.chatserver.sharedkernel.exception.CustomException;
+import yuhan.pro.chatserver.sharedkernel.infra.socket.AsyncMessageSender;
 
 @Slf4j
 @Service
@@ -26,51 +28,60 @@ public class RedisPubSubService {
     private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
+    private final Executor redisPubSubExecutor; // executor 주입
+    private final AsyncMessageSender asyncMessageSender;
 
     @PostConstruct
     public void init() {
         MessageListener chatListener = (message, pattern) -> {
-            try {
-                String channel = new String(message.getChannel());
-                String messageBody = new String(message.getBody());
+            redisPubSubExecutor.execute(() -> {
+                try {
+                    String channel = new String(message.getChannel());
+                    String messageBody = new String(message.getBody());
 
-                String roomIdStr = channel.substring(RedisConstants.CHAT_CHANNEL_PREFIX.length());
-                long roomId = Long.parseLong(roomIdStr);
+                    String roomIdStr = channel.substring(
+                            RedisConstants.CHAT_CHANNEL_PREFIX.length());
+                    long roomId = Long.parseLong(roomIdStr);
 
-                ChatRequest chatRequest = objectMapper.readValue(messageBody, ChatRequest.class);
+                    ChatRequest chatRequest = objectMapper.readValue(messageBody,
+                            ChatRequest.class);
 
-                String destination = "/topic/chat." + roomId;
-                messagingTemplate.convertAndSend(destination, chatRequest);
+                    String destination = "/topic/chat." + roomId;
+                    messagingTemplate.convertAndSend(destination, chatRequest);
 
-            } catch (NumberFormatException e) {
-                warnInvalidRoomIdFormat();
-            } catch (JsonProcessingException e) {
-                logParsingFailure();
-                throw new CustomException(REDIS_PROCESSING_FAILED, e.getMessage());
-            } catch (Exception e) {
-                logProcessingFailure(RedisConstants.CTX_CHAT, e);
-                throw new CustomException(REDIS_PROCESSING_FAILED, e.getMessage());
-            }
+                } catch (NumberFormatException e) {
+                    warnInvalidRoomIdFormat();
+                } catch (JsonProcessingException e) {
+                    logParsingFailure();
+                    throw new CustomException(REDIS_PROCESSING_FAILED, e.getMessage());
+                } catch (Exception e) {
+                    logProcessingFailure(RedisConstants.CTX_CHAT, e);
+                    throw new CustomException(REDIS_PROCESSING_FAILED, e.getMessage());
+                }
+            });
         };
 
         MessageListener presenceListener = (message, pattern) -> {
-            try {
-                String channel = new String(message.getChannel());
-                String presenceData = new String(message.getBody());
+            redisPubSubExecutor.execute(() -> {
+                try {
+                    String channel = new String(message.getChannel());
+                    String presenceData = new String(message.getBody());
 
-                String roomIdStr = channel.substring(
-                        RedisConstants.PRESENCE_CHANNEL_PREFIX.length());
-                long roomId = Long.parseLong(roomIdStr);
+                    String roomIdStr = channel.substring(
+                            RedisConstants.PRESENCE_CHANNEL_PREFIX.length());
+                    long roomId = Long.parseLong(roomIdStr);
 
-                String destination = "/topic/presence." + roomId;
-                messagingTemplate.convertAndSend(destination, presenceData);
+                    String destination = "/topic/presence." + roomId;
+                    // 비동기 전송으로 병목 제거
+                    asyncMessageSender.sendAsync(destination, presenceData);
 
-            } catch (NumberFormatException e) {
-                warnInvalidRoomIdFormat();
-            } catch (Exception e) {
-                logProcessingFailure(RedisConstants.CTX_PRESENCE, e);
-                throw new CustomException(REDIS_PROCESSING_FAILED, e.getMessage());
-            }
+                } catch (NumberFormatException e) {
+                    warnInvalidRoomIdFormat();
+                } catch (Exception e) {
+                    logProcessingFailure(RedisConstants.CTX_PRESENCE, e);
+                    throw new CustomException(REDIS_PROCESSING_FAILED, e.getMessage());
+                }
+            });
         };
 
         redisMessageListenerContainer.addMessageListener(chatListener,
