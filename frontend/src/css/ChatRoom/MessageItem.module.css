@@ -2,8 +2,9 @@
 .message {
   display: flex;
   gap: 1rem;
-  max-width: 75%;
+  max-width: 70%;
   margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
 .messageMe {
@@ -134,8 +135,8 @@
 /* ===== 코드 메시지 전용 스타일 ===== */
 .codeMessage {
   width: 100%;
-  min-width: 320px;
-  max-width: 100%;
+  min-width: 280px;
+  max-width: 550px;
   border-radius: 0.75rem;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -194,11 +195,32 @@
   padding: 1rem;
   background: #0f172a;
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
   font-family: 'SF Mono', 'Monaco', 'Consolas', 'Roboto Mono', monospace;
   font-size: 0.875rem;
   line-height: 1.5;
   border: none;
   /* 더 선명한 코드 배경 */
+}
+
+.codeBlock::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.codeBlock::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.codeBlock::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+.codeBlock::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .codeBlock code {
@@ -212,16 +234,16 @@
   .message {
     max-width: 90%;
   }
-  
+
   .codeMessage {
     min-width: 280px;
   }
-  
+
   .codeBlock {
     font-size: 0.8125rem;
     padding: 0.875rem;
   }
-  
+
   .messageBubble {
     padding: 0.875rem 1.125rem;
     font-size: 0.9rem;
@@ -246,7 +268,7 @@
     background: #1e293b;
     color: #f8fafc;
   }
-  
+
   .messageMe .messageBubble {
     background: linear-gradient(135deg, #2563eb, #4f46e5);
     color: #ffffff;

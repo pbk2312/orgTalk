@@ -2,12 +2,15 @@
 
 .sidebar {
   width: 280px;
+  min-width: 280px;
+  max-width: 280px;
   background: linear-gradient(145deg, #1a1a2e, #16213e);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar::before {
@@ -22,8 +25,12 @@
 }
 
 @keyframes shimmer {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .sidebarHeader {
@@ -69,8 +76,12 @@
 }
 
 @keyframes slide {
-  0% { left: -100%; }
-  100% { left: 100%; }
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 .membersList {
@@ -185,11 +196,11 @@
 }
 
 @keyframes pulse {
-  0%, 100% { 
+  0%, 100% {
     transform: scale(1);
     opacity: 1;
   }
-  50% { 
+  50% {
     transform: scale(1.1);
     opacity: 0.8;
   }
@@ -229,17 +240,17 @@
     height: auto;
     max-height: 300px;
   }
-  
+
   .memberItem {
     padding: 10px 8px;
   }
-  
+
   .avatarImage,
   .avatarCircle {
     width: 36px;
     height: 36px;
   }
-  
+
   .memberNickname {
     font-size: 13px;
   }
@@ -251,15 +262,15 @@
     background: linear-gradient(145deg, #f8fafc, #e2e8f0);
     border-right-color: rgba(0, 0, 0, 0.1);
   }
-  
+
   .sidebarHeader h3 {
     color: #1a202c;
   }
-  
+
   .memberNickname {
     color: #2d3748;
   }
-  
+
   .memberItem:hover .memberNickname {
     color: #0066cc;
   }
