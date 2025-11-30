@@ -97,25 +97,25 @@ export async function getAccessToken(): Promise<string> {
 export const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  timeout: 15000,
+  timeout: 30000,
 });
 
 export const chatApi = axios.create({
   baseURL: CHAT_BASE_URL,
   withCredentials: true,
-  timeout: 15000,
+  timeout: 30000,
 });
 
 export const chatRoomApi = axios.create({
   baseURL: CHAT_ROOM_BASE_URL,
   withCredentials: true,
-  timeout: 15000,
+  timeout: 30000,
 });
 
 const authApi = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  timeout: 15000,
+  timeout: 30000,
 });
 
 

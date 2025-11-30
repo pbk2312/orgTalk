@@ -57,6 +57,7 @@
   display: flex;
   min-height: 0;
   overflow: hidden;
+  gap: 0;
 }
 
 .messagesContainer {
@@ -64,15 +65,19 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .messagesList {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 0;
 }
 
 /* 로딩 및 에러 상태 */
@@ -95,19 +100,19 @@
   .chatHeader {
     padding: 1rem 1.5rem;
   }
-  
+
   .sidebar {
     display: none;
   }
-  
+
   .messagesList {
     padding: 1.5rem;
   }
-  
+
   .message {
     max-width: 85%;
   }
-  
+
   .inputContainer {
     padding: 1rem 1.5rem;
   }
@@ -198,18 +203,18 @@
   max-width: 300px;
   margin: 20px auto;
   padding: 12px 24px;
-  
+
   /* 배경 및 색상 */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 25px;
-  
+
   /* 폰트 */
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  
+
   /* 효과 */
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
   cursor: pointer;
@@ -221,14 +226,16 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(255,255,255,0.3);
+  border: 4px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 
@@ -284,8 +291,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 다크 테마 대응 */
@@ -294,7 +305,7 @@
     background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
     box-shadow: 0 4px 15px rgba(76, 81, 191, 0.3);
   }
-  
+
   .loadMoreBtn:hover {
     background: linear-gradient(135deg, #553c9a 0%, #4c51bf 100%);
     box-shadow: 0 8px 25px rgba(76, 81, 191, 0.4);
