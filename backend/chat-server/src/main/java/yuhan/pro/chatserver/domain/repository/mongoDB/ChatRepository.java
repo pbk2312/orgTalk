@@ -14,11 +14,12 @@ public interface ChatRepository extends MongoRepository<Chat, String> {
     List<Chat> findByRoomIdOrderByCreatedAtDesc(
             Long roomId, Pageable pageable);
 
-
     long countByRoomIdAndCreatedAtAfterAndSenderIdNot(Long roomId, LocalDateTime after,
             Long senderId);
 
     void deleteByRoomId(Long roomId);
 
     Chat findFirstByRoomIdOrderByCreatedAtDesc(Long roomId);
+
+    List<Chat> findByRoomIdInOrderByCreatedAtDesc(List<Long> roomIds);
 }

@@ -53,6 +53,41 @@ public class UnreadMessageService {
         log.info("채팅방 읽음 처리: memberId={}, roomId={}", memberId, roomId);
     }
 
+    public java.util.Map<Long, LocalDateTime> getLastReadTimes(Long memberId,
+            java.util.List<Long> roomIds) {
+        if (roomIds == null || roomIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+
+        java.util.List<String> keys = roomIds.stream()
+                .map(roomId -> buildKey(memberId, roomId))
+                .toList();
+
+        java.util.List<Object> values = redisTemplate.opsForValue().multiGet(keys);
+
+        if (values == null) {
+            return java.util.Collections.emptyMap();
+        }
+
+        java.util.Map<Long, LocalDateTime> result = new java.util.HashMap<>();
+        for (int i = 0; i < roomIds.size(); i++) {
+            Object value = values.get(i);
+            if (value != null) {
+                try {
+                    LocalDateTime lastReadTime = LocalDateTime.parse(value.toString(), FORMATTER);
+                    result.put(roomIds.get(i), lastReadTime);
+                } catch (Exception e) {
+                    log.error("마지막 읽은 시간 파싱 실패: memberId={}, roomId={}, value={}",
+                            memberId, roomIds.get(i), value, e);
+                }
+            }
+        }
+
+        log.debug("배치 마지막 읽은 시간 조회: memberId={}, 조회된 방 수={}/{}",
+                memberId, result.size(), roomIds.size());
+        return result;
+    }
+
     private String buildKey(Long memberId, Long roomId) {
         return LAST_READ_KEY_PREFIX + memberId + ":room:" + roomId;
     }
