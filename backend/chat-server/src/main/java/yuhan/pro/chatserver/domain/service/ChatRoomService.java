@@ -11,7 +11,6 @@ import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.PRIVATE_
 import static yuhan.pro.chatserver.sharedkernel.exception.ExceptionCode.ROOM_OWNER_MISMATCH;
 
 import java.time.LocalDateTime;
-import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,6 +36,7 @@ import yuhan.pro.chatserver.domain.dto.ChatRoomSummary;
 import yuhan.pro.chatserver.domain.dto.ChatRoomSummaryProjection;
 import yuhan.pro.chatserver.domain.dto.ChatRoomUpdateRequest;
 import yuhan.pro.chatserver.domain.dto.JoinChatRoomRequest;
+import yuhan.pro.chatserver.domain.entity.Chat;
 import yuhan.pro.chatserver.domain.entity.ChatRoom;
 import yuhan.pro.chatserver.domain.entity.ChatRoomMember;
 import yuhan.pro.chatserver.domain.entity.RoomType;
@@ -331,26 +331,35 @@ public class ChatRoomService {
     }
 
     private Map<Long, Long> fetchUnreadCounts(List<Long> roomIds, Long memberId) {
+        Set<Long> joinedRoomIds = chatRoomMemberRepository.findJoinedChatRoomIds(roomIds, memberId);
+
+        if (joinedRoomIds.isEmpty()) {
+            return roomIds.stream()
+                    .collect(Collectors.toMap(roomId -> roomId, roomId -> 0L));
+        }
+
+        List<Long> joinedRoomIdsList = joinedRoomIds.stream().toList();
+        Map<Long, LocalDateTime> lastReadTimes = unreadMessageService.getLastReadTimes(memberId,
+                joinedRoomIdsList);
+
         return roomIds.stream()
                 .collect(Collectors.toMap(
                         roomId -> roomId,
-                        roomId -> calculateUnreadCount(roomId, memberId),
+                        roomId -> {
+                            if (!joinedRoomIds.contains(roomId)) {
+                                return 0L;
+                            }
+
+                            LocalDateTime lastReadTime = lastReadTimes.get(roomId);
+                            if (lastReadTime == null) {
+                                return 0L;
+                            }
+
+                            return chatRepository.countByRoomIdAndCreatedAtAfterAndSenderIdNot(
+                                    roomId, lastReadTime, memberId);
+                        },
                         (existing, replacement) -> existing
                 ));
-    }
-
-    private Long calculateUnreadCount(Long roomId, Long memberId) {
-        if (!isMemberInRoom(roomId, memberId)) {
-            return 0L;
-        }
-
-        LocalDateTime lastReadTime = unreadMessageService.getLastReadTime(memberId, roomId);
-        if (lastReadTime == null) {
-            return 0L;
-        }
-
-        return chatRepository.countByRoomIdAndCreatedAtAfterAndSenderIdNot(roomId, lastReadTime,
-                memberId);
     }
 
     private boolean isMemberInRoom(Long roomId, Long memberId) {
@@ -358,28 +367,20 @@ public class ChatRoomService {
     }
 
     private Map<Long, ChatRoomResponse.LatestMessage> fetchLatestMessages(List<Long> roomIds) {
-        return roomIds.stream()
-                .map(this::createLatestMessageEntry)
-                .filter(Objects::nonNull)
+        List<Chat> allLatestChats = chatRepository.findByRoomIdInOrderByCreatedAtDesc(roomIds);
+
+        return allLatestChats.stream()
                 .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue
+                        Chat::getRoomId,
+                        chat -> new ChatRoomResponse.LatestMessage(
+                                chat.getMessage(),
+                                chat.getSenderName(),
+                                chat.getCreatedAt()
+                        ),
+                        (existing, replacement) ->
+                                existing.createdAt().isAfter(replacement.createdAt())
+                                        ? existing : replacement
                 ));
-    }
-
-    private Map.Entry<Long, ChatRoomResponse.LatestMessage> createLatestMessageEntry(Long roomId) {
-        var latestChat = chatRepository.findFirstByRoomIdOrderByCreatedAtDesc(roomId);
-        if (latestChat == null) {
-            return null;
-        }
-
-        ChatRoomResponse.LatestMessage message = new ChatRoomResponse.LatestMessage(
-                latestChat.getMessage(),
-                latestChat.getSenderName(),
-                latestChat.getCreatedAt()
-        );
-
-        return new AbstractMap.SimpleEntry<>(roomId, message);
     }
 
     private Page<ChatRoomResponse> mapToResponsePage(

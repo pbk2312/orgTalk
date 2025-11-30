@@ -14,30 +14,38 @@ import yuhan.pro.chatserver.sharedkernel.entity.BaseDocument;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@org.springframework.data.mongodb.core.index.CompoundIndex(
+        name = "idx_roomid_createdat",
+        def = "{'roomId': 1, 'createdAt': -1}"
+)
+@org.springframework.data.mongodb.core.index.CompoundIndex(
+        name = "idx_roomid_createdat_senderid",
+        def = "{'roomId': 1, 'createdAt': 1, 'senderId': 1}"
+)
 public class Chat extends BaseDocument {
 
-  @Id
-  private String id;
+    @Id
+    private String id;
 
-  private Long roomId;
+    private Long roomId;
 
-  private String senderName;
+    private String senderName;
 
-  private Long senderId;
+    private Long senderId;
 
-  private MessageType type;
+    private MessageType type;
 
-  private String message;
+    private String message;
 
-  private String codeContent;
+    private String codeContent;
 
-  private Language language;
+    private Language language;
 
-  @Builder
-  public Chat(Long roomId, String senderName, Long senderId, String message) {
-    this.roomId = roomId;
-    this.senderName = senderName;
-    this.senderId = senderId;
-    this.message = message;
-  }
+    @Builder
+    public Chat(Long roomId, String senderName, Long senderId, String message) {
+        this.roomId = roomId;
+        this.senderName = senderName;
+        this.senderId = senderId;
+        this.message = message;
+    }
 }
